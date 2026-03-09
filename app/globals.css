@@ -60,21 +60,21 @@
 }
 
 @layer utilities {
-  /* Glassmorphism utilities */
+  /* Glassmorphism utilities - Apple style */
   .glass {
-    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30;
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 rounded-2xl;
   }
 
   .glass-strong {
-    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border border-white/30 dark:border-gray-700/40;
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border border-white/30 dark:border-gray-700/40 rounded-2xl;
   }
 
   .glass-light {
-    @apply bg-white/50 dark:bg-gray-900/50 backdrop-blur-lg border border-white/10 dark:border-gray-700/20;
+    @apply bg-white/50 dark:bg-gray-900/50 backdrop-blur-lg border border-white/10 dark:border-gray-700/20 rounded-2xl;
   }
 
   .glass-card {
-    @apply bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-lg;
+    @apply bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-lg rounded-2xl;
   }
 
   .glass-sidebar {

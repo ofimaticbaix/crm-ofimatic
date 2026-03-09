@@ -24,10 +24,10 @@ export default function CompaniesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Empresas</h1>
-          <p className="text-gray-500 mt-1">{filteredCompanies.length} empresas totales</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Empresas</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">{filteredCompanies.length} empresas totales</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
           <Plus className="h-4 w-4" />
           Nueva Empresa
         </Button>
@@ -37,12 +37,12 @@ export default function CompaniesPage() {
       <Card>
         <CardContent className="p-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <Input
               placeholder="Buscar empresas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
             />
           </div>
         </CardContent>
@@ -51,33 +51,33 @@ export default function CompaniesPage() {
       {/* Companies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCompanies.map((company) => (
-          <Card key={company.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card key={company.id} className="hover:shadow-xl transition-all cursor-pointer group">
             <CardContent className="p-6">
               {/* Company Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
                     {company.name}
                   </h3>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">
                     {company.industry}
                   </Badge>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
                   {company.name[0]}
                 </div>
               </div>
 
               {/* Company Details */}
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Users className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                  <Users className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span>{company.size} empleados</span>
                 </div>
                 {company.website && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Globe className="h-4 w-4 text-gray-400" />
-                    <a href={`https://${company.website}`} className="text-blue-600 hover:underline">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <Globe className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    <a href={`https://${company.website}`} className="text-blue-600 dark:text-blue-400 hover:underline">
                       {company.website}
                     </a>
                   </div>
@@ -85,8 +85,8 @@ export default function CompaniesPage() {
               </div>
 
               {/* Footer */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <Button variant="ghost" size="sm" className="w-full">
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <Button variant="ghost" size="sm" className="w-full rounded-xl dark:text-gray-300 dark:hover:bg-gray-800/50">
                   Ver Detalles
                 </Button>
               </div>
