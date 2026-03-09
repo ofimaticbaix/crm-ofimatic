@@ -22,22 +22,22 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Buenos días, Alex 👋
         </h1>
-        <p className="text-gray-500 mt-1">Aquí está tu resumen de ventas de hoy</p>
+        <p className="text-gray-600 dark:text-gray-300 mt-1">Aquí está tu resumen de ventas de hoy</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Pipeline Total</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-400" />
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Pipeline Total</CardTitle>
+            <TrendingUp className="h-4 w-4 text-gray-400 dark:text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.totalValue)}</div>
-            <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.totalValue)}</div>
+            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3" />
               +12% vs mes anterior
             </p>
@@ -46,12 +46,12 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Forecast Ponderado</CardTitle>
-            <Target className="h-4 w-4 text-gray-400" />
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Forecast Ponderado</CardTitle>
+            <Target className="h-4 w-4 text-gray-400 dark:text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.weightedValue)}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.weightedValue)}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {mockDeals.length} deals activos
             </p>
           </CardContent>
@@ -59,12 +59,12 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Tasa de Conversión</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-gray-400" />
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Tasa de Conversión</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-gray-400 dark:text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{metrics.conversionRate}%</div>
-            <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.conversionRate}%</div>
+            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3" />
               +5% vs mes anterior
             </p>
@@ -73,12 +73,12 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Tareas Pendientes</CardTitle>
-            <Clock className="h-4 w-4 text-gray-400" />
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Tareas Pendientes</CardTitle>
+            <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{upcomingTasks.length}</div>
-            <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{upcomingTasks.length}</div>
+            <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
               <AlertCircle className="h-3 w-3" />
               {overdueTasks.length} vencidas
             </p>
@@ -105,11 +105,11 @@ export default function DashboardPage() {
                   const isOverdue = new Date(task.dueDate) < new Date()
 
                   return (
-                    <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                      <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300" />
+                    <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700/50 transition-colors">
+                      <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600" />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{task.title}</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
                           {task.priority === 'high' && (
                             <Badge variant="destructive" className="text-xs">Alta</Badge>
                           )}
@@ -118,10 +118,10 @@ export default function DashboardPage() {
                           )}
                         </div>
                         {deal && (
-                          <p className="text-sm text-gray-500 mt-1">{deal.name}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{deal.name}</p>
                         )}
                       </div>
-                      <span className="text-xs text-gray-500">{task.dueDate}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{task.dueDate}</span>
                     </div>
                   )
                 })}
@@ -137,17 +137,17 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-3">
                 {closingThisWeek.map((deal) => (
-                  <div key={deal.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div key={deal.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700/50 transition-colors">
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{deal.name}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">{deal.name}</div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-gray-500">{deal.company?.name}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{deal.company?.name}</span>
                         <Badge variant="outline" className="text-xs">{deal.stageName}</Badge>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-gray-900">{formatCurrency(deal.value)}</div>
-                      <div className="text-xs text-gray-500">{deal.expectedCloseDate}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white">{formatCurrency(deal.value)}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{deal.expectedCloseDate}</div>
                     </div>
                   </div>
                 ))}
@@ -210,10 +210,10 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {recentActivity.map((activity) => (
                   <div key={activity.id} className="flex gap-3">
-                    <div className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500 mt-2"></div>
+                    <div className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 mt-2"></div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{activity.subject}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{formatRelativeTime(activity.createdAt)}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.subject}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatRelativeTime(activity.createdAt)}</p>
                     </div>
                   </div>
                 ))}

@@ -58,3 +58,30 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+@layer utilities {
+  /* Glassmorphism utilities */
+  .glass {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30;
+  }
+
+  .glass-strong {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border border-white/30 dark:border-gray-700/40;
+  }
+
+  .glass-light {
+    @apply bg-white/50 dark:bg-gray-900/50 backdrop-blur-lg border border-white/10 dark:border-gray-700/20;
+  }
+
+  .glass-card {
+    @apply bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-lg;
+  }
+
+  .glass-sidebar {
+    @apply bg-white/75 dark:bg-gray-900/75 backdrop-blur-2xl border-r border-white/20 dark:border-gray-700/30;
+  }
+
+  .glass-header {
+    @apply bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30;
+  }
+}
