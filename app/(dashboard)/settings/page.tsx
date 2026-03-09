@@ -17,18 +17,18 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Workspace
+            Espacio de Trabajo
           </CardTitle>
           <CardDescription>
-            Información básica de tu workspace
+            Información básica de tu espacio de trabajo
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
-              Nombre del Workspace
+              Nombre de la Empresa
             </label>
-            <Input defaultValue="Mi Empresa" />
+            <Input defaultValue="Ofimàtic Baix" />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">

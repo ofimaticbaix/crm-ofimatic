@@ -2,10 +2,10 @@ import Link from 'next/link'
 import { LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings } from 'lucide-react'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Contactos', href: '/contacts', icon: Users },
   { name: 'Empresas', href: '/companies', icon: Building2 },
-  { name: 'Deals', href: '/deals', icon: TrendingUp },
+  { name: 'Oportunidades', href: '/deals', icon: TrendingUp },
   { name: 'Tareas', href: '/tasks', icon: CheckSquare },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ]
@@ -73,7 +73,7 @@ export default function DashboardLayout({
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500">
-              Workspace: <span className="font-medium text-gray-900">Mi Empresa</span>
+              Espacio: <span className="font-medium text-gray-900">Ofimàtic Baix</span>
             </span>
           </div>
         </header>
