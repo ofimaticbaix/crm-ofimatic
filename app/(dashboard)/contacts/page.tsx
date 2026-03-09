@@ -145,7 +145,7 @@ export default function ContactsPage() {
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-semibold text-white">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
                             {contact.firstName} {contact.lastName}
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">{contact.jobTitle}</div>
@@ -192,7 +192,7 @@ export default function ContactsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold text-white">
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle === 'customer').length}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Clientes</p>
@@ -200,7 +200,7 @@ export default function ContactsPage() {
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold text-white">
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle === 'prospect').length}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Prospectos</p>
@@ -208,7 +208,7 @@ export default function ContactsPage() {
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold text-white">
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle === 'lead').length}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Leads</p>

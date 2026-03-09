@@ -122,7 +122,7 @@ export default function SettingsPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
               <div>
-                <div className="font-semibold text-white">Alex Saumell</div>
+                <div className="font-semibold text-gray-900 dark:text-white">Alex Saumell</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">alex@empresa.com • Owner</div>
               </div>
               <Button
@@ -160,7 +160,7 @@ export default function SettingsPage() {
           <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <div className="font-semibold text-white">Professional Plan</div>
+                <div className="font-semibold text-gray-900 dark:text-white">Professional Plan</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">€39/usuario/mes</div>
               </div>
               <div className="text-sm px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full font-medium">
@@ -193,7 +193,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
               <div>
-                <div className="font-medium text-white">Email notifications</div>
+                <div className="font-medium text-gray-900 dark:text-white">Email notifications</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Recibe updates por email</div>
               </div>
               <input
@@ -216,7 +216,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
               <div>
-                <div className="font-medium text-white">Deal updates</div>
+                <div className="font-medium text-gray-900 dark:text-white">Deal updates</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Notificaciones de cambios en deals</div>
               </div>
               <input
