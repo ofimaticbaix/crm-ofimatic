@@ -16,13 +16,13 @@ export default function TasksPage() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
       case 'low':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
     }
   }
 
@@ -31,12 +31,12 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tareas</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tareas</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             {pendingTasks.length} pendientes • {overdueTasks.length} vencidas
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
           <Plus className="h-4 w-4" />
           Nueva Tarea
         </Button>
@@ -44,53 +44,53 @@ export default function TasksPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-2xl font-bold text-gray-900">{todayTasks.length}</div>
-            <p className="text-sm text-gray-500 mt-1">Tareas Hoy</p>
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">{todayTasks.length}</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Tareas Hoy</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-2xl font-bold text-red-600">{overdueTasks.length}</div>
-            <p className="text-sm text-gray-500 mt-1">Vencidas</p>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{overdueTasks.length}</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Vencidas</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-2xl font-bold text-gray-900">{pendingTasks.length}</div>
-            <p className="text-sm text-gray-500 mt-1">Total Pendientes</p>
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">{pendingTasks.length}</div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Total Pendientes</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Overdue Tasks */}
       {overdueTasks.length > 0 && (
-        <Card className="border-red-200 bg-red-50/50">
+        <Card className="border-red-200 dark:border-red-800/30 bg-red-50/50 dark:bg-red-900/10">
           <CardHeader>
-            <CardTitle className="text-red-900">Tareas Vencidas</CardTitle>
+            <CardTitle className="text-red-900 dark:text-red-200">Tareas Vencidas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {overdueTasks.map((task) => {
                 const deal = mockDeals.find(d => d.id === task.dealId)
                 return (
-                  <div key={task.id} className="flex items-start gap-3 p-3 bg-white rounded-lg">
-                    <Circle className="h-5 w-5 text-gray-400 mt-0.5" />
+                  <div key={task.id} className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800/50 rounded-xl">
+                    <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500 mt-0.5" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{task.title}</span>
-                        <Badge className={getPriorityColor(task.priority)}>
+                        <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
+                        <Badge className={`${getPriorityColor(task.priority)} rounded-xl`}>
                           {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
                         </Badge>
                       </div>
                       {deal && (
-                        <p className="text-sm text-gray-500 mt-1">{deal.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{deal.name}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="destructive" className="text-xs">Vencida</Badge>
-                      <span className="text-xs text-gray-500">{task.dueDate}</span>
+                      <Badge variant="destructive" className="text-xs rounded-xl">Vencida</Badge>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{task.dueDate}</span>
                     </div>
                   </div>
                 )
@@ -103,27 +103,27 @@ export default function TasksPage() {
       {/* Today's Tasks */}
       <Card>
         <CardHeader>
-          <CardTitle>Tareas de Hoy</CardTitle>
+          <CardTitle className="text-gray-900 dark:text-white">Tareas de Hoy</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {todayTasks.map((task) => {
               const deal = mockDeals.find(d => d.id === task.dealId)
               return (
-                <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
-                  <Circle className="h-5 w-5 text-gray-400 mt-0.5" />
+                <div key={task.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                  <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500 mt-0.5" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{task.title}</span>
-                      <Badge className={getPriorityColor(task.priority)}>
+                      <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
+                      <Badge className={`${getPriorityColor(task.priority)} rounded-xl`}>
                         {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
                       </Badge>
                     </div>
                     {deal && (
-                      <p className="text-sm text-gray-500 mt-1">{deal.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{deal.name}</p>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">{task.dueDate}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{task.dueDate}</span>
                 </div>
               )
             })}
@@ -134,7 +134,7 @@ export default function TasksPage() {
       {/* Upcoming Tasks */}
       <Card>
         <CardHeader>
-          <CardTitle>Próximas Tareas</CardTitle>
+          <CardTitle className="text-gray-900 dark:text-white">Próximas Tareas</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -147,20 +147,20 @@ export default function TasksPage() {
               .map((task) => {
                 const deal = mockDeals.find(d => d.id === task.dealId)
                 return (
-                  <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
-                    <Circle className="h-5 w-5 text-gray-400 mt-0.5" />
+                  <div key={task.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                    <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500 mt-0.5" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{task.title}</span>
-                        <Badge className={getPriorityColor(task.priority)}>
+                        <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
+                        <Badge className={`${getPriorityColor(task.priority)} rounded-xl`}>
                           {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
                         </Badge>
                       </div>
                       {deal && (
-                        <p className="text-sm text-gray-500 mt-1">{deal.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{deal.name}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <Calendar className="h-4 w-4" />
                       {task.dueDate}
                     </div>
