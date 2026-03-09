@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,28 @@ export default function SettingsPage() {
   const [dealUpdates, setDealUpdates] = useState(true)
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
 
+  // Load saved settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('crm-settings')
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings)
+      setCompanyName(settings.companyName || 'Ofimàtic Baix')
+      setIndustry(settings.industry || 'SaaS')
+      setEmailNotifications(settings.emailNotifications ?? true)
+      setDealUpdates(settings.dealUpdates ?? true)
+    }
+  }, [])
+
   const handleSaveWorkspace = () => {
+    // Save to localStorage
+    const settings = {
+      companyName,
+      industry,
+      emailNotifications,
+      dealUpdates
+    }
+    localStorage.setItem('crm-settings', JSON.stringify(settings))
+
     setShowSaveSuccess(true)
     setTimeout(() => setShowSaveSuccess(false), 3000)
   }
@@ -178,7 +199,18 @@ export default function SettingsPage() {
               <input
                 type="checkbox"
                 checked={emailNotifications}
-                onChange={(e) => setEmailNotifications(e.target.checked)}
+                onChange={(e) => {
+                  const newValue = e.target.checked
+                  setEmailNotifications(newValue)
+                  // Auto-save notification preferences
+                  const settings = {
+                    companyName,
+                    industry,
+                    emailNotifications: newValue,
+                    dealUpdates
+                  }
+                  localStorage.setItem('crm-settings', JSON.stringify(settings))
+                }}
                 className="h-5 w-5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -190,7 +222,18 @@ export default function SettingsPage() {
               <input
                 type="checkbox"
                 checked={dealUpdates}
-                onChange={(e) => setDealUpdates(e.target.checked)}
+                onChange={(e) => {
+                  const newValue = e.target.checked
+                  setDealUpdates(newValue)
+                  // Auto-save notification preferences
+                  const settings = {
+                    companyName,
+                    industry,
+                    emailNotifications,
+                    dealUpdates: newValue
+                  }
+                  localStorage.setItem('crm-settings', JSON.stringify(settings))
+                }}
                 className="h-5 w-5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
               />
             </div>
