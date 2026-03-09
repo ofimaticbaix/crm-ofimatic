@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Settings, Users, DollarSign, Bell, Check } from 'lucide-react'
 
 export default function SettingsPage() {
-  const [companyName, setCompanyName] = useState('Ofimàtic Baix')
+  const [companyName, setCompanyName] = useState('OFIMATIC BAIX')
   const [industry, setIndustry] = useState('SaaS')
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [dealUpdates, setDealUpdates] = useState(true)
@@ -18,7 +18,7 @@ export default function SettingsPage() {
     const savedSettings = localStorage.getItem('crm-settings')
     if (savedSettings) {
       const settings = JSON.parse(savedSettings)
-      setCompanyName(settings.companyName || 'Ofimàtic Baix')
+      setCompanyName(settings.companyName || 'OFIMATIC BAIX')
       setIndustry(settings.industry || 'SaaS')
       setEmailNotifications(settings.emailNotifications ?? true)
       setDealUpdates(settings.dealUpdates ?? true)

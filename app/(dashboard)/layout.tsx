@@ -26,7 +26,7 @@ export default function DashboardLayout({
             <span className="text-white font-bold text-lg">O</span>
           </div>
           <span className="ml-3 text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            Ofimàtic Baix
+            OFIMATIC BAIX
           </span>
         </div>
 
@@ -80,7 +80,7 @@ export default function DashboardLayout({
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600 dark:text-gray-300">
-              Espacio: <span className="font-medium text-gray-900 dark:text-white">Ofimàtic Baix</span>
+              Espacio: <span className="font-medium text-gray-900 dark:text-white">OFIMATIC BAIX</span>
             </span>
             <ThemeToggle />
           </div>
