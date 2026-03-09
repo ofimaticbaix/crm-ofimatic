@@ -5,11 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Mail, Phone, Building2 } from 'lucide-react'
+import { Search, Plus, Mail, Phone, Building2, X } from 'lucide-react'
 import { getContactsWithCompany } from '@/lib/mock-data'
 
 export default function ContactsPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [showNewContactModal, setShowNewContactModal] = useState(false)
+  const [newContact, setNewContact] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    jobTitle: '',
+    lifecycle: 'lead'
+  })
   const contacts = getContactsWithCompany()
 
   const filteredContacts = contacts.filter(contact => {
@@ -48,15 +57,32 @@ export default function ContactsPage() {
     }
   }
 
+  const handleCreateContact = () => {
+    // En producción, aquí harías una llamada al backend
+    alert(`Contacto creado: ${newContact.firstName} ${newContact.lastName}`)
+    setShowNewContactModal(false)
+    setNewContact({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      jobTitle: '',
+      lifecycle: 'lead'
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Contactos</h1>
+          <h1 className="text-3xl font-bold text-white">Contactos</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">{filteredContacts.length} contactos totales</p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
+        <Button
+          onClick={() => setShowNewContactModal(true)}
+          className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all"
+        >
           <Plus className="h-4 w-4" />
           Nuevo Contacto
         </Button>
@@ -119,7 +145,7 @@ export default function ContactsPage() {
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                          <div className="text-sm font-semibold text-white">
                             {contact.firstName} {contact.lastName}
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">{contact.jobTitle}</div>
@@ -166,7 +192,7 @@ export default function ContactsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="text-3xl font-bold text-white">
               {contacts.filter(c => c.lifecycle === 'customer').length}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Clientes</p>
@@ -174,7 +200,7 @@ export default function ContactsPage() {
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="text-3xl font-bold text-white">
               {contacts.filter(c => c.lifecycle === 'prospect').length}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Prospectos</p>
@@ -182,13 +208,122 @@ export default function ContactsPage() {
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="text-3xl font-bold text-white">
               {contacts.filter(c => c.lifecycle === 'lead').length}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Leads</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal Nuevo Contacto */}
+      {showNewContactModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white">Nuevo Contacto</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNewContactModal(false)}
+                className="rounded-xl"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Nombre *
+                  </label>
+                  <Input
+                    value={newContact.firstName}
+                    onChange={(e) => setNewContact({...newContact, firstName: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Juan"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Apellido *
+                  </label>
+                  <Input
+                    value={newContact.lastName}
+                    onChange={(e) => setNewContact({...newContact, lastName: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Pérez"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Email *
+                  </label>
+                  <Input
+                    type="email"
+                    value={newContact.email}
+                    onChange={(e) => setNewContact({...newContact, email: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="juan@empresa.com"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Teléfono
+                  </label>
+                  <Input
+                    value={newContact.phone}
+                    onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="+34 600 000 000"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Cargo
+                  </label>
+                  <Input
+                    value={newContact.jobTitle}
+                    onChange={(e) => setNewContact({...newContact, jobTitle: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Director General"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Estado
+                  </label>
+                  <select
+                    value={newContact.lifecycle}
+                    onChange={(e) => setNewContact({...newContact, lifecycle: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
+                  >
+                    <option value="lead">Lead</option>
+                    <option value="prospect">Prospecto</option>
+                    <option value="customer">Cliente</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleCreateContact}
+                  className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  disabled={!newContact.firstName || !newContact.lastName || !newContact.email}
+                >
+                  Crear Contacto
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewContactModal(false)}
+                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

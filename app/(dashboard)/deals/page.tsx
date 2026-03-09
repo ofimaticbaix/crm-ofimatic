@@ -38,7 +38,7 @@ export default function DealsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Pipeline de Ventas</h1>
+          <h1 className="text-3xl font-bold text-white">Pipeline de Ventas</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
             {allDeals.length} deals • {formatCurrency(totalValue)} valor total
           </p>
@@ -61,7 +61,7 @@ export default function DealsPage() {
                 <div className="text-sm font-medium text-gray-600 dark:text-gray-300 uppercase">
                   {stage.name}
                 </div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
+                <div className="text-2xl font-bold text-white mt-2">
                   {stageDeals.length}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -85,7 +85,7 @@ export default function DealsPage() {
               <div className="bg-gray-50/50 dark:bg-gray-800/50 rounded-t-2xl p-4 border-x border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{stage.name}</h3>
+                    <h3 className="font-semibold text-white">{stage.name}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                       {stageDeals.length} deals • {formatCurrency(stageValue)}
                     </p>
@@ -110,7 +110,7 @@ export default function DealsPage() {
                       <CardContent className="p-4">
                         {/* Deal Header */}
                         <div className="flex items-start justify-between gap-2 mb-3">
-                          <h4 className="font-medium text-gray-900 dark:text-white text-sm leading-tight">
+                          <h4 className="font-medium text-white text-sm leading-tight">
                             {deal.name}
                           </h4>
                           {riskIcon && (
@@ -128,7 +128,7 @@ export default function DealsPage() {
                         )}
 
                         {/* Value */}
-                        <div className="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                        <div className="text-lg font-bold text-white mb-3">
                           {formatCurrency(deal.value)}
                         </div>
 
@@ -182,7 +182,7 @@ export default function DealsPage() {
       {/* AI Insights for Deals */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+          <CardTitle className="flex items-center gap-2 text-white">
             <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Insights del Pipeline
           </CardTitle>

@@ -31,7 +31,7 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tareas</h1>
+          <h1 className="text-3xl font-bold text-white">Tareas</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
             {pendingTasks.length} pendientes • {overdueTasks.length} vencidas
           </p>
@@ -46,7 +46,7 @@ export default function TasksPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{todayTasks.length}</div>
+            <div className="text-3xl font-bold text-white">{todayTasks.length}</div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Tareas Hoy</p>
           </CardContent>
         </Card>
@@ -58,7 +58,7 @@ export default function TasksPage() {
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{pendingTasks.length}</div>
+            <div className="text-3xl font-bold text-white">{pendingTasks.length}</div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Total Pendientes</p>
           </CardContent>
         </Card>
@@ -79,7 +79,7 @@ export default function TasksPage() {
                     <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500 mt-0.5" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
+                        <span className="font-medium text-white">{task.title}</span>
                         <Badge className={`${getPriorityColor(task.priority)} rounded-xl`}>
                           {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
                         </Badge>
@@ -103,7 +103,7 @@ export default function TasksPage() {
       {/* Today's Tasks */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-white">Tareas de Hoy</CardTitle>
+          <CardTitle className="text-white">Tareas de Hoy</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -114,7 +114,7 @@ export default function TasksPage() {
                   <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500 mt-0.5" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
+                      <span className="font-medium text-white">{task.title}</span>
                       <Badge className={`${getPriorityColor(task.priority)} rounded-xl`}>
                         {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
                       </Badge>
@@ -134,7 +134,7 @@ export default function TasksPage() {
       {/* Upcoming Tasks */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-white">Próximas Tareas</CardTitle>
+          <CardTitle className="text-white">Próximas Tareas</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -151,7 +151,7 @@ export default function TasksPage() {
                     <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500 mt-0.5" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
+                        <span className="font-medium text-white">{task.title}</span>
                         <Badge className={`${getPriorityColor(task.priority)} rounded-xl`}>
                           {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
                         </Badge>

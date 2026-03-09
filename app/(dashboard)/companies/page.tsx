@@ -24,7 +24,7 @@ export default function CompaniesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Empresas</h1>
+          <h1 className="text-3xl font-bold text-white">Empresas</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">{filteredCompanies.length} empresas totales</p>
         </div>
         <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
@@ -56,7 +56,7 @@ export default function CompaniesPage() {
               {/* Company Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
+                  <h3 className="font-semibold text-lg text-white mb-2">
                     {company.name}
                   </h3>
                   <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">

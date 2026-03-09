@@ -23,7 +23,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <span className="text-3xl">👋</span>
             Hola, Alex
           </h1>
@@ -44,7 +44,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Ventas Totales</p>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.totalValue)}</div>
+            <div className="text-3xl font-bold text-white">{formatCurrency(metrics.totalValue)}</div>
           </CardContent>
         </Card>
 
@@ -59,7 +59,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Previsión</p>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.weightedValue)}</div>
+            <div className="text-3xl font-bold text-white">{formatCurrency(metrics.weightedValue)}</div>
           </CardContent>
         </Card>
 
@@ -74,7 +74,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Éxito de Ventas</p>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.conversionRate}%</div>
+            <div className="text-3xl font-bold text-white">{metrics.conversionRate}%</div>
           </CardContent>
         </Card>
 
@@ -91,7 +91,7 @@ export default function DashboardPage() {
               )}
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Tareas Pendientes</p>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{upcomingTasks.length}</div>
+            <div className="text-3xl font-bold text-white">{upcomingTasks.length}</div>
           </CardContent>
         </Card>
       </div>
@@ -128,7 +128,7 @@ export default function DashboardPage() {
                         <input type="checkbox" className="h-5 w-5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-gray-900 dark:text-white truncate">{task.title}</span>
+                            <span className="font-medium text-white truncate">{task.title}</span>
                             {task.priority === 'high' && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
                                 ⚠️ Urgente
@@ -175,7 +175,7 @@ export default function DashboardPage() {
                         <Building2 className="h-6 w-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 dark:text-white truncate">{deal.name}</div>
+                        <div className="font-semibold text-white truncate">{deal.name}</div>
                         <div className="flex items-center gap-2 mt-1">
                           <Users className="h-3 w-3 text-gray-400" />
                           <span className="text-sm text-gray-500 dark:text-gray-400">{deal.company?.name}</span>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                     )}
                     <div className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 dark:bg-blue-400 mt-1 ring-4 ring-white dark:ring-gray-800 z-10" />
                     <div className="flex-1 pb-2">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.subject}</p>
+                      <p className="text-sm font-medium text-white">{activity.subject}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatRelativeTime(activity.createdAt)}</p>
                     </div>
                   </div>
