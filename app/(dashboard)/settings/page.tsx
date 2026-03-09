@@ -1,66 +1,125 @@
+'use client'
+
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Settings, Users, DollarSign, Bell, Lock } from 'lucide-react'
+import { Settings, Users, DollarSign, Bell, Check } from 'lucide-react'
 
 export default function SettingsPage() {
+  const [companyName, setCompanyName] = useState('Ofimàtic Baix')
+  const [industry, setIndustry] = useState('SaaS')
+  const [emailNotifications, setEmailNotifications] = useState(true)
+  const [dealUpdates, setDealUpdates] = useState(true)
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false)
+
+  const handleSaveWorkspace = () => {
+    setShowSaveSuccess(true)
+    setTimeout(() => setShowSaveSuccess(false), 3000)
+  }
+
+  const handleEditUser = () => {
+    alert('Funcionalidad de edición de usuario - Próximamente con backend')
+  }
+
+  const handleInviteUser = () => {
+    alert('Funcionalidad de invitación - Próximamente con backend')
+  }
+
+  const handleManageSubscription = () => {
+    alert('Redirigiendo a gestión de suscripción - Próximamente con Stripe/PayPal')
+  }
+
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Configuración</h1>
-        <p className="text-gray-500 mt-1">Gestiona tu workspace y preferencias</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Configuración</h1>
+        <p className="text-gray-600 dark:text-gray-300 mt-1">Gestiona tu workspace y preferencias</p>
       </div>
 
       {/* Workspace Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+            <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Espacio de Trabajo
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
             Información básica de tu espacio de trabajo
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
               Nombre de la Empresa
             </label>
-            <Input defaultValue="Ofimàtic Baix" />
+            <Input
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+            />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
               Industria
             </label>
-            <Input defaultValue="SaaS" />
+            <Input
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+            />
           </div>
-          <Button>Guardar Cambios</Button>
+          <Button
+            onClick={handleSaveWorkspace}
+            className="rounded-xl shadow-lg hover:shadow-xl transition-all"
+          >
+            {showSaveSuccess ? (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                ¡Guardado!
+              </>
+            ) : (
+              'Guardar Cambios'
+            )}
+          </Button>
         </CardContent>
       </Card>
 
       {/* Users */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+            <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             Equipo
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
             Gestiona usuarios y permisos
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
               <div>
-                <div className="font-medium text-gray-900">Alex García</div>
-                <div className="text-sm text-gray-500">alex@empresa.com • Owner</div>
+                <div className="font-semibold text-gray-900 dark:text-white">Alex Saumell</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">alex@empresa.com • Owner</div>
               </div>
-              <Button variant="outline" size="sm">Editar</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEditUser}
+                className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
+              >
+                Editar
+              </Button>
             </div>
-            <Button variant="outline" className="w-full">+ Invitar Usuario</Button>
+            <Button
+              variant="outline"
+              className="w-full rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
+              onClick={handleInviteUser}
+            >
+              + Invitar Usuario
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -68,26 +127,32 @@ export default function SettingsPage() {
       {/* Billing */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+            <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
             Suscripción
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
             Gestiona tu plan y facturación
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="p-4 border rounded-lg">
+          <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <div className="font-semibold text-gray-900">Professional Plan</div>
-                <div className="text-sm text-gray-500">€39/usuario/mes</div>
+                <div className="font-semibold text-gray-900 dark:text-white">Professional Plan</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">€39/usuario/mes</div>
               </div>
-              <div className="text-sm px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
+              <div className="text-sm px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full font-medium">
                 Activo
               </div>
             </div>
-            <Button variant="outline">Gestionar Suscripción</Button>
+            <Button
+              variant="outline"
+              onClick={handleManageSubscription}
+              className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
+            >
+              Gestionar Suscripción
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -95,29 +160,39 @@ export default function SettingsPage() {
       {/* Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+            <Bell className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             Notificaciones
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
             Configura cómo quieres recibir notificaciones
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
               <div>
-                <div className="font-medium text-gray-900">Email notifications</div>
-                <div className="text-sm text-gray-500">Recibe updates por email</div>
+                <div className="font-medium text-gray-900 dark:text-white">Email notifications</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Recibe updates por email</div>
               </div>
-              <input type="checkbox" defaultChecked className="h-4 w-4 rounded" />
+              <input
+                type="checkbox"
+                checked={emailNotifications}
+                onChange={(e) => setEmailNotifications(e.target.checked)}
+                className="h-5 w-5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
               <div>
-                <div className="font-medium text-gray-900">Deal updates</div>
-                <div className="text-sm text-gray-500">Notificaciones de cambios en deals</div>
+                <div className="font-medium text-gray-900 dark:text-white">Deal updates</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Notificaciones de cambios en deals</div>
               </div>
-              <input type="checkbox" defaultChecked className="h-4 w-4 rounded" />
+              <input
+                type="checkbox"
+                checked={dealUpdates}
+                onChange={(e) => setDealUpdates(e.target.checked)}
+                className="h-5 w-5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           </div>
         </CardContent>
