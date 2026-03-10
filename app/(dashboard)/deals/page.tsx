@@ -1,14 +1,37 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Plus, TrendingUp, AlertCircle, Clock } from 'lucide-react'
-import { stages, getDealsByStage, getDealsWithRelations } from '@/lib/mock-data'
+import { Input } from '@/components/ui/input'
+import { Plus, TrendingUp, AlertCircle, Clock, X } from 'lucide-react'
+import { stages, getDealsByStage, getDealsWithRelations, mockCompanies } from '@/lib/mock-data'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 
 export default function DealsPage() {
+  const [showNewDealModal, setShowNewDealModal] = useState(false)
+  const [newDeal, setNewDeal] = useState({
+    name: '',
+    value: '',
+    companyId: '',
+    stage: 'prospecting',
+    expectedCloseDate: ''
+  })
+
   const allDeals = getDealsWithRelations()
+
+  const handleCreateDeal = () => {
+    alert(`Oportunidad creada: ${newDeal.name} - ${formatCurrency(Number(newDeal.value))}`)
+    setShowNewDealModal(false)
+    setNewDeal({
+      name: '',
+      value: '',
+      companyId: '',
+      stage: 'prospecting',
+      expectedCloseDate: ''
+    })
+  }
 
   const getDealRiskStatus = (deal: any) => {
     const daysSinceActivity = Math.floor(
@@ -43,7 +66,10 @@ export default function DealsPage() {
             {allDeals.length} oportunidades • {formatCurrency(totalValue)}
           </p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
+        <Button
+          onClick={() => setShowNewDealModal(true)}
+          className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+        >
           <Plus className="h-4 w-4" />
           Nueva Oportunidad
         </Button>
@@ -242,6 +268,112 @@ export default function DealsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal Nueva Oportunidad */}
+      {showNewDealModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white">Nueva Oportunidad</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNewDealModal(false)}
+                className="rounded-xl"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Nombre de la Oportunidad *
+                  </label>
+                  <Input
+                    value={newDeal.name}
+                    onChange={(e) => setNewDeal({...newDeal, name: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Ej: Enterprise CRM - Acme Corp"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Valor (€) *
+                  </label>
+                  <Input
+                    type="number"
+                    value={newDeal.value}
+                    onChange={(e) => setNewDeal({...newDeal, value: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="45000"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Empresa *
+                  </label>
+                  <select
+                    value={newDeal.companyId}
+                    onChange={(e) => setNewDeal({...newDeal, companyId: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
+                  >
+                    <option value="">Seleccionar empresa</option>
+                    {mockCompanies.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Etapa *
+                  </label>
+                  <select
+                    value={newDeal.stage}
+                    onChange={(e) => setNewDeal({...newDeal, stage: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
+                  >
+                    {stages.map((stage) => (
+                      <option key={stage.id} value={stage.id}>
+                        {stage.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Fecha de Cierre Esperada *
+                  </label>
+                  <Input
+                    type="date"
+                    value={newDeal.expectedCloseDate}
+                    onChange={(e) => setNewDeal({...newDeal, expectedCloseDate: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleCreateDeal}
+                  className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  disabled={!newDeal.name || !newDeal.value || !newDeal.companyId || !newDeal.expectedCloseDate}
+                >
+                  Crear Oportunidad
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewDealModal(false)}
+                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
