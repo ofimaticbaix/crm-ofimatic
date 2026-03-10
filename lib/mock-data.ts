@@ -7,8 +7,8 @@ export const mockCompanies = [
   { id: '4', name: 'StartupXYZ', industry: 'FinTech', size: '1-10', website: 'startupxyz.io', canal: 'social', email: 'hello@startupxyz.io', phone: '+34 914 567 890', address: 'WeWork Paseo de la Castellana, Madrid', status: 'activo' as const },
   { id: '5', name: 'Marketing Plus', industry: 'Agencia', size: '11-50', website: 'marketingplus.es', canal: 'referido', email: 'info@marketingplus.es', phone: '+34 915 678 901', address: 'Calle Serrano 85, Madrid', status: 'activo' as const },
   { id: '6', name: 'DataFlow', industry: 'Analytics', size: '51-200', website: 'dataflow.com', canal: 'web', email: 'sales@dataflow.com', phone: '+34 916 789 012', address: 'Parque Tecnológico 12, Bilbao', status: 'activo' as const },
-  { id: '7', name: 'Cloud Systems', industry: 'Cloud Services', size: '201-500', website: 'cloudsys.io', canal: 'evento', email: 'enterprise@cloudsys.io', phone: '+34 917 890 123', address: 'Torre Mapfre, Barcelona', status: 'inactivo' as const },
-  { id: '8', name: 'Retail Madrid', industry: 'Retail', size: '51-200', website: 'retailmadrid.es', canal: 'llamada', email: 'comercial@retailmadrid.es', phone: '+34 918 901 234', address: 'Centro Comercial Xanadú, Madrid', status: 'inactivo' as const },
+  { id: '7', name: 'Cloud Systems', industry: 'Cloud Services', size: '201-500', website: 'cloudsys.io', canal: 'evento', email: 'enterprise@cloudsys.io', phone: '+34 917 890 123', address: 'Torre Mapfre, Barcelona', status: 'cerrado' as const },
+  { id: '8', name: 'Retail Madrid', industry: 'Retail', size: '51-200', website: 'retailmadrid.es', canal: 'llamada', email: 'comercial@retailmadrid.es', phone: '+34 918 901 234', address: 'Centro Comercial Xanadú, Madrid', status: 'cerrado' as const },
 ]
 
 export const mockContacts = [
@@ -244,8 +244,20 @@ export function getActiveCompanies() {
   return mockCompanies.filter(c => c.status === 'activo')
 }
 
-export function getInactiveCompanies() {
-  return mockCompanies.filter(c => c.status === 'inactivo')
+export function getClosedCompanies() {
+  return mockCompanies.filter(c => c.status === 'cerrado')
+}
+
+export function getDaysSinceLastActivity(companyId: string): number {
+  const activities = getActivitiesByCompany(companyId)
+  if (activities.length === 0) return 999
+  const latest = activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+  const diff = Math.floor((new Date().getTime() - new Date(latest.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  return diff
+}
+
+export function getOverdueCompanies(thresholdDays = 7) {
+  return getActiveCompanies().filter(c => getDaysSinceLastActivity(c.id) >= thresholdDays)
 }
 
 export function calculatePipelineMetrics() {
