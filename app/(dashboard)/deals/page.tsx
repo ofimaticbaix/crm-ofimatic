@@ -50,21 +50,21 @@ export default function DealsPage() {
       </div>
 
       {/* Pipeline Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         {stages.map((stage) => {
           const stageDeals = getDealsByStage(stage.id)
           const stageValue = stageDeals.reduce((sum, deal) => sum + deal.value, 0)
 
           return (
             <Card key={stage.id} className="hover:shadow-xl transition-shadow">
-              <CardContent className="p-4">
-                <div className="text-sm font-medium text-gray-600 dark:text-gray-300 uppercase">
+              <CardContent className="p-3 md:p-4">
+                <div className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300 uppercase truncate">
                   {stage.name}
                 </div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
+                <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mt-1 md:mt-2">
                   {stageDeals.length}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {formatCurrency(stageValue)}
                 </div>
               </CardContent>
@@ -74,13 +74,13 @@ export default function DealsPage() {
       </div>
 
       {/* Kanban Board */}
-      <div className="flex gap-6 overflow-x-auto pb-4">
+      <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
         {stages.map((stage) => {
           const stageDeals = allDeals.filter(d => d.stage === stage.id)
           const stageValue = stageDeals.reduce((sum, deal) => sum + deal.value, 0)
 
           return (
-            <div key={stage.id} className="flex-shrink-0 w-80">
+            <div key={stage.id} className="flex-shrink-0 w-72 md:w-80">
               {/* Column Header */}
               <div className="bg-gray-50/50 dark:bg-gray-800/50 rounded-t-2xl p-4 border-x border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">

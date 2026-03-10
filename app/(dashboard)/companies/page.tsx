@@ -49,7 +49,7 @@ export default function CompaniesPage() {
       </Card>
 
       {/* Companies Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {filteredCompanies.map((company) => (
           <Card key={company.id} className="hover:shadow-xl transition-all cursor-pointer group">
             <CardContent className="p-6">

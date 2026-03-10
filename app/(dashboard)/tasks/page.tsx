@@ -43,23 +43,23 @@ export default function TasksPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{todayTasks.length}</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Tareas Hoy</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{todayTasks.length}</div>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Hoy</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{overdueTasks.length}</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Vencidas</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{overdueTasks.length}</div>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Vencidas</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{pendingTasks.length}</div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Total Pendientes</p>
+          <CardContent className="p-4 md:p-6">
+            <div className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{pendingTasks.length}</div>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Totales</p>
           </CardContent>
         </Card>
       </div>

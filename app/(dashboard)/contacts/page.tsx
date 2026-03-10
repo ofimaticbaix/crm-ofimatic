@@ -90,27 +90,30 @@ export default function ContactsPage() {
 
       {/* Search and Filters */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
               <Input
-                placeholder="Buscar por nombre, email o empresa..."
+                placeholder="Buscar contactos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
               />
             </div>
-            <Button variant="outline" className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">Filtros</Button>
-            <Button variant="outline" className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">Exportar</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1 sm:flex-none rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">Filtros</Button>
+              <Button variant="outline" className="flex-1 sm:flex-none rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">Exportar</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Contacts Table */}
+      {/* Contacts List - Desktop Table / Mobile Cards */}
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
                 <tr>
@@ -128,9 +131,6 @@ export default function ContactsPage() {
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                     Estado
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                    Acciones
                   </th>
                 </tr>
               </thead>
@@ -177,13 +177,48 @@ export default function ContactsPage() {
                         {getLifecycleLabel(contact.lifecycle)}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      <Button variant="ghost" size="sm" className="rounded-xl">Ver</Button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+            {filteredContacts.map((contact) => (
+              <div key={contact.id} className="p-4 hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold shadow-md flex-shrink-0">
+                    {contact.firstName?.[0]}{contact.lastName?.[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 dark:text-white truncate">
+                      {contact.firstName} {contact.lastName}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{contact.jobTitle}</div>
+                    <Badge className={`${getLifecycleColor(contact.lifecycle)} rounded-xl mt-1 text-xs`}>
+                      {getLifecycleLabel(contact.lifecycle)}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <Building2 className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    <span className="truncate">{contact.company?.name || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    <a href={`mailto:${contact.email}`} className="text-blue-600 dark:text-blue-400 hover:underline truncate">
+                      {contact.email}
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <Phone className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    <span>{contact.phone}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

@@ -32,66 +32,66 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards - Más visuales y simples */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card className="border-l-4 border-l-blue-500 hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-white" />
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-white" />
               </div>
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                 +12%
               </span>
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Ventas Totales</p>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.totalValue)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Ventas</p>
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(metrics.totalValue)}</div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-purple-500 hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                <Target className="h-6 w-6 text-white" />
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                <Target className="h-5 w-5 md:h-6 md:w-6 text-white" />
               </div>
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                {mockDeals.length} activos
+                {mockDeals.length}
               </span>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Previsión</p>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.weightedValue)}</div>
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(metrics.weightedValue)}</div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-green-500 hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-white" />
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 text-white" />
               </div>
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                 +5%
               </span>
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Éxito de Ventas</p>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.conversionRate}%</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Éxito</p>
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">{metrics.conversionRate}%</div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-orange-500 hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-white" />
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                <Clock className="h-5 w-5 md:h-6 md:w-6 text-white" />
               </div>
               {overdueTasks.length > 0 && (
                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                  {overdueTasks.length} vencidas
+                  {overdueTasks.length}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Tareas Pendientes</p>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{upcomingTasks.length}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Tareas</p>
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">{upcomingTasks.length}</div>
           </CardContent>
         </Card>
       </div>
