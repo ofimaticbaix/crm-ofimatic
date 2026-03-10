@@ -140,11 +140,11 @@ export const mockActivities = [
 ]
 
 export const stages = [
-  { id: 'prospecting', name: 'Prospecting', probability: 10, position: 0 },
-  { id: 'qualification', name: 'Qualification', probability: 30, position: 1 },
-  { id: 'proposal', name: 'Proposal', probability: 50, position: 2 },
-  { id: 'negotiation', name: 'Negotiation', probability: 75, position: 3 },
-  { id: 'closed_won', name: 'Closed Won', probability: 100, position: 4 },
+  { id: 'prospecting', name: 'Prospección', probability: 10, position: 0 },
+  { id: 'qualification', name: 'Calificación', probability: 30, position: 1 },
+  { id: 'proposal', name: 'Propuesta', probability: 50, position: 2 },
+  { id: 'negotiation', name: 'Negociación', probability: 75, position: 3 },
+  { id: 'closed_won', name: 'Ganado', probability: 100, position: 4 },
 ]
 
 // Helper functions
