@@ -38,14 +38,14 @@ export default function DealsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Pipeline</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Embudo de Ventas</h1>
           <p className="text-xs md:text-sm text-white mt-1">
-            {allDeals.length} deals • {formatCurrency(totalValue)}
+            {allDeals.length} oportunidades • {formatCurrency(totalValue)}
           </p>
         </div>
         <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
           <Plus className="h-4 w-4" />
-          Nuevo Deal
+          Nueva Oportunidad
         </Button>
       </div>
 
@@ -87,7 +87,7 @@ export default function DealsPage() {
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">{stage.name}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                      {stageDeals.length} deals • {formatCurrency(stageValue)}
+                      {stageDeals.length} oportunidades • {formatCurrency(stageValue)}
                     </p>
                   </div>
                   <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">
@@ -170,7 +170,7 @@ export default function DealsPage() {
 
                 {stageDeals.length === 0 && (
                   <div className="flex items-center justify-center h-32 text-gray-400 dark:text-gray-500 text-sm">
-                    Sin deals en esta etapa
+                    Sin oportunidades en esta etapa
                   </div>
                 )}
               </div>
@@ -184,7 +184,7 @@ export default function DealsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            Insights del Pipeline
+            Insights del Embudo de Ventas
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -194,10 +194,10 @@ export default function DealsPage() {
                 <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
                 <div>
                   <p className="font-medium text-red-900 dark:text-red-200">
-                    {allDeals.filter(d => getDealRiskStatus(d) === 'at-risk').length} deals en riesgo
+                    {allDeals.filter(d => getDealRiskStatus(d) === 'at-risk').length} oportunidades en riesgo
                   </p>
                   <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                    Sin actividad en 7+ días. Necesitan follow-up urgente.
+                    Sin actividad en 7+ días. Necesitan seguimiento urgente.
                   </p>
                 </div>
               </div>
@@ -231,7 +231,7 @@ export default function DealsPage() {
                       const today = new Date()
                       const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
                       return closeDate >= today && closeDate <= nextWeek
-                    }).length} deals
+                    }).length} oportunidades
                   </p>
                   <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                     Se espera que cierren esta semana.
