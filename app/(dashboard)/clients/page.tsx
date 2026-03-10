@@ -68,7 +68,7 @@ export default function ClientsPage() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-semibold text-white truncate">{company.name}</h3>
-                        <p className="text-xs text-gray-400">{company.industry}</p>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 font-medium">{company.industry}</p>
                       </div>
                     </div>
                     <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-[10px] flex-shrink-0">
@@ -141,7 +141,7 @@ export default function ClientsPage() {
                         </div>
                         <div className="min-w-0">
                           <h3 className="font-semibold text-white truncate">{company.name}</h3>
-                          <p className="text-xs text-gray-400">{company.industry}</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-300 font-medium">{company.industry}</p>
                         </div>
                       </div>
                       <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 rounded-full text-[10px] flex-shrink-0">
