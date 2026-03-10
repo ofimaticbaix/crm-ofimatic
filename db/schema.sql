@@ -574,12 +574,102 @@ CREATE TABLE import_jobs (
   completed_at TIMESTAMPTZ,
 
   CONSTRAINT file_type_check CHECK (file_type IN ('csv', 'xlsx', 'xls', 'mdb', 'accdb', 'json')),
-  CONSTRAINT entity_type_check CHECK (entity_type IN ('contacts', 'companies', 'deals')),
+  CONSTRAINT entity_type_check CHECK (entity_type IN ('contacts', 'companies', 'deals', 'invoices_paid', 'invoices_pending')),
   CONSTRAINT status_check CHECK (status IN ('pending', 'processing', 'completed', 'failed'))
 );
 
 CREATE INDEX idx_import_jobs_workspace ON import_jobs(workspace_id);
 CREATE INDEX idx_import_jobs_status ON import_jobs(status);
+
+-- =================================================
+-- INVOICES (Facturas)
+-- =================================================
+
+CREATE TABLE invoices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+
+  -- Factura
+  invoice_number TEXT NOT NULL,
+  company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
+  company_name TEXT NOT NULL,
+  company_nif TEXT,
+
+  -- Detalle
+  concept TEXT,
+
+  -- Fechas
+  issue_date DATE NOT NULL,
+  due_date DATE,
+  payment_date DATE,
+
+  -- Importes
+  subtotal DECIMAL(15,2),
+  tax_rate DECIMAL(5,2) DEFAULT 21.00,
+  tax_amount DECIMAL(15,2),
+  total DECIMAL(15,2) NOT NULL,
+
+  -- Estado y pago
+  status TEXT NOT NULL DEFAULT 'pending',
+  payment_method TEXT,
+
+  -- Custom
+  custom_fields JSONB DEFAULT '{}',
+  metadata JSONB DEFAULT '{}',
+
+  -- Ownership
+  created_by_id UUID,
+  updated_by_id UUID,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  deleted_at TIMESTAMPTZ,
+
+  CONSTRAINT invoice_status_check CHECK (status IN ('paid', 'pending', 'overdue', 'cancelled'))
+);
+
+CREATE INDEX idx_invoices_workspace ON invoices(workspace_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_invoices_company ON invoices(company_id);
+CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_issue_date ON invoices(issue_date DESC);
+CREATE INDEX idx_invoices_due_date ON invoices(due_date) WHERE status IN ('pending', 'overdue');
+
+CREATE TRIGGER invoices_updated_at BEFORE UPDATE ON invoices
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+
+-- =================================================
+-- IMPORT PROFILES (Perfiles de importación)
+-- =================================================
+
+CREATE TABLE import_profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+
+  name TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  mappings JSONB NOT NULL,
+  source_columns TEXT[] NOT NULL,
+  usage_count INTEGER DEFAULT 0,
+
+  -- Ownership
+  created_by_id UUID,
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+
+  CONSTRAINT profile_entity_type_check CHECK (entity_type IN ('contacts', 'companies', 'invoices_paid', 'invoices_pending'))
+);
+
+CREATE INDEX idx_import_profiles_workspace ON import_profiles(workspace_id);
+
+CREATE TRIGGER import_profiles_updated_at BEFORE UPDATE ON import_profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+ALTER TABLE import_profiles ENABLE ROW LEVEL SECURITY;
 
 -- =================================================
 -- FUNCTIONS & TRIGGERS

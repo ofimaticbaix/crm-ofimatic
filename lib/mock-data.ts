@@ -1,14 +1,14 @@
 // Mock data para demo
 
 export const mockCompanies = [
-  { id: '1', name: 'Acme Corp', industry: 'SaaS', size: '51-200', website: 'acme.com', canal: 'web' },
-  { id: '2', name: 'Tech Solutions', industry: 'Consultoría', size: '11-50', website: 'techsol.es', canal: 'referido' },
-  { id: '3', name: 'Global Industries', industry: 'Manufacturing', size: '201-500', website: 'globalind.com', canal: 'email' },
-  { id: '4', name: 'StartupXYZ', industry: 'FinTech', size: '1-10', website: 'startupxyz.io', canal: 'social' },
-  { id: '5', name: 'Marketing Plus', industry: 'Agencia', size: '11-50', website: 'marketingplus.es', canal: 'referido' },
-  { id: '6', name: 'DataFlow', industry: 'Analytics', size: '51-200', website: 'dataflow.com', canal: 'web' },
-  { id: '7', name: 'Cloud Systems', industry: 'Cloud Services', size: '201-500', website: 'cloudsys.io', canal: 'evento' },
-  { id: '8', name: 'Retail Madrid', industry: 'Retail', size: '51-200', website: 'retailmadrid.es', canal: 'llamada' },
+  { id: '1', name: 'Acme Corp', industry: 'SaaS', size: '51-200', website: 'acme.com', canal: 'web', email: 'info@acme.com', phone: '+34 911 234 567', address: 'Calle Gran Vía 42, Madrid' },
+  { id: '2', name: 'Tech Solutions', industry: 'Consultoría', size: '11-50', website: 'techsol.es', canal: 'referido', email: 'contacto@techsol.es', phone: '+34 912 345 678', address: 'Av. Diagonal 211, Barcelona' },
+  { id: '3', name: 'Global Industries', industry: 'Manufacturing', size: '201-500', website: 'globalind.com', canal: 'email', email: 'ventas@globalind.com', phone: '+34 913 456 789', address: 'Polígono Industrial Norte 5, Valencia' },
+  { id: '4', name: 'StartupXYZ', industry: 'FinTech', size: '1-10', website: 'startupxyz.io', canal: 'social', email: 'hello@startupxyz.io', phone: '+34 914 567 890', address: 'WeWork Paseo de la Castellana, Madrid' },
+  { id: '5', name: 'Marketing Plus', industry: 'Agencia', size: '11-50', website: 'marketingplus.es', canal: 'referido', email: 'info@marketingplus.es', phone: '+34 915 678 901', address: 'Calle Serrano 85, Madrid' },
+  { id: '6', name: 'DataFlow', industry: 'Analytics', size: '51-200', website: 'dataflow.com', canal: 'web', email: 'sales@dataflow.com', phone: '+34 916 789 012', address: 'Parque Tecnológico 12, Bilbao' },
+  { id: '7', name: 'Cloud Systems', industry: 'Cloud Services', size: '201-500', website: 'cloudsys.io', canal: 'evento', email: 'enterprise@cloudsys.io', phone: '+34 917 890 123', address: 'Torre Mapfre, Barcelona' },
+  { id: '8', name: 'Retail Madrid', industry: 'Retail', size: '51-200', website: 'retailmadrid.es', canal: 'llamada', email: 'comercial@retailmadrid.es', phone: '+34 918 901 234', address: 'Centro Comercial Xanadú, Madrid' },
 ]
 
 export const mockContacts = [
@@ -147,6 +147,23 @@ export const stages = [
   { id: 'closed_won', name: 'Ganado', probability: 100, position: 4 },
 ]
 
+// Facturas pagadas
+export const mockInvoicesPaid = [
+  { id: 'inv-1', invoiceNumber: 'F-2025-001', companyName: 'Acme Corp', companyNif: 'B12345678', concept: 'Licencia CRM Enterprise - Anual', issueDate: '2025-01-15', paymentDate: '2025-02-01', subtotal: 37190.08, taxRate: 21, taxAmount: 7809.92, total: 45000.00, status: 'pagada', paymentMethod: 'Transferencia' },
+  { id: 'inv-2', invoiceNumber: 'F-2025-002', companyName: 'Tech Solutions', companyNif: 'B87654321', concept: 'Plan Professional - Semestral', issueDate: '2025-02-01', paymentDate: '2025-02-15', subtotal: 9917.36, taxRate: 21, taxAmount: 2082.64, total: 12000.00, status: 'pagada', paymentMethod: 'Domiciliación' },
+  { id: 'inv-3', invoiceNumber: 'F-2025-003', companyName: 'Marketing Plus', companyNif: 'A11223344', concept: 'Consultoría de implementación', issueDate: '2025-03-10', paymentDate: '2025-03-25', subtotal: 4132.23, taxRate: 21, taxAmount: 867.77, total: 5000.00, status: 'pagada', paymentMethod: 'Transferencia' },
+  { id: 'inv-4', invoiceNumber: 'F-2025-004', companyName: 'DataFlow', companyNif: 'B99887766', concept: 'Integración API personalizada', issueDate: '2025-04-01', paymentDate: '2025-04-20', subtotal: 18181.82, taxRate: 21, taxAmount: 3818.18, total: 22000.00, status: 'pagada', paymentMethod: 'Transferencia' },
+  { id: 'inv-5', invoiceNumber: 'F-2025-005', companyName: 'StartupXYZ', companyNif: 'B55443322', concept: 'Plan Starter - Anual', issueDate: '2025-05-01', paymentDate: '2025-05-10', subtotal: 2975.21, taxRate: 21, taxAmount: 624.79, total: 3600.00, status: 'pagada', paymentMethod: 'Tarjeta' },
+]
+
+// Facturas pendientes
+export const mockInvoicesPending = [
+  { id: 'inv-6', invoiceNumber: 'F-2026-001', companyName: 'Global Industries', companyNif: 'A44556677', concept: 'Enterprise Deal - Fase 1', issueDate: '2026-01-15', dueDate: '2026-02-15', subtotal: 70247.93, taxRate: 21, taxAmount: 14752.07, total: 85000.00, status: 'vencida', daysOverdue: 23 },
+  { id: 'inv-7', invoiceNumber: 'F-2026-002', companyName: 'Cloud Systems', companyNif: 'B66778899', concept: 'Professional Services Q1', issueDate: '2026-02-01', dueDate: '2026-03-01', subtotal: 28925.62, taxRate: 21, taxAmount: 6074.38, total: 35000.00, status: 'vencida', daysOverdue: 9 },
+  { id: 'inv-8', invoiceNumber: 'F-2026-003', companyName: 'Retail Madrid', companyNif: 'B11009988', concept: 'Solución Retail - Setup', issueDate: '2026-02-20', dueDate: '2026-03-20', subtotal: 12396.69, taxRate: 21, taxAmount: 2603.31, total: 15000.00, status: 'pendiente', daysOverdue: 0 },
+  { id: 'inv-9', invoiceNumber: 'F-2026-004', companyName: 'Acme Corp', companyNif: 'B12345678', concept: 'Renovación licencia 2026', issueDate: '2026-03-01', dueDate: '2026-03-31', subtotal: 37190.08, taxRate: 21, taxAmount: 7809.92, total: 45000.00, status: 'pendiente', daysOverdue: 0 },
+]
+
 // Helper functions
 export function getCompanyById(id: string) {
   return mockCompanies.find(c => c.id === id)
@@ -174,6 +191,22 @@ export function getDealsWithRelations() {
     contacts: deal.contactIds.map(id => getContactById(id)).filter(Boolean),
     stageName: stages.find(s => s.id === deal.stage)?.name,
   }))
+}
+
+export function getContactsByCompany(companyId: string) {
+  return mockContacts.filter(c => c.companyId === companyId)
+}
+
+export function getDealsByCompany(companyId: string) {
+  return mockDeals.filter(d => d.companyId === companyId)
+}
+
+export function getActivitiesByCompany(companyId: string) {
+  const companyContacts = getContactsByCompany(companyId)
+  const contactIds = companyContacts.map(c => c.id)
+  const companyDeals = getDealsByCompany(companyId)
+  const dealIds = companyDeals.map(d => d.id)
+  return mockActivities.filter(a => contactIds.includes(a.contactId) || dealIds.includes(a.dealId))
 }
 
 export function calculatePipelineMetrics() {

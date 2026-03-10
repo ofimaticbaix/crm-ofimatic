@@ -1,0 +1,84 @@
+// Tipos para el sistema de importación inteligente
+
+export type ImportEntityType = 'contactos' | 'empresas' | 'facturas_pagadas' | 'facturas_pendientes'
+
+export type ImportStep = 'upload' | 'entity_type' | 'mapping' | 'preview' | 'complete'
+
+export interface ColumnMapping {
+  sourceColumn: string
+  targetField: string | null // null = omitir
+  confidence: number // 0-100
+  sampleValues: string[]
+  isCustomField: boolean
+}
+
+export interface ImportProfile {
+  id: string
+  name: string
+  entityType: ImportEntityType
+  mappings: ColumnMapping[]
+  sourceColumns: string[]
+  usageCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ImportState {
+  step: ImportStep
+  file: File | null
+  fileName: string
+  fileType: string
+  entityType: ImportEntityType | null
+  rawData: Record<string, string>[]
+  sourceColumns: string[]
+  mappings: ColumnMapping[]
+  validationErrors: ValidationError[]
+  selectedProfileId: string | null
+  accessTables: string[] // para archivos Access con múltiples tablas
+  selectedAccessTable: string | null
+  importResult: ImportResult | null
+}
+
+export interface ValidationError {
+  row: number
+  column: string
+  message: string
+  severity: 'error' | 'warning'
+}
+
+export interface ImportResult {
+  totalRows: number
+  importedRows: number
+  skippedRows: number
+  failedRows: number
+  errors: ValidationError[]
+}
+
+// Entidades
+
+export interface Invoice {
+  id?: string
+  invoiceNumber: string
+  companyName: string
+  companyNif?: string
+  concept?: string
+  issueDate: string
+  dueDate?: string
+  paymentDate?: string
+  subtotal: number
+  taxRate?: number
+  taxAmount?: number
+  total: number
+  status: 'pagada' | 'pendiente' | 'vencida'
+  paymentMethod?: string
+  daysOverdue?: number
+  custom_fields?: Record<string, string>
+}
+
+export interface FieldDefinition {
+  key: string
+  label: string
+  required: boolean
+  type: 'text' | 'email' | 'phone' | 'number' | 'date' | 'url' | 'nif'
+  aliases: string[]
+}
