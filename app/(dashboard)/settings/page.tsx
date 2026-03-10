@@ -56,7 +56,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">Configuración</h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-1">Gestiona tu workspace y preferencias</p>
+        <p className="text-white mt-1">Gestiona tu workspace y preferencias</p>
       </div>
 
       {/* Workspace Settings */}

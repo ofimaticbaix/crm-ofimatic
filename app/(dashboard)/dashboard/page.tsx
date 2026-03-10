@@ -27,7 +27,7 @@ export default function DashboardPage() {
             <span className="text-3xl">👋</span>
             Hola, Alex
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Esto es lo que está pasando hoy</p>
+          <p className="text-sm text-white mt-1">Esto es lo que está pasando hoy</p>
         </div>
       </div>
 

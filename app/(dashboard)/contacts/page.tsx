@@ -77,7 +77,7 @@ export default function ContactsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Contactos</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">{filteredContacts.length} contactos totales</p>
+          <p className="text-white mt-1">{filteredContacts.length} contactos totales</p>
         </div>
         <Button
           onClick={() => setShowNewContactModal(true)}

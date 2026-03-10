@@ -32,7 +32,7 @@ export default function TasksPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Tareas</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">
+          <p className="text-white mt-1">
             {pendingTasks.length} pendientes • {overdueTasks.length} vencidas
           </p>
         </div>
@@ -114,7 +114,7 @@ export default function TasksPage() {
                   <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500 mt-0.5" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">{task.title}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
                       <Badge className={`${getPriorityColor(task.priority)} rounded-xl`}>
                         {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
                       </Badge>

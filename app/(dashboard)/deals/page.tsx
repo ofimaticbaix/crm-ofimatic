@@ -39,7 +39,7 @@ export default function DealsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Pipeline de Ventas</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">
+          <p className="text-white mt-1">
             {allDeals.length} deals • {formatCurrency(totalValue)} valor total
           </p>
         </div>

@@ -25,7 +25,7 @@ export default function CompaniesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Empresas</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">{filteredCompanies.length} empresas totales</p>
+          <p className="text-white mt-1">{filteredCompanies.length} empresas totales</p>
         </div>
         <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
           <Plus className="h-4 w-4" />
