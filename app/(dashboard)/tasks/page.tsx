@@ -1,10 +1,21 @@
+'use client'
+
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Circle, Plus, Calendar } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { CheckCircle2, Circle, Plus, Calendar, X } from 'lucide-react'
 import { mockTasks, mockDeals } from '@/lib/mock-data'
 
 export default function TasksPage() {
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false)
+  const [newTask, setNewTask] = useState({
+    title: '',
+    dueDate: '',
+    priority: 'medium',
+    dealId: ''
+  })
   const allTasks = mockTasks
   const pendingTasks = allTasks.filter(t => !t.isCompleted)
   const overdueTasks = pendingTasks.filter(t => new Date(t.dueDate) < new Date())
@@ -12,6 +23,18 @@ export default function TasksPage() {
     const today = new Date().toDateString()
     return new Date(t.dueDate).toDateString() === today
   })
+
+  const handleCreateTask = () => {
+    const priorityText = newTask.priority === 'high' ? 'Alta' : newTask.priority === 'medium' ? 'Media' : 'Baja'
+    alert(`Tarea creada: ${newTask.title} - Prioridad: ${priorityText}`)
+    setShowNewTaskModal(false)
+    setNewTask({
+      title: '',
+      dueDate: '',
+      priority: 'medium',
+      dealId: ''
+    })
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -36,7 +59,10 @@ export default function TasksPage() {
             {pendingTasks.length} pendientes • {overdueTasks.length} vencidas
           </p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
+        <Button
+          onClick={() => setShowNewTaskModal(true)}
+          className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+        >
           <Plus className="h-4 w-4" />
           Nueva Tarea
         </Button>
@@ -170,6 +196,98 @@ export default function TasksPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal Nueva Tarea */}
+      {showNewTaskModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white">Nueva Tarea</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNewTaskModal(false)}
+                className="rounded-xl"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Título de la Tarea *
+                  </label>
+                  <Input
+                    value={newTask.title}
+                    onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Ej: Llamar a cliente para seguimiento"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Fecha de Vencimiento *
+                  </label>
+                  <Input
+                    type="date"
+                    value={newTask.dueDate}
+                    onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Prioridad *
+                  </label>
+                  <select
+                    value={newTask.priority}
+                    onChange={(e) => setNewTask({...newTask, priority: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
+                  >
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Oportunidad Asociada (Opcional)
+                  </label>
+                  <select
+                    value={newTask.dealId}
+                    onChange={(e) => setNewTask({...newTask, dealId: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
+                  >
+                    <option value="">Sin oportunidad asociada</option>
+                    {mockDeals.map((deal) => (
+                      <option key={deal.id} value={deal.id}>
+                        {deal.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleCreateTask}
+                  className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  disabled={!newTask.title || !newTask.dueDate}
+                >
+                  Crear Tarea
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewTaskModal(false)}
+                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

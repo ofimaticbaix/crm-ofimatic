@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Globe, Users, X, Building2 } from 'lucide-react'
+import { Search, Plus, Globe, Users, X, Building2, TrendingUp } from 'lucide-react'
 import { mockCompanies } from '@/lib/mock-data'
 
 export default function CompaniesPage() {
@@ -44,6 +44,20 @@ export default function CompaniesPage() {
   const handleViewDetails = (company: any) => {
     setSelectedCompany(company)
     setShowDetailsModal(true)
+  }
+
+  const getCanalLabel = (canal: string) => {
+    const canales: { [key: string]: string } = {
+      'web': 'Página Web',
+      'referido': 'Referido',
+      'email': 'Email Marketing',
+      'social': 'Redes Sociales',
+      'llamada': 'Llamada Fría',
+      'evento': 'Evento/Feria',
+      'publicidad': 'Publicidad Online',
+      'otro': 'Otro'
+    }
+    return canales[canal] || canal
   }
 
   return (
@@ -104,6 +118,12 @@ export default function CompaniesPage() {
                   <Users className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span>{company.size} empleados</span>
                 </div>
+                {company.canal && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <TrendingUp className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    <span>{getCanalLabel(company.canal)}</span>
+                  </div>
+                )}
                 {company.website && (
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                     <Globe className="h-4 w-4 text-gray-400 dark:text-gray-500" />
