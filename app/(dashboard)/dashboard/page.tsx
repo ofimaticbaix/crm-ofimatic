@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -108,7 +109,9 @@ export default function DashboardPage() {
                   <CheckCircle2 className="h-5 w-5 text-blue-500" />
                   Tus Tareas
                 </CardTitle>
-                <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400">Ver todas →</Button>
+                <Link href="/tasks">
+                  <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400">Ver todas →</Button>
+                </Link>
               </div>
             </CardHeader>
             <CardContent>
