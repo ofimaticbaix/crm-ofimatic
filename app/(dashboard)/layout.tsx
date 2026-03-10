@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings, Menu, X, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings, Menu, X, LogOut, Upload } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +13,7 @@ const navigation = [
   { name: 'Empresas', href: '/companies', icon: Building2 },
   { name: 'Oportunidades', href: '/deals', icon: TrendingUp },
   { name: 'Tareas', href: '/tasks', icon: CheckSquare },
+  { name: 'Importar', href: '/import', icon: Upload },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ]
 
