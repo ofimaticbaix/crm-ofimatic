@@ -1,15 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Globe, Users } from 'lucide-react'
+import { Search, Plus, Globe, Users, X } from 'lucide-react'
 import { mockCompanies } from '@/lib/mock-data'
 
 export default function CompaniesPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [showNewCompanyModal, setShowNewCompanyModal] = useState(false)
+  const [newCompany, setNewCompany] = useState({
+    name: '',
+    industry: '',
+    size: '',
+    website: ''
+  })
 
   const filteredCompanies = mockCompanies.filter(company => {
     const query = searchQuery.toLowerCase()
@@ -19,6 +26,17 @@ export default function CompaniesPage() {
     )
   })
 
+  const handleCreateCompany = () => {
+    alert(`Empresa creada: ${newCompany.name}`)
+    setShowNewCompanyModal(false)
+    setNewCompany({
+      name: '',
+      industry: '',
+      size: '',
+      website: ''
+    })
+  }
+
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
@@ -27,7 +45,10 @@ export default function CompaniesPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-white">Empresas</h1>
           <p className="text-xs md:text-sm text-white mt-1">{filteredCompanies.length} empresas totales</p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
+        <Button
+          onClick={() => setShowNewCompanyModal(true)}
+          className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+        >
           <Plus className="h-4 w-4" />
           Nueva Empresa
         </Button>
@@ -94,6 +115,89 @@ export default function CompaniesPage() {
           </Card>
         ))}
       </div>
+
+      {/* Modal Nueva Empresa */}
+      {showNewCompanyModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white">Nueva Empresa</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNewCompanyModal(false)}
+                className="rounded-xl"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Nombre de la Empresa *
+                  </label>
+                  <Input
+                    value={newCompany.name}
+                    onChange={(e) => setNewCompany({...newCompany, name: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Acme Corporation"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Industria *
+                  </label>
+                  <Input
+                    value={newCompany.industry}
+                    onChange={(e) => setNewCompany({...newCompany, industry: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Tecnología"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Tamaño (empleados) *
+                  </label>
+                  <Input
+                    value={newCompany.size}
+                    onChange={(e) => setNewCompany({...newCompany, size: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="50-200"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-white block mb-2">
+                    Sitio Web
+                  </label>
+                  <Input
+                    value={newCompany.website}
+                    onChange={(e) => setNewCompany({...newCompany, website: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="ejemplo.com"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleCreateCompany}
+                  className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  disabled={!newCompany.name || !newCompany.industry || !newCompany.size}
+                >
+                  Crear Empresa
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewCompanyModal(false)}
+                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
