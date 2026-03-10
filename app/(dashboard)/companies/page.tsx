@@ -8,24 +8,28 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search, Plus, Globe, Users, X, Building2, TrendingUp,
   Mail, Phone, MapPin, User, Briefcase, DollarSign,
-  Calendar, ArrowRight, ChevronRight
+  Calendar, ChevronRight, PhoneCall, PlusCircle
 } from 'lucide-react'
-import { mockCompanies, getContactsByCompany, getDealsByCompany, getActivitiesByCompany, stages } from '@/lib/mock-data'
+import { mockCompanies, mockContacts, getContactsByCompany, getDealsByCompany, getActivitiesByCompany, getContactById, stages } from '@/lib/mock-data'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 
 export default function CompaniesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewCompanyModal, setShowNewCompanyModal] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<typeof mockCompanies[0] | null>(null)
+  const [followUpFilter, setFollowUpFilter] = useState<'todos' | 'llamar' | 'visitar'>('todos')
+  const [showNewActivityModal, setShowNewActivityModal] = useState(false)
+  const [newActivity, setNewActivity] = useState({
+    type: 'call',
+    subject: '',
+    contactId: '',
+    followUpType: '',
+    date: '',
+    time: '',
+    notes: ''
+  })
   const [newCompany, setNewCompany] = useState({
-    name: '',
-    industry: '',
-    size: '',
-    website: '',
-    canal: '',
-    email: '',
-    phone: '',
-    address: ''
+    name: '', industry: '', size: '', website: '', canal: '', email: '', phone: '', address: ''
   })
 
   const filteredCompanies = mockCompanies.filter(company => {
@@ -43,31 +47,28 @@ export default function CompaniesPage() {
     setNewCompany({ name: '', industry: '', size: '', website: '', canal: '', email: '', phone: '', address: '' })
   }
 
+  const handleCreateActivity = () => {
+    alert(`Actividad registrada: ${newActivity.subject}`)
+    setShowNewActivityModal(false)
+    setNewActivity({ type: 'call', subject: '', contactId: '', followUpType: '', date: '', time: '', notes: '' })
+  }
+
   const getCanalLabel = (canal: string) => {
-    const canales: { [key: string]: string } = {
-      'web': 'Página Web',
-      'referido': 'Referido',
-      'email': 'Email Marketing',
-      'social': 'Redes Sociales',
-      'llamada': 'Llamada Fría',
-      'evento': 'Evento/Feria',
-      'publicidad': 'Publicidad Online',
-      'otro': 'Otro'
+    const canales: Record<string, string> = {
+      'web': 'Página Web', 'referido': 'Referido', 'email': 'Email Marketing',
+      'social': 'Redes Sociales', 'llamada': 'Llamada Fría', 'evento': 'Evento/Feria',
+      'publicidad': 'Publicidad Online', 'otro': 'Otro'
     }
     return canales[canal] || canal
   }
 
   const getLifecycleBadge = (lifecycle: string) => {
-    const styles: { [key: string]: string } = {
+    const styles: Record<string, string> = {
       'customer': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
       'prospect': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
       'lead': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
     }
-    const labels: { [key: string]: string } = {
-      'customer': 'Cliente',
-      'prospect': 'Prospecto',
-      'lead': 'Lead',
-    }
+    const labels: Record<string, string> = { 'customer': 'Cliente', 'prospect': 'Prospecto', 'lead': 'Lead' }
     return (
       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${styles[lifecycle] || ''}`}>
         {labels[lifecycle] || lifecycle}
@@ -75,22 +76,16 @@ export default function CompaniesPage() {
     )
   }
 
-  const getStageName = (stageId: string) => {
-    return stages.find(s => s.id === stageId)?.name || stageId
-  }
+  const getStageName = (stageId: string) => stages.find(s => s.id === stageId)?.name || stageId
 
   const getDealStatusColor = (stage: string) => {
-    const colors: { [key: string]: string } = {
-      'prospecting': 'bg-gray-400',
-      'qualification': 'bg-blue-400',
-      'proposal': 'bg-yellow-400',
-      'negotiation': 'bg-orange-400',
-      'closed_won': 'bg-green-400',
+    const colors: Record<string, string> = {
+      'prospecting': 'bg-gray-400', 'qualification': 'bg-blue-400',
+      'proposal': 'bg-yellow-400', 'negotiation': 'bg-orange-400', 'closed_won': 'bg-green-400',
     }
     return colors[stage] || 'bg-gray-400'
   }
 
-  // Get enriched data for each company card
   const getCompanyCardData = (company: typeof mockCompanies[0]) => {
     const contacts = getContactsByCompany(company.id)
     const deals = getDealsByCompany(company.id)
@@ -107,12 +102,8 @@ export default function CompaniesPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-white">Empresas</h1>
           <p className="text-xs md:text-sm text-white mt-1">{filteredCompanies.length} empresas totales</p>
         </div>
-        <Button
-          onClick={() => setShowNewCompanyModal(true)}
-          className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva Empresa
+        <Button onClick={() => setShowNewCompanyModal(true)} className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
+          <Plus className="h-4 w-4" /> Nueva Empresa
         </Button>
       </div>
 
@@ -121,12 +112,9 @@ export default function CompaniesPage() {
         <CardContent className="p-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-            <Input
-              placeholder="Buscar por nombre, industria o email..."
-              value={searchQuery}
+            <Input placeholder="Buscar por nombre, industria o email..." value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
-            />
+              className="pl-10 rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
           </div>
         </CardContent>
       </Card>
@@ -136,28 +124,19 @@ export default function CompaniesPage() {
         {filteredCompanies.map((company) => {
           const { contacts, deals, totalDealValue, primaryContact } = getCompanyCardData(company)
           return (
-            <Card
-              key={company.id}
-              className="hover:shadow-xl transition-all cursor-pointer group"
-              onClick={() => setSelectedCompany(company)}
-            >
+            <Card key={company.id} className="hover:shadow-xl transition-all cursor-pointer group"
+              onClick={() => { setSelectedCompany(company); setFollowUpFilter('todos') }}>
               <CardContent className="p-4 md:p-6">
-                {/* Company Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg text-white mb-1 truncate">
-                      {company.name}
-                    </h3>
-                    <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">
-                      {company.industry}
-                    </Badge>
+                    <h3 className="font-semibold text-lg text-white mb-1 truncate">{company.name}</h3>
+                    <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">{company.industry}</Badge>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg flex-shrink-0">
                     {company.name[0]}
                   </div>
                 </div>
 
-                {/* Contact Info */}
                 <div className="space-y-1.5 mb-3">
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                     <Mail className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
@@ -173,7 +152,6 @@ export default function CompaniesPage() {
                   </div>
                 </div>
 
-                {/* Stats Row */}
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                     <User className="h-3.5 w-3.5" />
@@ -191,7 +169,6 @@ export default function CompaniesPage() {
                   )}
                 </div>
 
-                {/* Primary Contact */}
                 {primaryContact && (
                   <div className="p-2.5 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
                     <div className="flex items-center gap-2">
@@ -211,18 +188,12 @@ export default function CompaniesPage() {
                   </div>
                 )}
 
-                {/* Footer */}
                 <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
                   {company.website && (
-                    <a
-                      href={`https://${company.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <a href={`https://${company.website}`} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Globe className="h-3 w-3" />
-                      {company.website}
+                      onClick={(e) => e.stopPropagation()}>
+                      <Globe className="h-3 w-3" /> {company.website}
                     </a>
                   )}
                   <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors ml-auto">
@@ -321,9 +292,57 @@ export default function CompaniesPage() {
         const totalDealValue = deals.reduce((sum, d) => sum + d.value, 0)
         const openDeals = deals.filter(d => d.status === 'open')
 
+        const filteredActivities = followUpFilter === 'todos'
+          ? activities
+          : activities.filter(a => a.followUpType === followUpFilter)
+
+        const pendingActivities = filteredActivities.filter(a => a.status === 'pendiente')
+        const completedActivities = filteredActivities.filter(a => a.status === 'completada')
+        const cancelledActivities = filteredActivities.filter(a => a.status === 'cancelada')
+
+        const typeIcons: Record<string, string> = {
+          'call': 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+          'email': 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+          'meeting': 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+          'note': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
+          'visit': 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+        }
+        const typeLabels: Record<string, string> = {
+          'call': 'Llamada', 'email': 'Email', 'meeting': 'Reunión', 'note': 'Nota', 'visit': 'Visita',
+        }
+
+        const ActivityCard = ({ activity }: { activity: typeof activities[0] }) => {
+          const contact = getContactById(activity.contactId)
+          return (
+            <div className="p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+              <div className="flex items-start gap-2 mb-1.5">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-lg font-medium flex-shrink-0 ${typeIcons[activity.type] || ''}`}>
+                  {typeLabels[activity.type] || activity.type}
+                </span>
+                {activity.followUpType && (
+                  <Badge className="text-[10px] rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 px-1.5 py-0">
+                    {activity.followUpType === 'llamar' ? 'Llamar' : 'Visitar'}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.subject}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {new Date(activity.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las{' '}
+                {new Date(activity.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{activity.outcome}</p>
+              {contact && (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  {contact.firstName} {contact.lastName}
+                </p>
+              )}
+            </div>
+          )
+        }
+
         return (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               {/* Header */}
               <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
                 <div className="flex items-start justify-between">
@@ -334,12 +353,8 @@ export default function CompaniesPage() {
                     <div>
                       <CardTitle className="text-white text-xl">{selectedCompany.name}</CardTitle>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">
-                          {selectedCompany.industry}
-                        </Badge>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {selectedCompany.size} empleados
-                        </span>
+                        <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">{selectedCompany.industry}</Badge>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{selectedCompany.size} empleados</span>
                       </div>
                     </div>
                   </div>
@@ -348,7 +363,6 @@ export default function CompaniesPage() {
                   </Button>
                 </div>
 
-                {/* Quick Stats */}
                 <div className="grid grid-cols-3 gap-3 mt-4">
                   <div className="text-center p-3 rounded-xl bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30">
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{contacts.length}</p>
@@ -433,9 +447,7 @@ export default function CompaniesPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {contact.firstName} {contact.lastName}
-                              </p>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">{contact.firstName} {contact.lastName}</p>
                               {getLifecycleBadge(contact.lifecycle)}
                             </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400">{contact.jobTitle}</p>
@@ -487,44 +499,79 @@ export default function CompaniesPage() {
                   )}
                 </div>
 
-                {/* Actividad Reciente */}
-                {activities.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                      Actividad Reciente
+                {/* Actividades Kanban */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Actividades ({filteredActivities.length})
                     </h3>
-                    <div className="space-y-2">
-                      {activities.map((activity) => {
-                        const typeIcons: { [key: string]: string } = {
-                          'call': 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-                          'email': 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-                          'meeting': 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
-                          'note': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
-                        }
-                        const typeLabels: { [key: string]: string } = {
-                          'call': 'Llamada',
-                          'email': 'Email',
-                          'meeting': 'Reunión',
-                          'note': 'Nota',
-                        }
-                        return (
-                          <div key={activity.id} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <span className={`text-xs px-2 py-1 rounded-lg font-medium flex-shrink-0 ${typeIcons[activity.type] || ''}`}>
-                              {typeLabels[activity.type] || activity.type}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-900 dark:text-white">{activity.subject}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{activity.outcome}</p>
-                            </div>
-                            <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                              {formatRelativeTime(activity.createdAt)}
-                            </span>
-                          </div>
-                        )
-                      })}
+                    <Button size="sm" className="rounded-xl gap-1.5 text-xs" onClick={() => setShowNewActivityModal(true)}>
+                      <PlusCircle className="h-3.5 w-3.5" /> Registrar Actividad
+                    </Button>
+                  </div>
+
+                  {/* Filtro Seguimiento */}
+                  <div className="flex gap-2 mb-4">
+                    {(['todos', 'llamar', 'visitar'] as const).map((filter) => (
+                      <Button
+                        key={filter}
+                        variant={followUpFilter === filter ? 'default' : 'outline'}
+                        size="sm"
+                        className="rounded-xl gap-1.5 text-xs"
+                        onClick={() => setFollowUpFilter(filter)}
+                      >
+                        {filter === 'llamar' && <PhoneCall className="h-3 w-3" />}
+                        {filter === 'visitar' && <MapPin className="h-3 w-3" />}
+                        {filter === 'todos' ? 'Todos' : filter === 'llamar' ? 'Llamar' : 'Visitar'}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Kanban 3 columnas */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Pendiente */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Pendiente ({pendingActivities.length})</span>
+                      </div>
+                      <div className="space-y-2 min-h-[60px]">
+                        {pendingActivities.map(a => <ActivityCard key={a.id} activity={a} />)}
+                        {pendingActivities.length === 0 && (
+                          <p className="text-xs text-gray-400 text-center py-4">Sin actividades</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Completada */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-green-400" />
+                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Completada ({completedActivities.length})</span>
+                      </div>
+                      <div className="space-y-2 min-h-[60px]">
+                        {completedActivities.map(a => <ActivityCard key={a.id} activity={a} />)}
+                        {completedActivities.length === 0 && (
+                          <p className="text-xs text-gray-400 text-center py-4">Sin actividades</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Cancelada */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-red-400" />
+                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Cancelada ({cancelledActivities.length})</span>
+                      </div>
+                      <div className="space-y-2 min-h-[60px]">
+                        {cancelledActivities.map(a => <ActivityCard key={a.id} activity={a} />)}
+                        {cancelledActivities.length === 0 && (
+                          <p className="text-xs text-gray-400 text-center py-4">Sin actividades</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Acciones */}
                 <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -538,6 +585,87 @@ export default function CompaniesPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Mini-Modal Registrar Actividad */}
+            {showNewActivityModal && (
+              <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={() => setShowNewActivityModal(false)}>
+                <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <CardTitle className="text-white text-base">Registrar Actividad</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setShowNewActivityModal(false)} className="rounded-xl">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-400 block mb-1">Tipo *</label>
+                        <select value={newActivity.type} onChange={(e) => setNewActivity({...newActivity, type: e.target.value})}
+                          className="w-full rounded-xl px-3 py-2 text-sm bg-gray-800/50 border border-gray-700 text-white">
+                          <option value="call">Llamada</option>
+                          <option value="email">Email</option>
+                          <option value="meeting">Reunión</option>
+                          <option value="visit">Visita</option>
+                          <option value="note">Nota</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-400 block mb-1">Seguimiento</label>
+                        <select value={newActivity.followUpType} onChange={(e) => setNewActivity({...newActivity, followUpType: e.target.value})}
+                          className="w-full rounded-xl px-3 py-2 text-sm bg-gray-800/50 border border-gray-700 text-white">
+                          <option value="">Ninguno</option>
+                          <option value="llamar">Llamar</option>
+                          <option value="visitar">Visitar</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs font-medium text-gray-400 block mb-1">Asunto *</label>
+                        <Input value={newActivity.subject} onChange={(e) => setNewActivity({...newActivity, subject: e.target.value})}
+                          className="rounded-xl text-sm dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Descripción breve" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-400 block mb-1">Contacto</label>
+                        <select value={newActivity.contactId} onChange={(e) => setNewActivity({...newActivity, contactId: e.target.value})}
+                          className="w-full rounded-xl px-3 py-2 text-sm bg-gray-800/50 border border-gray-700 text-white">
+                          <option value="">Seleccionar</option>
+                          {contacts.map(c => (
+                            <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-xs font-medium text-gray-400 block mb-1">Fecha</label>
+                          <Input type="date" value={newActivity.date} onChange={(e) => setNewActivity({...newActivity, date: e.target.value})}
+                            className="rounded-xl text-sm dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
+                        </div>
+                        <div className="w-24">
+                          <label className="text-xs font-medium text-gray-400 block mb-1">Hora</label>
+                          <Input type="time" value={newActivity.time} onChange={(e) => setNewActivity({...newActivity, time: e.target.value})}
+                            className="rounded-xl text-sm dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs font-medium text-gray-400 block mb-1">Notas</label>
+                        <textarea value={newActivity.notes} onChange={(e) => setNewActivity({...newActivity, notes: e.target.value})}
+                          className="w-full rounded-xl px-3 py-2 text-sm bg-gray-800/50 border border-gray-700 text-white resize-none h-16"
+                          placeholder="Notas adicionales..." />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <Button onClick={handleCreateActivity} className="flex-1 rounded-xl text-sm"
+                        disabled={!newActivity.subject}>
+                        Registrar
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowNewActivityModal(false)}
+                        className="rounded-xl text-sm dark:border-gray-700 dark:text-gray-300">
+                        Cancelar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         )
       })()}

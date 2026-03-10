@@ -1,27 +1,27 @@
 // Mock data para demo
 
 export const mockCompanies = [
-  { id: '1', name: 'Acme Corp', industry: 'SaaS', size: '51-200', website: 'acme.com', canal: 'web', email: 'info@acme.com', phone: '+34 911 234 567', address: 'Calle Gran Vía 42, Madrid' },
-  { id: '2', name: 'Tech Solutions', industry: 'Consultoría', size: '11-50', website: 'techsol.es', canal: 'referido', email: 'contacto@techsol.es', phone: '+34 912 345 678', address: 'Av. Diagonal 211, Barcelona' },
-  { id: '3', name: 'Global Industries', industry: 'Manufacturing', size: '201-500', website: 'globalind.com', canal: 'email', email: 'ventas@globalind.com', phone: '+34 913 456 789', address: 'Polígono Industrial Norte 5, Valencia' },
-  { id: '4', name: 'StartupXYZ', industry: 'FinTech', size: '1-10', website: 'startupxyz.io', canal: 'social', email: 'hello@startupxyz.io', phone: '+34 914 567 890', address: 'WeWork Paseo de la Castellana, Madrid' },
-  { id: '5', name: 'Marketing Plus', industry: 'Agencia', size: '11-50', website: 'marketingplus.es', canal: 'referido', email: 'info@marketingplus.es', phone: '+34 915 678 901', address: 'Calle Serrano 85, Madrid' },
-  { id: '6', name: 'DataFlow', industry: 'Analytics', size: '51-200', website: 'dataflow.com', canal: 'web', email: 'sales@dataflow.com', phone: '+34 916 789 012', address: 'Parque Tecnológico 12, Bilbao' },
-  { id: '7', name: 'Cloud Systems', industry: 'Cloud Services', size: '201-500', website: 'cloudsys.io', canal: 'evento', email: 'enterprise@cloudsys.io', phone: '+34 917 890 123', address: 'Torre Mapfre, Barcelona' },
-  { id: '8', name: 'Retail Madrid', industry: 'Retail', size: '51-200', website: 'retailmadrid.es', canal: 'llamada', email: 'comercial@retailmadrid.es', phone: '+34 918 901 234', address: 'Centro Comercial Xanadú, Madrid' },
+  { id: '1', name: 'Acme Corp', industry: 'SaaS', size: '51-200', website: 'acme.com', canal: 'web', email: 'info@acme.com', phone: '+34 911 234 567', address: 'Calle Gran Vía 42, Madrid', status: 'activo' as const },
+  { id: '2', name: 'Tech Solutions', industry: 'Consultoría', size: '11-50', website: 'techsol.es', canal: 'referido', email: 'contacto@techsol.es', phone: '+34 912 345 678', address: 'Av. Diagonal 211, Barcelona', status: 'activo' as const },
+  { id: '3', name: 'Global Industries', industry: 'Manufacturing', size: '201-500', website: 'globalind.com', canal: 'email', email: 'ventas@globalind.com', phone: '+34 913 456 789', address: 'Polígono Industrial Norte 5, Valencia', status: 'activo' as const },
+  { id: '4', name: 'StartupXYZ', industry: 'FinTech', size: '1-10', website: 'startupxyz.io', canal: 'social', email: 'hello@startupxyz.io', phone: '+34 914 567 890', address: 'WeWork Paseo de la Castellana, Madrid', status: 'activo' as const },
+  { id: '5', name: 'Marketing Plus', industry: 'Agencia', size: '11-50', website: 'marketingplus.es', canal: 'referido', email: 'info@marketingplus.es', phone: '+34 915 678 901', address: 'Calle Serrano 85, Madrid', status: 'activo' as const },
+  { id: '6', name: 'DataFlow', industry: 'Analytics', size: '51-200', website: 'dataflow.com', canal: 'web', email: 'sales@dataflow.com', phone: '+34 916 789 012', address: 'Parque Tecnológico 12, Bilbao', status: 'activo' as const },
+  { id: '7', name: 'Cloud Systems', industry: 'Cloud Services', size: '201-500', website: 'cloudsys.io', canal: 'evento', email: 'enterprise@cloudsys.io', phone: '+34 917 890 123', address: 'Torre Mapfre, Barcelona', status: 'inactivo' as const },
+  { id: '8', name: 'Retail Madrid', industry: 'Retail', size: '51-200', website: 'retailmadrid.es', canal: 'llamada', email: 'comercial@retailmadrid.es', phone: '+34 918 901 234', address: 'Centro Comercial Xanadú, Madrid', status: 'inactivo' as const },
 ]
 
 export const mockContacts = [
-  { id: '1', firstName: 'Juan', lastName: 'García', email: 'juan.garcia@acme.com', phone: '+34 600 123 456', jobTitle: 'CTO', companyId: '1', lifecycle: 'customer' },
-  { id: '2', firstName: 'María', lastName: 'López', email: 'maria.lopez@techsol.es', phone: '+34 610 234 567', jobTitle: 'CEO', companyId: '2', lifecycle: 'prospect' },
-  { id: '3', firstName: 'Carlos', lastName: 'Rodríguez', email: 'carlos@globalind.com', phone: '+34 620 345 678', jobTitle: 'VP Sales', companyId: '3', lifecycle: 'lead' },
-  { id: '4', firstName: 'Laura', lastName: 'Martínez', email: 'laura@startupxyz.io', phone: '+34 630 456 789', jobTitle: 'Founder', companyId: '4', lifecycle: 'prospect' },
-  { id: '5', firstName: 'Pedro', lastName: 'Sánchez', email: 'pedro@marketingplus.es', phone: '+34 640 567 890', jobTitle: 'Director', companyId: '5', lifecycle: 'customer' },
-  { id: '6', firstName: 'Ana', lastName: 'Fernández', email: 'ana@dataflow.com', phone: '+34 650 678 901', jobTitle: 'COO', companyId: '6', lifecycle: 'lead' },
-  { id: '7', firstName: 'Miguel', lastName: 'Torres', email: 'miguel@cloudsys.io', phone: '+34 660 789 012', jobTitle: 'CTO', companyId: '7', lifecycle: 'prospect' },
-  { id: '8', firstName: 'Isabel', lastName: 'Ruiz', email: 'isabel@retailmadrid.es', phone: '+34 670 890 123', jobTitle: 'Gerente', companyId: '8', lifecycle: 'customer' },
-  { id: '9', firstName: 'David', lastName: 'Gómez', email: 'david@acme.com', phone: '+34 680 901 234', jobTitle: 'VP Product', companyId: '1', lifecycle: 'customer' },
-  { id: '10', firstName: 'Carmen', lastName: 'Díaz', email: 'carmen@techsol.es', phone: '+34 690 012 345', jobTitle: 'CFO', companyId: '2', lifecycle: 'prospect' },
+  { id: '1', firstName: 'Juan', lastName: 'García', email: 'juan.garcia@acme.com', phone: '+34 600 123 456', jobTitle: 'CTO', companyId: '1', lifecycle: 'customer', status: 'activo' as const },
+  { id: '2', firstName: 'María', lastName: 'López', email: 'maria.lopez@techsol.es', phone: '+34 610 234 567', jobTitle: 'CEO', companyId: '2', lifecycle: 'prospect', status: 'activo' as const },
+  { id: '3', firstName: 'Carlos', lastName: 'Rodríguez', email: 'carlos@globalind.com', phone: '+34 620 345 678', jobTitle: 'VP Sales', companyId: '3', lifecycle: 'lead', status: 'activo' as const },
+  { id: '4', firstName: 'Laura', lastName: 'Martínez', email: 'laura@startupxyz.io', phone: '+34 630 456 789', jobTitle: 'Founder', companyId: '4', lifecycle: 'prospect', status: 'activo' as const },
+  { id: '5', firstName: 'Pedro', lastName: 'Sánchez', email: 'pedro@marketingplus.es', phone: '+34 640 567 890', jobTitle: 'Director', companyId: '5', lifecycle: 'customer', status: 'activo' as const },
+  { id: '6', firstName: 'Ana', lastName: 'Fernández', email: 'ana@dataflow.com', phone: '+34 650 678 901', jobTitle: 'COO', companyId: '6', lifecycle: 'lead', status: 'activo' as const },
+  { id: '7', firstName: 'Miguel', lastName: 'Torres', email: 'miguel@cloudsys.io', phone: '+34 660 789 012', jobTitle: 'CTO', companyId: '7', lifecycle: 'prospect', status: 'inactivo' as const },
+  { id: '8', firstName: 'Isabel', lastName: 'Ruiz', email: 'isabel@retailmadrid.es', phone: '+34 670 890 123', jobTitle: 'Gerente', companyId: '8', lifecycle: 'customer', status: 'inactivo' as const },
+  { id: '9', firstName: 'David', lastName: 'Gómez', email: 'david@acme.com', phone: '+34 680 901 234', jobTitle: 'VP Product', companyId: '1', lifecycle: 'customer', status: 'activo' as const },
+  { id: '10', firstName: 'Carmen', lastName: 'Díaz', email: 'carmen@techsol.es', phone: '+34 690 012 345', jobTitle: 'CFO', companyId: '2', lifecycle: 'prospect', status: 'activo' as const },
 ]
 
 export const mockDeals = [
@@ -124,19 +124,34 @@ export const mockDeals = [
 ]
 
 export const mockTasks = [
-  { id: '1', title: 'Llamar a Juan García de Acme Corp', dealId: '1', dueDate: '2026-03-09', isCompleted: false, priority: 'high' },
-  { id: '2', title: 'Enviar propuesta a Tech Solutions', dealId: '2', dueDate: '2026-03-10', isCompleted: false, priority: 'high' },
-  { id: '3', title: 'Follow-up con StartupXYZ', dealId: '3', dueDate: '2026-03-09', isCompleted: false, priority: 'medium' },
-  { id: '4', title: 'Demo programada con Global Industries', dealId: '5', dueDate: '2026-03-12', isCompleted: false, priority: 'medium' },
-  { id: '5', title: 'Revisar contrato Cloud Systems', dealId: '7', dueDate: '2026-03-11', isCompleted: false, priority: 'low' },
-  { id: '6', title: 'Reunión de cierre Acme Corp', dealId: '1', dueDate: '2026-03-07', isCompleted: false, priority: 'high' },
+  { id: '1', title: 'Llamar a Juan García de Acme Corp', dealId: '1', dueDate: '2026-03-09', dueTime: '10:00', isCompleted: false, priority: 'high', companyId: '1', contactId: '1', type: 'llamada' as const },
+  { id: '2', title: 'Enviar propuesta a Tech Solutions', dealId: '2', dueDate: '2026-03-10', dueTime: '14:00', isCompleted: false, priority: 'high', companyId: '2', contactId: '2', type: 'tarea' as const },
+  { id: '3', title: 'Follow-up con StartupXYZ', dealId: '3', dueDate: '2026-03-09', dueTime: '11:30', isCompleted: false, priority: 'medium', companyId: '4', contactId: '4', type: 'llamada' as const },
+  { id: '4', title: 'Demo programada con Global Industries', dealId: '5', dueDate: '2026-03-12', dueTime: '16:00', isCompleted: false, priority: 'medium', companyId: '3', contactId: '3', type: 'reunion' as const },
+  { id: '5', title: 'Revisar contrato Cloud Systems', dealId: '7', dueDate: '2026-03-11', dueTime: '09:00', isCompleted: false, priority: 'low', companyId: '7', contactId: '7', type: 'tarea' as const },
+  { id: '6', title: 'Reunión de cierre Acme Corp', dealId: '1', dueDate: '2026-03-07', dueTime: '15:00', isCompleted: false, priority: 'high', companyId: '1', contactId: '9', type: 'reunion' as const },
+  { id: '7', title: 'Visitar oficinas DataFlow', dealId: '6', dueDate: '2026-03-13', dueTime: '10:00', isCompleted: false, priority: 'medium', companyId: '6', contactId: '6', type: 'visita' as const },
+  { id: '8', title: 'Llamar a Pedro de Marketing Plus', dealId: '4', dueDate: '2026-03-10', dueTime: '12:00', isCompleted: false, priority: 'low', companyId: '5', contactId: '5', type: 'llamada' as const },
+  { id: '9', title: 'Preparar presentación Retail Madrid', dealId: '8', dueDate: '2026-03-14', dueTime: '09:30', isCompleted: false, priority: 'medium', companyId: '8', contactId: '8', type: 'tarea' as const },
+  { id: '10', title: 'Reunión equipo ventas semanal', dealId: '', dueDate: '2026-03-10', dueTime: '09:00', isCompleted: false, priority: 'medium', companyId: '', contactId: '', type: 'reunion' as const },
 ]
 
 export const mockActivities = [
-  { id: '1', type: 'call', subject: 'Llamada con Juan García', contactId: '1', dealId: '1', createdAt: '2026-03-08T14:30:00', outcome: 'Positivo - Listo para firmar' },
-  { id: '2', type: 'email', subject: 'Propuesta enviada', contactId: '2', dealId: '2', createdAt: '2026-03-07T10:15:00', outcome: 'Enviado - Esperando respuesta' },
-  { id: '3', type: 'meeting', subject: 'Demo producto', contactId: '4', dealId: '3', createdAt: '2026-03-09T11:00:00', outcome: 'Muy interesados en AI features' },
-  { id: '4', type: 'note', subject: 'Notas reunión', contactId: '3', dealId: '5', createdAt: '2026-03-06T16:45:00', outcome: 'Budget aprobado para Q2' },
+  { id: '1', type: 'call' as const, subject: 'Llamada con Juan García', contactId: '1', companyId: '1', dealId: '1', createdAt: '2026-03-08T14:30:00', outcome: 'Positivo - Listo para firmar', status: 'completada' as const, followUpType: 'llamar' as const, notes: 'Confirmó presupuesto aprobado por dirección' },
+  { id: '2', type: 'email' as const, subject: 'Propuesta enviada', contactId: '2', companyId: '2', dealId: '2', createdAt: '2026-03-07T10:15:00', outcome: 'Enviado - Esperando respuesta', status: 'completada' as const, followUpType: null, notes: 'Propuesta con 3 opciones de plan' },
+  { id: '3', type: 'meeting' as const, subject: 'Demo producto', contactId: '4', companyId: '4', dealId: '3', createdAt: '2026-03-09T11:00:00', outcome: 'Muy interesados en AI features', status: 'completada' as const, followUpType: 'llamar' as const, notes: 'Pidieron segunda demo con equipo técnico' },
+  { id: '4', type: 'note' as const, subject: 'Notas reunión', contactId: '3', companyId: '3', dealId: '5', createdAt: '2026-03-06T16:45:00', outcome: 'Budget aprobado para Q2', status: 'completada' as const, followUpType: 'visitar' as const, notes: 'Necesitan propuesta formal antes del 15/03' },
+  { id: '5', type: 'call' as const, subject: 'Seguimiento propuesta', contactId: '5', companyId: '5', dealId: '4', createdAt: '2026-03-05T09:30:00', outcome: 'Pendiente revisión interna', status: 'pendiente' as const, followUpType: 'llamar' as const, notes: 'Llamar la próxima semana para confirmar' },
+  { id: '6', type: 'visit' as const, subject: 'Visita oficinas DataFlow', contactId: '6', companyId: '6', dealId: '6', createdAt: '2026-03-04T10:00:00', outcome: 'Tour completo, muy impresionados', status: 'completada' as const, followUpType: 'visitar' as const, notes: 'Quieren integración con su sistema actual' },
+  { id: '7', type: 'call' as const, subject: 'Llamada inicial Cloud Systems', contactId: '7', companyId: '7', dealId: '7', createdAt: '2026-03-03T15:00:00', outcome: 'Interesados pero sin presupuesto aún', status: 'pendiente' as const, followUpType: 'llamar' as const, notes: 'Volver a contactar en abril' },
+  { id: '8', type: 'meeting' as const, subject: 'Reunión con equipo Acme', contactId: '9', companyId: '1', dealId: '1', createdAt: '2026-03-02T14:00:00', outcome: 'Alineados en alcance del proyecto', status: 'completada' as const, followUpType: null, notes: 'David presentó requisitos técnicos' },
+  { id: '9', type: 'visit' as const, subject: 'Visita a Retail Madrid', contactId: '8', companyId: '8', dealId: '8', createdAt: '2026-03-01T11:00:00', outcome: 'Necesitan solución urgente', status: 'cancelada' as const, followUpType: 'visitar' as const, notes: 'Cancelada por reorganización interna' },
+  { id: '10', type: 'email' as const, subject: 'Documentación técnica enviada', contactId: '10', companyId: '2', dealId: '2', createdAt: '2026-02-28T16:00:00', outcome: 'Enviada toda la documentación API', status: 'completada' as const, followUpType: null, notes: 'Carmen pidió specs de integración' },
+  { id: '11', type: 'call' as const, subject: 'Llamada de seguimiento Global', contactId: '3', companyId: '3', dealId: '5', createdAt: '2026-02-27T10:30:00', outcome: 'Evaluando competidores', status: 'pendiente' as const, followUpType: 'llamar' as const, notes: 'Enviar comparativa con competidores' },
+  { id: '12', type: 'visit' as const, subject: 'Presentación en Marketing Plus', contactId: '5', companyId: '5', dealId: '4', createdAt: '2026-02-25T09:00:00', outcome: 'Buena recepción del equipo', status: 'completada' as const, followUpType: 'visitar' as const, notes: 'Pedro quiere piloto de 1 mes' },
+  { id: '13', type: 'call' as const, subject: 'Negociación precio Acme', contactId: '1', companyId: '1', dealId: '1', createdAt: '2026-02-20T11:00:00', outcome: 'Pidieron 10% descuento', status: 'completada' as const, followUpType: 'llamar' as const, notes: 'Aprobado descuento del 5%' },
+  { id: '14', type: 'meeting' as const, subject: 'Demo técnica StartupXYZ', contactId: '4', companyId: '4', dealId: '3', createdAt: '2026-02-18T15:00:00', outcome: 'CTO muy interesado en API', status: 'completada' as const, followUpType: null, notes: 'Laura trajo a su equipo de desarrollo' },
+  { id: '15', type: 'note' as const, subject: 'Revisión trimestral DataFlow', contactId: '6', companyId: '6', dealId: '6', createdAt: '2026-02-15T14:00:00', outcome: 'Renovación probable en Q2', status: 'pendiente' as const, followUpType: 'llamar' as const, notes: 'Preparar propuesta de renovación anticipada' },
 ]
 
 export const stages = [
@@ -202,11 +217,35 @@ export function getDealsByCompany(companyId: string) {
 }
 
 export function getActivitiesByCompany(companyId: string) {
-  const companyContacts = getContactsByCompany(companyId)
-  const contactIds = companyContacts.map(c => c.id)
-  const companyDeals = getDealsByCompany(companyId)
-  const dealIds = companyDeals.map(d => d.id)
-  return mockActivities.filter(a => contactIds.includes(a.contactId) || dealIds.includes(a.dealId))
+  return mockActivities.filter(a => a.companyId === companyId)
+}
+
+export function getActivitiesByContact(contactId: string) {
+  return mockActivities.filter(a => a.contactId === contactId)
+}
+
+export function getDealsByContact(contactId: string) {
+  return mockDeals.filter(d => d.contactIds.includes(contactId))
+}
+
+export function getTasksByCompany(companyId: string) {
+  return mockTasks.filter(t => t.companyId === companyId)
+}
+
+export function getTasksByContact(contactId: string) {
+  return mockTasks.filter(t => t.contactId === contactId)
+}
+
+export function getTasksByDate(date: string) {
+  return mockTasks.filter(t => t.dueDate === date)
+}
+
+export function getActiveCompanies() {
+  return mockCompanies.filter(c => c.status === 'activo')
+}
+
+export function getInactiveCompanies() {
+  return mockCompanies.filter(c => c.status === 'inactivo')
 }
 
 export function calculatePipelineMetrics() {
