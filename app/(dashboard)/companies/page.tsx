@@ -300,6 +300,15 @@ export default function CompaniesPage() {
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.size} empleados</p>
                       </div>
                     </div>
+                    {selectedCompany.canal && (
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                        <TrendingUp className="h-5 w-5 text-orange-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Canal de Adquisición</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{getCanalLabel(selectedCompany.canal)}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
