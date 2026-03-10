@@ -9,7 +9,7 @@ import { CheckCircle2, Circle, Plus, Calendar, X, ChevronLeft, ChevronRight, Lis
 import { mockTasks, mockDeals, mockCompanies, mockContacts, getCompanyById, getContactById, getContactsByCompany, getTasksByDate } from '@/lib/mock-data'
 
 export default function TasksPage() {
-  const [viewMode, setViewMode] = useState<'lista' | 'calendario'>('lista')
+  const [viewMode, setViewMode] = useState<'lista' | 'calendario'>('calendario')
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -188,23 +188,27 @@ export default function TasksPage() {
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           {/* Toggle Vista */}
-          <div className="flex rounded-xl border border-gray-700 overflow-hidden">
-            <Button
-              variant={viewMode === 'lista' ? 'default' : 'ghost'}
-              size="sm"
-              className="rounded-none gap-1.5 px-3"
+          <div className="flex rounded-xl bg-white/10 dark:bg-gray-800/60 p-1 gap-1 backdrop-blur-sm">
+            <button
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'lista'
+                  ? 'bg-white dark:bg-white text-gray-900 shadow-md'
+                  : 'text-white hover:bg-white/10'
+              }`}
               onClick={() => setViewMode('lista')}
             >
               <List className="h-4 w-4" /> Lista
-            </Button>
-            <Button
-              variant={viewMode === 'calendario' ? 'default' : 'ghost'}
-              size="sm"
-              className="rounded-none gap-1.5 px-3"
+            </button>
+            <button
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'calendario'
+                  ? 'bg-white dark:bg-white text-gray-900 shadow-md'
+                  : 'text-white hover:bg-white/10'
+              }`}
               onClick={() => setViewMode('calendario')}
             >
               <CalendarDays className="h-4 w-4" /> Calendario
-            </Button>
+            </button>
           </div>
           <Button
             onClick={() => setShowNewTaskModal(true)}

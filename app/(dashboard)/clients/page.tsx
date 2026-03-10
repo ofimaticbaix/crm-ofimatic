@@ -78,26 +78,26 @@ export default function ClientsPage() {
 
                   <div className="space-y-2 mb-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-1.5 text-gray-400">
+                      <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
                         <Users className="h-3.5 w-3.5" />
                         Contactos
                       </span>
-                      <span className="text-white font-medium">{contacts.length}</span>
+                      <span className="text-gray-900 dark:text-white font-bold">{contacts.length}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-1.5 text-gray-400">
+                      <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
                         <DollarSign className="h-3.5 w-3.5" />
                         Valor deals
                       </span>
-                      <span className="text-green-400 font-medium">{formatCurrency(totalValue)}</span>
+                      <span className="text-gray-900 dark:text-white font-bold">{formatCurrency(totalValue)}</span>
                     </div>
                     {lastActivity && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-1.5 text-gray-400">
+                        <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
                           <Calendar className="h-3.5 w-3.5" />
                           Última actividad
                         </span>
-                        <span className="text-gray-300 text-xs">
+                        <span className="text-gray-900 dark:text-white font-bold text-xs">
                           {new Date(lastActivity.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                         </span>
                       </div>
@@ -151,16 +151,16 @@ export default function ClientsPage() {
 
                     <div className="space-y-2 mb-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-1.5 text-gray-400">
+                        <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
                           <Users className="h-3.5 w-3.5" /> Contactos
                         </span>
-                        <span className="text-white font-medium">{contacts.length}</span>
+                        <span className="text-gray-900 dark:text-white font-bold">{contacts.length}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-1.5 text-gray-400">
+                        <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
                           <DollarSign className="h-3.5 w-3.5" /> Valor deals
                         </span>
-                        <span className="text-gray-400 font-medium">{formatCurrency(totalValue)}</span>
+                        <span className="text-gray-900 dark:text-white font-bold">{formatCurrency(totalValue)}</span>
                       </div>
                     </div>
 
