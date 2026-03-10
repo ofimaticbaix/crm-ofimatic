@@ -3,10 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings, Menu, X, LogOut, Upload, UserCheck, BarChart3 } from 'lucide-react'
+import {
+  LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings,
+  Menu, X, LogOut, Upload, UserCheck, BarChart3, ChevronDown, ChevronRight,
+  UserPlus, UserMinus, Lock
+} from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { cn } from '@/lib/utils'
-import { mockDeals, mockTasks, mockContacts, getActiveCompanies, getOverdueCompanies } from '@/lib/mock-data'
+import { mockDeals, mockContacts, getActiveCompanies, getOverdueCompanies } from '@/lib/mock-data'
 
 const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
@@ -14,9 +18,15 @@ const navigation = [
   { name: 'Empresas', href: '/companies', icon: Building2 },
   { name: 'Oportunidades', href: '/deals', icon: TrendingUp },
   { name: 'Tareas', href: '/tasks', icon: CheckSquare },
-  { name: 'Clientes', href: '/clients', icon: UserCheck },
+  { name: 'Métricas', href: '/metrics', icon: BarChart3 },
   { name: 'Importar', href: '/import', icon: Upload },
   { name: 'Configuración', href: '/settings', icon: Settings },
+]
+
+const clientSubItems = [
+  { name: 'Activos', href: '/clients/activos', icon: UserPlus },
+  { name: 'Inactivos', href: '/clients/inactivos', icon: UserMinus },
+  { name: 'Cerrados', href: '/clients/cerrados', icon: Lock },
 ]
 
 export default function DashboardLayout({
@@ -25,7 +35,12 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [clientsOpen, setClientsOpen] = useState(false)
   const pathname = usePathname()
+
+  // Auto-open clients submenu if on a clients page
+  const isOnClientsPage = pathname.startsWith('/clients')
+  const isClientsExpanded = clientsOpen || isOnClientsPage
 
   const formatDate = () => {
     const date = new Date()
@@ -80,6 +95,94 @@ export default function DashboardLayout({
             const Icon = item.icon
             const isActive = pathname === item.href
 
+            // Insert Clientes dropdown after Tareas
+            if (item.name === 'Métricas') {
+              return (
+                <div key="clients-group">
+                  {/* Clientes Dropdown */}
+                  <button
+                    onClick={() => setClientsOpen(!isClientsExpanded)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative group",
+                      isOnClientsPage
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/30 hover:text-blue-600 dark:hover:text-blue-400"
+                    )}
+                  >
+                    <UserCheck className={cn(
+                      "w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110",
+                      isOnClientsPage && "text-white"
+                    )} />
+                    <span className="flex-1 text-left">Clientes</span>
+                    {isClientsExpanded
+                      ? <ChevronDown className="w-4 h-4" />
+                      : <ChevronRight className="w-4 h-4" />
+                    }
+                  </button>
+
+                  {/* Sub-items */}
+                  {isClientsExpanded && (
+                    <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-white/10 dark:border-gray-700/30 pl-3">
+                      <Link
+                        href="/clients"
+                        onClick={() => setSidebarOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all",
+                          pathname === '/clients'
+                            ? "bg-white/20 dark:bg-gray-800/50 text-blue-500 dark:text-blue-400"
+                            : "text-gray-500 dark:text-gray-400 hover:bg-white/10 dark:hover:bg-gray-800/20 hover:text-blue-500 dark:hover:text-blue-400"
+                        )}
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        Vista General
+                      </Link>
+                      {clientSubItems.map((sub) => {
+                        const SubIcon = sub.icon
+                        const isSubActive = pathname === sub.href
+                        return (
+                          <Link
+                            key={sub.name}
+                            href={sub.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={cn(
+                              "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all",
+                              isSubActive
+                                ? "bg-white/20 dark:bg-gray-800/50 text-blue-500 dark:text-blue-400"
+                                : "text-gray-500 dark:text-gray-400 hover:bg-white/10 dark:hover:bg-gray-800/20 hover:text-blue-500 dark:hover:text-blue-400"
+                            )}
+                          >
+                            <SubIcon className="w-3.5 h-3.5" />
+                            {sub.name}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Métricas link */}
+                  <Link
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative group mt-1",
+                      isActive
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/30 hover:text-blue-600 dark:hover:text-blue-400"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110",
+                      isActive && "text-white"
+                    )} />
+                    <span className="flex-1">{item.name}</span>
+                    {isActive && (
+                      <div className="absolute right-2 w-1.5 h-8 bg-white/50 rounded-full" />
+                    )}
+                  </Link>
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={item.name}
@@ -126,7 +229,7 @@ export default function DashboardLayout({
             </div>
             <div className="p-2 rounded-lg bg-white/5 dark:bg-gray-800/30 border border-white/10 dark:border-gray-700/20">
               <p className={`text-xs font-bold ${getOverdueCompanies().length > 0 ? 'text-amber-400' : 'text-white'}`}>{getOverdueCompanies().length}</p>
-              <p className="text-[9px] text-gray-400">Atrasados</p>
+              <p className="text-[9px] text-gray-400">Inactivos</p>
             </div>
           </div>
         </div>
