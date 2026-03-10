@@ -27,38 +27,38 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-white">Tareas</h1>
-          <p className="text-white mt-1">
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Tareas</h1>
+          <p className="text-xs md:text-sm text-white mt-1">
             {pendingTasks.length} pendientes • {overdueTasks.length} vencidas
           </p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
+        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           Nueva Tarea
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-4 md:p-6">
-            <div className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{todayTasks.length}</div>
+          <CardContent className="p-3 md:p-6">
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">{todayTasks.length}</div>
             <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Hoy</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-4 md:p-6">
-            <div className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{overdueTasks.length}</div>
+          <CardContent className="p-3 md:p-6">
+            <div className="text-xl md:text-3xl font-bold text-red-600 dark:text-red-400">{overdueTasks.length}</div>
             <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Vencidas</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-4 md:p-6">
-            <div className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{pendingTasks.length}</div>
+          <CardContent className="p-3 md:p-6">
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">{pendingTasks.length}</div>
             <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Totales</p>
           </CardContent>
         </Card>

@@ -52,11 +52,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-4 md:space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Configuración</h1>
-        <p className="text-white mt-1">Gestiona tu workspace y preferencias</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-white">Configuración</h1>
+        <p className="text-xs md:text-sm text-white mt-1">Gestiona tu workspace y preferencias</p>
       </div>
 
       {/* Workspace Settings */}

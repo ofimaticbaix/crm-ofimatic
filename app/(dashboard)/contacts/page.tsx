@@ -72,19 +72,19 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-white">Contactos</h1>
-          <p className="text-white mt-1">{filteredContacts.length} contactos totales</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Contactos</h1>
+          <p className="text-xs md:text-sm text-white mt-1">{filteredContacts.length} contactos totales</p>
         </div>
         <Button
           onClick={() => setShowNewContactModal(true)}
-          className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all"
+          className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
         >
           <Plus className="h-4 w-4" />
-          Nuevo Contacto
+          <span className="md:inline">Nuevo Contacto</span>
         </Button>
       </div>
 
@@ -186,35 +186,35 @@ export default function ContactsPage() {
           {/* Mobile Cards */}
           <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
             {filteredContacts.map((contact) => (
-              <div key={contact.id} className="p-4 hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold shadow-md flex-shrink-0">
+              <div key={contact.id} className="p-3 hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                <div className="flex items-start gap-2 mb-2">
+                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shadow-md flex-shrink-0">
                     {contact.firstName?.[0]}{contact.lastName?.[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 dark:text-white truncate">
+                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">
                       {contact.firstName} {contact.lastName}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{contact.jobTitle}</div>
-                    <Badge className={`${getLifecycleColor(contact.lifecycle)} rounded-xl mt-1 text-xs`}>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{contact.jobTitle}</div>
+                    <Badge className={`${getLifecycleColor(contact.lifecycle)} rounded-lg mt-1 text-[10px] px-1.5 py-0.5`}>
                       {getLifecycleLabel(contact.lifecycle)}
                     </Badge>
                   </div>
                 </div>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-1.5 text-xs ml-12">
                   <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                    <Building2 className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    <Building2 className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                     <span className="truncate">{contact.company?.name || '-'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    <Mail className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                     <a href={`mailto:${contact.email}`} className="text-blue-600 dark:text-blue-400 hover:underline truncate">
                       {contact.email}
                     </a>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                    <Phone className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                    <span>{contact.phone}</span>
+                    <Phone className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    <span className="truncate">{contact.phone}</span>
                   </div>
                 </div>
               </div>
@@ -224,29 +224,29 @@ export default function ContactsPage() {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+          <CardContent className="p-3 md:p-6">
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle === 'customer').length}
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Clientes</p>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Clientes</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+          <CardContent className="p-3 md:p-6">
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle === 'prospect').length}
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Prospectos</p>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Prospectos</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+          <CardContent className="p-3 md:p-6">
+            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle === 'lead').length}
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Leads</p>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Leads</p>
           </CardContent>
         </Card>
       </div>

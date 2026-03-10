@@ -20,14 +20,14 @@ export default function CompaniesPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-white">Empresas</h1>
-          <p className="text-white mt-1">{filteredCompanies.length} empresas totales</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Empresas</h1>
+          <p className="text-xs md:text-sm text-white mt-1">{filteredCompanies.length} empresas totales</p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
+        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           Nueva Empresa
         </Button>
@@ -49,10 +49,10 @@ export default function CompaniesPage() {
       </Card>
 
       {/* Companies Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {filteredCompanies.map((company) => (
           <Card key={company.id} className="hover:shadow-xl transition-all cursor-pointer group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               {/* Company Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">

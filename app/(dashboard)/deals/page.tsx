@@ -34,16 +34,16 @@ export default function DealsPage() {
   const totalValue = allDeals.reduce((sum, deal) => sum + deal.value, 0)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-white">Pipeline de Ventas</h1>
-          <p className="text-white mt-1">
-            {allDeals.length} deals • {formatCurrency(totalValue)} valor total
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Pipeline</h1>
+          <p className="text-xs md:text-sm text-white mt-1">
+            {allDeals.length} deals • {formatCurrency(totalValue)}
           </p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
+        <Button className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           Nuevo Deal
         </Button>
@@ -74,13 +74,13 @@ export default function DealsPage() {
       </div>
 
       {/* Kanban Board */}
-      <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="flex gap-3 md:gap-6 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory">
         {stages.map((stage) => {
           const stageDeals = allDeals.filter(d => d.stage === stage.id)
           const stageValue = stageDeals.reduce((sum, deal) => sum + deal.value, 0)
 
           return (
-            <div key={stage.id} className="flex-shrink-0 w-72 md:w-80">
+            <div key={stage.id} className="flex-shrink-0 w-64 md:w-80 snap-start">
               {/* Column Header */}
               <div className="bg-gray-50/50 dark:bg-gray-800/50 rounded-t-2xl p-4 border-x border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
