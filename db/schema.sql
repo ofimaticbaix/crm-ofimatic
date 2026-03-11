@@ -10,6 +10,28 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =================================================
+-- FUNCTIONS (must be defined before triggers)
+-- =================================================
+
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION track_deal_stage_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.stage_id != OLD.stage_id THEN
+    NEW.stage_changed_at = now();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =================================================
 -- CORE TENANT & AUTH
 -- =================================================
 
@@ -605,19 +627,9 @@ CREATE TRIGGER import_profiles_updated_at BEFORE UPDATE ON import_profiles
 ALTER TABLE import_profiles ENABLE ROW LEVEL SECURITY;
 
 -- =================================================
--- FUNCTIONS & TRIGGERS
+-- TRIGGERS
 -- =================================================
 
--- Updated_at trigger function
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Apply to tables
 CREATE TRIGGER workspaces_updated_at BEFORE UPDATE ON workspaces
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -644,17 +656,6 @@ CREATE TRIGGER pipelines_updated_at BEFORE UPDATE ON pipelines
 
 CREATE TRIGGER stages_updated_at BEFORE UPDATE ON stages
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
--- Track deal stage changes
-CREATE OR REPLACE FUNCTION track_deal_stage_change()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.stage_id != OLD.stage_id THEN
-    NEW.stage_changed_at = now();
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER deals_stage_changed BEFORE UPDATE ON deals
   FOR EACH ROW EXECUTE FUNCTION track_deal_stage_change();
