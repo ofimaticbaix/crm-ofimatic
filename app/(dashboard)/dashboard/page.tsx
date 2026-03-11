@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, Users, Building2, Target, CheckCircle2, Clock, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { TrendingUp, Users, Building2, Target, CheckCircle2, Clock, Calendar, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react'
 import { calculatePipelineMetrics, mockTasks, mockDeals, mockActivities, getDealsWithRelations } from '@/lib/mock-data'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 
@@ -239,7 +239,10 @@ export default function DashboardPage() {
 
 function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [showNewTask, setShowNewTask] = useState(false)
+  const [newTask, setNewTask] = useState({ title: '', time: '09:00', priority: 'medium' as 'high' | 'medium' | 'low' })
 
   const today = new Date()
   const year = currentDate.getFullYear()
@@ -247,33 +250,54 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
 
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const startOffset = firstDay === 0 ? 6 : firstDay - 1 // Lunes = 0
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1
 
   const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
 
-  // Días con tareas pendientes
-  const taskDays = new Set(
-    tasks
-      .filter(t => !t.isCompleted)
-      .map(t => {
-        const d = new Date(t.dueDate)
-        if (d.getMonth() === month && d.getFullYear() === year) return d.getDate()
-        return null
-      })
-      .filter(Boolean)
-  )
+  // Map: day number -> tasks for that day
+  const tasksByDay = new Map<number, typeof tasks>()
+  tasks.forEach(t => {
+    const d = new Date(t.dueDate)
+    if (d.getMonth() === month && d.getFullYear() === year) {
+      const day = d.getDate()
+      if (!tasksByDay.has(day)) tasksByDay.set(day, [])
+      tasksByDay.get(day)!.push(t)
+    }
+  })
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
+  const prevMonth = () => { setCurrentDate(new Date(year, month - 1, 1)); setSelectedDay(null) }
+  const nextMonth = () => { setCurrentDate(new Date(year, month + 1, 1)); setSelectedDay(null) }
 
   const isToday = (day: number) =>
     day === today.getDate() && month === today.getMonth() && year === today.getFullYear()
 
+  const isSelected = (day: number) => selectedDay === day
+
   const dayNames = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do']
+
+  // Tareas del día seleccionado (o hoy si no hay selección)
+  const activeDay = selectedDay ?? (month === today.getMonth() && year === today.getFullYear() ? today.getDate() : 1)
+  const activeDayTasks = tasksByDay.get(activeDay) ?? []
+  const activeDayDate = new Date(year, month, activeDay)
+  const activeDayLabel = activeDayDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+
+  const handleDayClick = (day: number, openExpanded: boolean) => {
+    setSelectedDay(day)
+    if (openExpanded) setExpanded(true)
+  }
+
+  const handleCreateTask = () => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(activeDay).padStart(2, '0')}`
+    alert(`Tarea creada: "${newTask.title}" para ${dateStr} a las ${newTask.time} (prioridad: ${newTask.priority})`)
+    setNewTask({ title: '', time: '09:00', priority: 'medium' })
+    setShowNewTask(false)
+  }
+
+  const priorityLabel: Record<string, string> = { high: 'Alta', medium: 'Media', low: 'Baja' }
+  const typeIcons: Record<string, string> = { llamada: '📞', reunion: '🤝', tarea: '📋', visita: '🏢', email: '📧' }
 
   const calendarGrid = (compact: boolean) => (
     <>
-      {/* Day headers */}
       <div className={`grid grid-cols-7 mb-1 ${compact ? 'gap-0.5' : 'gap-1'}`}>
         {dayNames.map(d => (
           <div key={d} className={`text-center font-medium text-gray-500 dark:text-gray-400 ${compact ? 'text-[10px]' : 'text-xs py-1'}`}>
@@ -281,59 +305,55 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
           </div>
         ))}
       </div>
-      {/* Days */}
       <div className={`grid grid-cols-7 ${compact ? 'gap-0.5' : 'gap-1'}`}>
         {Array.from({ length: startOffset }).map((_, i) => (
           <div key={`empty-${i}`} />
         ))}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1
-          const hasTask = taskDays.has(day)
+          const dayTasks = tasksByDay.get(day) ?? []
+          const hasPending = dayTasks.some(t => !t.isCompleted)
+          const hasHighPriority = dayTasks.some(t => !t.isCompleted && t.priority === 'high')
           return (
-            <div
+            <button
               key={day}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleDayClick(day, !expanded) }}
               className={`
                 relative flex items-center justify-center rounded-lg transition-all
-                ${compact ? 'h-7 w-7 text-xs mx-auto' : 'h-9 w-9 text-sm mx-auto'}
-                ${isToday(day)
-                  ? 'bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/30'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                ${compact ? 'h-7 w-7 text-xs mx-auto' : 'h-9 w-9 text-sm mx-auto cursor-pointer'}
+                ${isSelected(day) && !isToday(day)
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold ring-1 ring-blue-300 dark:ring-blue-700'
+                  : isToday(day)
+                    ? 'bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/30'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                 }
               `}
             >
               {day}
-              {hasTask && (
-                <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full bg-orange-400 ${compact ? 'w-1 h-1' : 'w-1.5 h-1.5'}`} />
+              {hasPending && (
+                <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full ${hasHighPriority ? 'bg-red-500' : 'bg-orange-400'} ${compact ? 'w-1 h-1' : 'w-1.5 h-1.5'}`} />
               )}
-            </div>
+            </button>
           )
         })}
       </div>
     </>
   )
 
-  // Tareas del día seleccionado (hoy por defecto en expanded)
-  const todayTasks = tasks.filter(t => {
-    const d = new Date(t.dueDate)
-    return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
-  })
-
   return (
     <>
       {/* Mini version in sidebar */}
-      <Card
-        className="cursor-pointer hover:shadow-xl transition-all"
-        onClick={() => setExpanded(true)}
-      >
+      <Card className="hover:shadow-xl transition-all">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm">
+            <CardTitle className="flex items-center gap-2 text-sm cursor-pointer" onClick={() => setExpanded(true)}>
               <Calendar className="h-4 w-4 text-blue-500" />
               Calendario
             </CardTitle>
             <div className="flex items-center gap-1">
               <button
-                onClick={(e) => { e.stopPropagation(); prevMonth() }}
+                onClick={prevMonth}
                 className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
               >
                 <ChevronLeft className="h-3.5 w-3.5 text-gray-500" />
@@ -342,7 +362,7 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
                 {monthName}
               </span>
               <button
-                onClick={(e) => { e.stopPropagation(); nextMonth() }}
+                onClick={nextMonth}
                 className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
               >
                 <ChevronRight className="h-3.5 w-3.5 text-gray-500" />
@@ -358,63 +378,149 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
       {/* Expanded modal */}
       {expanded && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setExpanded(false)}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-4"
+          onClick={() => { setExpanded(false); setShowNewTask(false) }}
         >
           <Card
-            className="w-full max-w-md"
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-500" />
                   Calendario
                 </CardTitle>
                 <button
-                  onClick={() => setExpanded(false)}
+                  onClick={() => { setExpanded(false); setShowNewTask(false) }}
                   className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   <X className="h-4 w-4 text-gray-500" />
                 </button>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <button
-                  onClick={prevMonth}
-                  className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                >
+                <button onClick={prevMonth} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
                   <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </button>
                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize">
                   {monthName}
                 </span>
-                <button
-                  onClick={nextMonth}
-                  className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                >
+                <button onClick={nextMonth} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
                   <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {calendarGrid(false)}
 
-              {/* Tasks for today */}
+              {/* Tasks for selected day */}
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                  Tareas de hoy
-                </h4>
-                {todayTasks.length === 0 ? (
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Sin tareas para hoy</p>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase capitalize">
+                    {activeDayLabel}
+                  </h4>
+                  <button
+                    onClick={() => setShowNewTask(!showNewTask)}
+                    className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors px-2 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Nueva tarea
+                  </button>
+                </div>
+
+                {/* New task form */}
+                {showNewTask && (
+                  <div className="mb-3 p-3 rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-800/30 space-y-2">
+                    <input
+                      type="text"
+                      value={newTask.title}
+                      onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                      placeholder="Nombre de la tarea..."
+                      className="w-full text-sm px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="time"
+                        value={newTask.time}
+                        onChange={(e) => setNewTask({ ...newTask, time: e.target.value })}
+                        className="flex-1 text-sm px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <select
+                        value={newTask.priority}
+                        onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as 'high' | 'medium' | 'low' })}
+                        className="flex-1 text-sm px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="high">Alta</option>
+                        <option value="medium">Media</option>
+                        <option value="low">Baja</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCreateTask}
+                        disabled={!newTask.title.trim()}
+                        className="flex-1 text-sm font-medium px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Crear tarea
+                      </button>
+                      <button
+                        onClick={() => { setShowNewTask(false); setNewTask({ title: '', time: '09:00', priority: 'medium' }) }}
+                        className="text-sm px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Task list */}
+                {activeDayTasks.length === 0 && !showNewTask ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mb-2">Sin tareas para este día</p>
+                    <button
+                      onClick={() => setShowNewTask(true)}
+                      className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 font-medium"
+                    >
+                      + Añadir una tarea
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-2">
-                    {todayTasks.map(task => (
-                      <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          task.priority === 'high' ? 'bg-red-500' :
-                          task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                        }`} />
-                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{task.title}</span>
+                    {activeDayTasks
+                      .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
+                      .map(task => (
+                      <div key={task.id} className={`flex items-start gap-3 p-2.5 rounded-xl transition-all ${task.isCompleted ? 'opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}>
+                        <input
+                          type="checkbox"
+                          checked={task.isCompleted}
+                          readOnly
+                          className="mt-0.5 h-4 w-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium ${task.isCompleted ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                              {task.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            {task.dueTime && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {task.dueTime}
+                              </span>
+                            )}
+                            <span className="text-xs">{typeIcons[task.type] ?? '📋'}</span>
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                              task.priority === 'high'
+                                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                : task.priority === 'medium'
+                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                                  : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            }`}>
+                              {priorityLabel[task.priority]}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
