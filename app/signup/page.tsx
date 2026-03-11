@@ -87,12 +87,12 @@ export default function SignupPage() {
         className="absolute inset-0 bg-cover bg-center opacity-20"
         style={{ backgroundImage: 'url(/images/background.png)' }}
       />
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0b14] via-[#0a0b14]/80 to-indigo-950/90" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0b14] via-[#0a0b14]/80 to-[#76b900]/20" />
 
       {/* Animated orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-purple-500/15 rounded-full blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
-        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-blue-500/15 rounded-full blur-[120px] animate-[pulse_10s_ease-in-out_infinite_1s]" />
+        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#76b900]/15 rounded-full blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
+        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-[#76b900]/10 rounded-full blur-[120px] animate-[pulse_10s_ease-in-out_infinite_1s]" />
       </div>
 
       {/* Grid pattern */}
