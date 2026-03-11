@@ -1,5 +1,5 @@
 -- =================================================
--- CRM AI-NATIVE - DATABASE SCHEMA
+-- CRM - DATABASE SCHEMA
 -- =================================================
 -- PostgreSQL + Supabase
 -- Version: 1.0.0
@@ -8,9 +8,6 @@
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Enable pgvector for AI embeddings (future)
--- CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- =================================================
 -- CORE TENANT & AUTH
@@ -414,70 +411,6 @@ CREATE INDEX idx_taggables_entity ON taggables(taggable_type, taggable_id);
 CREATE INDEX idx_tags_workspace ON tags(workspace_id);
 
 -- =================================================
--- AI FEATURES
--- =================================================
-
-CREATE TABLE ai_summaries (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-
-  -- Target
-  entity_type TEXT NOT NULL,
-  entity_id UUID NOT NULL,
-
-  -- Summary
-  summary_type TEXT NOT NULL,
-  content TEXT NOT NULL,
-
-  -- Metadata
-  model_used TEXT,
-  tokens_used INTEGER,
-
-  -- Timestamps
-  generated_at TIMESTAMPTZ DEFAULT now(),
-  invalidated_at TIMESTAMPTZ,
-
-  CONSTRAINT entity_type_check CHECK (entity_type IN ('contact', 'company', 'deal', 'meeting')),
-  CONSTRAINT summary_type_check CHECK (summary_type IN ('deal_summary', 'meeting_summary', 'company_summary', 'contact_summary'))
-);
-
-CREATE INDEX idx_ai_summaries_entity ON ai_summaries(entity_type, entity_id);
-CREATE INDEX idx_ai_summaries_workspace ON ai_summaries(workspace_id);
-
-CREATE TABLE ai_suggestions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-
-  -- Target
-  entity_type TEXT NOT NULL,
-  entity_id UUID NOT NULL,
-
-  -- Suggestion
-  suggestion_type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  action_data JSONB,
-
-  -- Status
-  status TEXT DEFAULT 'pending',
-
-  -- User interaction
-  resolved_by_id UUID,
-  resolved_at TIMESTAMPTZ,
-
-  -- Timestamps
-  created_at TIMESTAMPTZ DEFAULT now(),
-
-  CONSTRAINT entity_type_check CHECK (entity_type IN ('contact', 'company', 'deal')),
-  CONSTRAINT suggestion_type_check CHECK (suggestion_type IN ('next_action', 'risk_alert', 'data_quality', 'opportunity')),
-  CONSTRAINT status_check CHECK (status IN ('pending', 'accepted', 'dismissed'))
-);
-
-CREATE INDEX idx_ai_suggestions_entity ON ai_suggestions(entity_type, entity_id);
-CREATE INDEX idx_ai_suggestions_status ON ai_suggestions(status);
-CREATE INDEX idx_ai_suggestions_workspace ON ai_suggestions(workspace_id);
-
--- =================================================
 -- ATTACHMENTS
 -- =================================================
 
@@ -743,8 +676,6 @@ ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE taggables ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_summaries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_suggestions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE import_jobs ENABLE ROW LEVEL SECURITY;

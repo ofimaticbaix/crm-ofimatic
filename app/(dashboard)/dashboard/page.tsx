@@ -1,8 +1,11 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, TrendingDown, Users, Building2, Target, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
+import { TrendingUp, Users, Building2, Target, CheckCircle2, Clock, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { calculatePipelineMetrics, mockTasks, mockDeals, mockActivities, getDealsWithRelations } from '@/lib/mock-data'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 
@@ -198,54 +201,8 @@ export default function DashboardPage() {
 
         {/* Sidebar */}
         <div className="space-y-4 md:space-y-6">
-          {/* AI Insights */}
-          <Card className="border-t-4 border-t-purple-500">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
-                <span className="text-2xl">✨</span>
-                Recomendaciones IA
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/20 dark:to-red-800/10 border border-red-200/50 dark:border-red-800/30">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
-                      <AlertCircle className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-red-900 dark:text-red-200">¡Atención necesaria!</p>
-                      <p className="text-xs text-red-700 dark:text-red-300 mt-1">3 ventas sin actividad en 7+ días</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100/50 dark:from-yellow-900/20 dark:to-yellow-800/10 border border-yellow-200/50 dark:border-yellow-800/30">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center flex-shrink-0">
-                      <Clock className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-200">Recordatorio</p>
-                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">2 seguimientos importantes pendientes</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border border-green-200/50 dark:border-green-800/30">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-green-900 dark:text-green-200">¡Buen trabajo!</p>
-                      <p className="text-xs text-green-700 dark:text-green-300 mt-1">Ventas creciendo +12% este mes</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Mini Calendar */}
+          <MiniCalendar tasks={mockTasks} />
 
           {/* Recent Activity */}
           <Card>
@@ -275,5 +232,198 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/* ─── Mini Calendar Component ─── */
+
+function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [expanded, setExpanded] = useState(false)
+
+  const today = new Date()
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
+
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1 // Lunes = 0
+
+  const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+
+  // Días con tareas pendientes
+  const taskDays = new Set(
+    tasks
+      .filter(t => !t.isCompleted)
+      .map(t => {
+        const d = new Date(t.dueDate)
+        if (d.getMonth() === month && d.getFullYear() === year) return d.getDate()
+        return null
+      })
+      .filter(Boolean)
+  )
+
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
+
+  const isToday = (day: number) =>
+    day === today.getDate() && month === today.getMonth() && year === today.getFullYear()
+
+  const dayNames = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do']
+
+  const calendarGrid = (compact: boolean) => (
+    <>
+      {/* Day headers */}
+      <div className={`grid grid-cols-7 mb-1 ${compact ? 'gap-0.5' : 'gap-1'}`}>
+        {dayNames.map(d => (
+          <div key={d} className={`text-center font-medium text-gray-500 dark:text-gray-400 ${compact ? 'text-[10px]' : 'text-xs py-1'}`}>
+            {d}
+          </div>
+        ))}
+      </div>
+      {/* Days */}
+      <div className={`grid grid-cols-7 ${compact ? 'gap-0.5' : 'gap-1'}`}>
+        {Array.from({ length: startOffset }).map((_, i) => (
+          <div key={`empty-${i}`} />
+        ))}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1
+          const hasTask = taskDays.has(day)
+          return (
+            <div
+              key={day}
+              className={`
+                relative flex items-center justify-center rounded-lg transition-all
+                ${compact ? 'h-7 w-7 text-xs mx-auto' : 'h-9 w-9 text-sm mx-auto'}
+                ${isToday(day)
+                  ? 'bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/30'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                }
+              `}
+            >
+              {day}
+              {hasTask && (
+                <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full bg-orange-400 ${compact ? 'w-1 h-1' : 'w-1.5 h-1.5'}`} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </>
+  )
+
+  // Tareas del día seleccionado (hoy por defecto en expanded)
+  const todayTasks = tasks.filter(t => {
+    const d = new Date(t.dueDate)
+    return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+  })
+
+  return (
+    <>
+      {/* Mini version in sidebar */}
+      <Card
+        className="cursor-pointer hover:shadow-xl transition-all"
+        onClick={() => setExpanded(true)}
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4 text-blue-500" />
+              Calendario
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); prevMonth() }}
+                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <ChevronLeft className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300 capitalize min-w-[100px] text-center">
+                {monthName}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); nextMonth() }}
+                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <ChevronRight className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0 pb-3 px-3">
+          {calendarGrid(true)}
+        </CardContent>
+      </Card>
+
+      {/* Expanded modal */}
+      {expanded && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setExpanded(false)}
+        >
+          <Card
+            className="w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-500" />
+                  Calendario
+                </CardTitle>
+                <button
+                  onClick={() => setExpanded(false)}
+                  className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <X className="h-4 w-4 text-gray-500" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <button
+                  onClick={prevMonth}
+                  className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                </button>
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize">
+                  {monthName}
+                </span>
+                <button
+                  onClick={nextMonth}
+                  className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {calendarGrid(false)}
+
+              {/* Tasks for today */}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                  Tareas de hoy
+                </h4>
+                {todayTasks.length === 0 ? (
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Sin tareas para hoy</p>
+                ) : (
+                  <div className="space-y-2">
+                    {todayTasks.map(task => (
+                      <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          task.priority === 'high' ? 'bg-red-500' :
+                          task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                        }`} />
+                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{task.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </>
   )
 }

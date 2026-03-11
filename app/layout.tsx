@@ -6,8 +6,8 @@ import { ThemeProvider } from '@/components/theme-provider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'CRM AI-Native | El CRM que tu equipo realmente usará',
-  description: 'CRM moderno con IA integrado, diseñado para SMEs y equipos de ventas',
+  title: 'CRM | El CRM que tu equipo realmente usará',
+  description: 'CRM moderno diseñado para SMEs y equipos de ventas',
 }
 
 export default function RootLayout({

@@ -1,4 +1,4 @@
-# 🚀 CRM AI-Native - DEMO READY
+# 🚀 CRM - DEMO READY
 
 **Estado:** ✅ LISTO PARA PRESENTACIÓN
 **Fecha:** 2026-03-09
@@ -12,10 +12,6 @@
 - KPIs en tiempo real (Pipeline total, Forecast ponderado, Conversión, Tareas)
 - Widget de tareas pendientes con estado (vencidas/hoy/próximas)
 - Deals que cierran esta semana
-- **Insights AI** con alertas visuales:
-  - Deals en riesgo (sin actividad 7+ días)
-  - Follow-ups pendientes
-  - Pipeline trending
 - Actividad reciente
 - Todo con datos mock realistas
 
@@ -45,10 +41,6 @@
   - Indicadores de riesgo (sin actividad)
   - Last activity relativa
 - Stats por stage (cantidad + valor)
-- **AI Insights del pipeline:**
-  - Deals en riesgo identificados
-  - Valor en stages finales
-  - Deals que cierran esta semana
 - 8 deals con datos completos
 
 ### ✅ Tareas
@@ -116,14 +108,12 @@
 ### 1. Dashboard (1 min)
 **Mensaje:** "Vista 360 de tu negocio en segundos"
 - Mostrar KPIs actualizados en tiempo real
-- Destacar **Insights AI** (deals en riesgo automáticamente detectados)
 - Tareas pendientes con alertas de vencidas
 
 ### 2. Pipeline de Deals (2 min)
 **Mensaje:** "Visualiza y gestiona tu pipeline de forma intuitiva"
 - Arrastrar (simular) un deal entre stages
 - Mostrar detalles de deal (valor, contactos, fecha cierre)
-- **AI insights**: deals en riesgo, forecast ponderado
 - Resaltar: "El sistema detecta automáticamente deals sin actividad"
 
 ### 3. Contactos (1 min)
@@ -132,16 +122,9 @@
 - Mostrar badges de lifecycle
 - Destacar: "Clasificación automática: Lead → Prospecto → Cliente"
 
-### 4. AI Features (1 min)
-**Mensaje:** "AI que realmente ayuda, no distrae"
-- Dashboard insights (deals en riesgo)
-- Pipeline insights (forecast inteligente)
-- Destacar: "Sin configuración, funciona desde día 1"
-
-### 5. Cierre (30 seg)
+### 4. Cierre (30 seg)
 **Mensaje:** "Un CRM que tu equipo realmente usará"
 - Diseño limpio y rápido
-- AI contextual
 - Todo lo que necesitas, nada que no
 
 ---
@@ -159,7 +142,7 @@ Abre: **http://localhost:3000**
 1. Dashboard (landing page por defecto)
 2. Deals (mostrar Kanban)
 3. Contacts (mostrar búsqueda)
-4. De vuelta a Dashboard (mostrar insights AI)
+4. De vuelta a Dashboard
 
 ---
 
@@ -170,32 +153,30 @@ Abre: **http://localhost:3000**
 | Feature | Nosotros | Salesforce | HubSpot | Pipedrive |
 |---------|----------|------------|---------|-----------|
 | **Setup time** | < 5 min | Semanas | Días | Horas |
-| **AI nativo** | ✅ Desde día 1 | ⚠️ Add-on caro | ⚠️ Básico | ❌ |
 | **UI moderna** | ✅ 2026 design | ❌ Legacy | ⚠️ Ok | ✅ |
 | **Pricing** | €39/user | €100+/user | €50+/user | €30/user |
-| **Insights AI** | ✅ Automáticos | ❌ | ⚠️ Limitado | ❌ |
 
 **Posicionamiento:**
-"El CRM que combina la facilidad de uso de Notion con la potencia de Salesforce, potenciado por IA desde el primer día."
+"El CRM que combina la facilidad de uso de Notion con la potencia de Salesforce."
 
 ---
 
 ## 🎤 SCRIPT DE PRESENTACIÓN (5 min)
 
 **[0:00-0:30] Intro**
-"Les presento nuestro CRM AI-native. Diseñado específicamente para SMEs y equipos de ventas que odian los CRMs tradicionales porque son lentos, complejos y nadie los usa."
+"Les presento nuestro CRM. Diseñado específicamente para SMEs y equipos de ventas que odian los CRMs tradicionales porque son lentos, complejos y nadie los usa."
 
 **[0:30-1:30] Dashboard**
-"Aquí está todo lo que necesitas ver al empezar tu día: pipeline total, forecast ponderado, tareas pendientes. Pero lo interesante es esto (señalar AI insights): el sistema detecta automáticamente deals en riesgo. 3 deals sin actividad en 7+ días. Sin tener que configurar nada."
+"Aquí está todo lo que necesitas ver al empezar tu día: pipeline total, forecast ponderado, tareas pendientes. Todo de un vistazo, sin complicaciones."
 
 **[1:30-3:30] Pipeline**
-"Vista Kanban clara. Cada deal muestra valor, empresa, contactos involucrados. Miren estos iconos (señalar alertas): este deal está en riesgo, sin actividad. Este otro cierra esta semana. Todo automático. Y aquí abajo (señalar insights): el sistema me dice que tengo €78k en stages finales, alta probabilidad de cierre."
+"Vista Kanban clara. Cada deal muestra valor, empresa, contactos involucrados. Los iconos indican deals sin actividad reciente. Todo visual e intuitivo."
 
 **[3:30-4:30] Contactos & Features**
 "Búsqueda instantánea. Clasificación automática por lifecycle. Todo integrado. Y lo mejor: setup en menos de 5 minutos, no semanas como Salesforce."
 
 **[4:30-5:00] Cierre**
-"Un CRM moderno que tu equipo realmente usará. AI que ayuda, no distrae. Precio honesto: €39/usuario, no €150 como Salesforce. ¿Preguntas?"
+"Un CRM moderno que tu equipo realmente usará. Precio honesto: €39/usuario, no €150 como Salesforce. ¿Preguntas?"
 
 ---
 
@@ -230,6 +211,6 @@ Si muestran interés:
 
 **Confianza:** 95% - Demo impresionante, datos realistas, UI premium
 **Riesgo:** Bajo - Mock data es suficiente para demo inicial
-**Impacto visual:** Alto - Diseño moderno, AI insights destacan
+**Impacto visual:** Alto - Diseño moderno y profesional
 
 **ÉXITO ASEGURADO** 🚀

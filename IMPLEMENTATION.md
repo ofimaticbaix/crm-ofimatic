@@ -1,4 +1,4 @@
-# CRM AI-Native - Implementation Status
+# CRM - Implementation Status
 
 **Last Updated:** 2026-03-09
 **Phase:** Phase 0 - Foundation ✅ COMPLETE
@@ -34,7 +34,6 @@
   - Deals, Pipelines, Stages
   - Activities & Notes
   - Tags
-  - AI Summaries & Suggestions
   - Attachments
   - Audit Logs
   - Import Jobs
@@ -119,10 +118,8 @@ crm-ai-native/
 │   ├── contacts/                 ⏳ Next: Contact module
 │   ├── companies/                ⏳ Next: Company module
 │   ├── deals/                    ⏳ Next: Deal module
-│   └── ai/                       ⏳ Next: AI features
 ├── lib/                          ✅ Created (empty)
 │   ├── supabase/                 ⏳ Next: Supabase client
-│   ├── ai/                       ⏳ Next: AI provider abstraction
 │   └── utils.ts                  ⏳ Next: Utility functions
 ├── services/                      ✅ Created (empty)
 ├── types/                         ✅ Created
@@ -150,8 +147,6 @@ crm-ai-native/
 | **Backend** | Next.js Server Actions | ✅ Ready |
 | | Supabase PostgreSQL | ⏳ To configure |
 | | Supabase Auth | ⏳ To configure |
-| **AI** | Anthropic Claude | ⏳ To configure |
-| | OpenAI (fallback) | ⏳ To configure |
 | **Payments** | Stripe | ⏳ To configure |
 | **Jobs** | Trigger.dev | ⏳ To configure |
 
@@ -234,8 +229,7 @@ npm run lint            # Run ESLint
 | Phase 1: Core Entities | 🔄 In Progress | 0% |
 | Phase 2: Activities & Tasks | ⏳ Pending | 0% |
 | Phase 3: Dashboard | ⏳ Pending | 0% |
-| Phase 4: AI Features | ⏳ Pending | 0% |
-| Phase 5: Permissions | ⏳ Pending | 0% |
+| Phase 4: Permissions | ⏳ Pending | 0% |
 | Phase 6: Import/Export | ⏳ Pending | 0% |
 | Phase 7: Reports | ⏳ Pending | 0% |
 | Phase 8: Settings | ⏳ Pending | 0% |
@@ -278,8 +272,6 @@ npm run lint            # Run ESLint
 - [Supabase Docs](https://supabase.com/docs)
 - [shadcn/ui](https://ui.shadcn.com)
 - [Tailwind CSS](https://tailwindcss.com)
-- [Anthropic API](https://docs.anthropic.com)
-
 ---
 
 **Status:** Foundation complete. Ready for Phase 1 implementation.

@@ -1,9 +1,8 @@
-# CRM AI-Native
+# CRM
 
 **El CRM que tu equipo realmente usará**
 
 Un CRM moderno diseñado para SMEs, agencias y equipos de ventas que necesitan:
-- ✅ AI contextual, no gimmicks
 - ✅ Customización sin código
 - ✅ Adopción por diseño
 - ✅ GDPR-compliant desde arquitectura
@@ -18,7 +17,6 @@ Un CRM moderno diseñado para SMEs, agencias y equipos de ventas que necesitan:
 - **Auth:** Supabase Auth
 - **Storage:** Supabase Storage
 - **Jobs:** Trigger.dev
-- **AI:** Anthropic Claude (primary), OpenAI (fallback)
 - **Payments:** Stripe
 - **Email:** Resend
 
@@ -60,11 +58,9 @@ crm-ai-native/
 │   ├── contacts/
 │   ├── companies/
 │   ├── deals/
-│   ├── tasks/
-│   └── ai/
+│   └── tasks/
 ├── lib/                  # Librerías core
 │   ├── supabase/
-│   ├── ai/
 │   └── utils.ts
 ├── services/             # Lógica de negocio
 ├── db/                   # Database schema & migrations
@@ -95,12 +91,6 @@ crm-ai-native/
 - ✅ Pipeline overview
 - ✅ Recent activity
 
-**AI Features:**
-- ✅ Deal summaries
-- ✅ Next action suggestions
-- ✅ Smart field extraction
-- ✅ AI-powered search
-
 **Admin:**
 - ✅ Multi-tenant workspace
 - ✅ User management
@@ -118,7 +108,6 @@ crm-ai-native/
 - [ ] Core entities (Contacts, Companies, Deals)
 - [ ] Tasks & Activities
 - [ ] Dashboard
-- [ ] AI features básicos
 - [ ] Import/Export
 - [ ] Reports básicos
 - [ ] Beta testing

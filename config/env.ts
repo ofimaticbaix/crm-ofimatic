@@ -24,12 +24,6 @@ export const env = {
     serviceRoleKey: getOptionalEnvVar('SUPABASE_SERVICE_ROLE_KEY'),
   },
 
-  // AI Providers
-  ai: {
-    anthropicApiKey: getOptionalEnvVar('ANTHROPIC_API_KEY'),
-    openaiApiKey: getOptionalEnvVar('OPENAI_API_KEY'),
-  },
-
   // Stripe
   stripe: {
     publishableKey: getOptionalEnvVar('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'),
