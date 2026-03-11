@@ -2,15 +2,16 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings,
   Menu, X, LogOut, Upload, UserCheck, BarChart3, ChevronDown, ChevronRight,
-  UserPlus, UserMinus, Lock
+  UserPlus, UserMinus, Lock, Loader2
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { cn } from '@/lib/utils'
-import { mockDeals, mockContacts, getActiveCompanies, getOverdueCompanies } from '@/lib/mock-data'
+import { WorkspaceProvider, useWorkspace } from '@/lib/context/workspace-context'
+import { createClient } from '@/lib/supabase/client'
 
 const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
@@ -34,11 +35,20 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  return (
+    <WorkspaceProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </WorkspaceProvider>
+  )
+}
+
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [clientsOpen, setClientsOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { userName, userInitials, userEmail, workspaceName, loading } = useWorkspace()
 
-  // Auto-open clients submenu if on a clients page
   const isOnClientsPage = pathname.startsWith('/clients')
   const isClientsExpanded = clientsOpen || isOnClientsPage
 
@@ -50,6 +60,13 @@ export default function DashboardLayout({
       month: 'short'
     }
     return date.toLocaleDateString('es-ES', options)
+  }
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
   }
 
   return (
@@ -71,9 +88,7 @@ export default function DashboardLayout({
         {/* Logo & Close button */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 dark:border-gray-700/20">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <span className="text-white font-bold text-base">O</span>
-            </div>
+            <img src="/images/logo.png" alt="Ofimatic Baix" className="w-9 h-9 rounded-xl shadow-lg shadow-blue-500/30" />
             <div className="flex flex-col">
               <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                 OFIMATIC BAIX
@@ -208,45 +223,31 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* Métricas Rápidas (KPI) */}
-        <div className="px-3 pb-3">
-          <div className="flex items-center gap-2 px-3 mb-2">
-            <BarChart3 className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Métricas Rápidas</span>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5 px-1">
-            <div className="p-2 rounded-lg bg-white/5 dark:bg-gray-800/30 border border-white/10 dark:border-gray-700/20">
-              <p className="text-xs font-bold text-white">{mockDeals.length}</p>
-              <p className="text-[9px] text-gray-400">Deals</p>
-            </div>
-            <div className="p-2 rounded-lg bg-white/5 dark:bg-gray-800/30 border border-white/10 dark:border-gray-700/20">
-              <p className="text-xs font-bold text-white">{mockContacts.length}</p>
-              <p className="text-[9px] text-gray-400">Contactos</p>
-            </div>
-            <div className="p-2 rounded-lg bg-white/5 dark:bg-gray-800/30 border border-white/10 dark:border-gray-700/20">
-              <p className="text-xs font-bold text-green-400">{getActiveCompanies().length}</p>
-              <p className="text-[9px] text-gray-400">Activos</p>
-            </div>
-            <div className="p-2 rounded-lg bg-white/5 dark:bg-gray-800/30 border border-white/10 dark:border-gray-700/20">
-              <p className={`text-xs font-bold ${getOverdueCompanies().length > 0 ? 'text-amber-400' : 'text-white'}`}>{getOverdueCompanies().length}</p>
-              <p className="text-[9px] text-gray-400">Inactivos</p>
-            </div>
-          </div>
-        </div>
-
         {/* User section */}
         <div className="p-3 border-t border-white/10 dark:border-gray-700/20">
           <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 dark:border-blue-400/20">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-lg flex-shrink-0">
-              AS
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">Alex Saumell</div>
-              <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">alex@ofimaticbaix.com</div>
-            </div>
-            <button className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors group">
-              <LogOut className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
-            </button>
+            {loading ? (
+              <div className="flex-1 flex items-center justify-center py-1">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              </div>
+            ) : (
+              <>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-lg flex-shrink-0">
+                  {userInitials || '??'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">{userName || 'Usuario'}</div>
+                  <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">{userEmail}</div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors group"
+                  title="Cerrar sesión"
+                >
+                  <LogOut className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </aside>
@@ -274,7 +275,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-2 md:gap-4">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/30 dark:bg-gray-800/30 border border-white/20 dark:border-gray-700/20">
               <span className="text-xs text-gray-600 dark:text-gray-400">Workspace:</span>
-              <span className="text-xs font-semibold text-gray-900 dark:text-white">OFIMATIC BAIX</span>
+              <span className="text-xs font-semibold text-gray-900 dark:text-white">{workspaceName || 'Cargando...'}</span>
             </div>
             <ThemeToggle />
           </div>

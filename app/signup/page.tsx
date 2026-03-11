@@ -109,9 +109,7 @@ export default function SignupPage() {
         <div className="max-w-md text-center">
           {/* Logo */}
           <div className="flex items-center justify-center gap-3 mb-12">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/20">
-              <span className="text-white font-bold text-lg">O</span>
-            </div>
+            <img src="/images/logo.png" alt="Ofimatic Baix" className="w-11 h-11 rounded-xl shadow-2xl shadow-blue-500/20" />
             <div className="flex flex-col text-left">
               <span className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent tracking-wider">
                 OFIMATIC BAIX
@@ -161,9 +159,7 @@ export default function SignupPage() {
 
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-10">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/30 mb-3">
-              <span className="text-white font-bold text-xl">O</span>
-            </div>
+            <img src="/images/logo.png" alt="Ofimatic Baix" className="mx-auto w-14 h-14 rounded-2xl shadow-2xl shadow-blue-500/30 mb-3" />
             <span className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent tracking-wider">
               OFIMATIC BAIX
             </span>
