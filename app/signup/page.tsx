@@ -105,22 +105,21 @@ export default function SignupPage() {
       />
 
       {/* Left side - Branding */}
-      <div className={`hidden lg:flex lg:w-1/2 relative z-10 flex-col justify-between p-12 transition-all duration-1000 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
-        <div>
-          <div className="flex items-center gap-3">
+      <div className={`hidden lg:flex lg:w-1/2 relative z-10 flex-col items-center justify-center p-12 transition-all duration-1000 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
+        <div className="max-w-md text-center">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-3 mb-12">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/20">
               <span className="text-white font-bold text-lg">O</span>
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col text-left">
               <span className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent tracking-wider">
                 OFIMATIC BAIX
               </span>
               <span className="text-[10px] text-gray-500">CRM Platform</span>
             </div>
           </div>
-        </div>
 
-        <div className="max-w-md">
           <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
             Empieza a{' '}
             <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
@@ -133,7 +132,7 @@ export default function SignupPage() {
           </p>
 
           {/* What you get */}
-          <div className="mt-8 space-y-3">
+          <div className="mt-8 space-y-3 text-left inline-block">
             {[
               'Pipeline de ventas visual con Kanban',
               'Gestión de contactos y empresas ilimitada',
@@ -148,11 +147,11 @@ export default function SignupPage() {
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-600">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Más de 100 empresas confían en nosotros</span>
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-600 mt-10">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Más de 100 empresas confían en nosotros</span>
+          </div>
         </div>
       </div>
 
