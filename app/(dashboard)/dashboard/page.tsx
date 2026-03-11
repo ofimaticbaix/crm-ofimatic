@@ -1,26 +1,64 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, Users, Building2, Target, CheckCircle2, Clock, Calendar, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react'
-import { calculatePipelineMetrics, mockTasks, mockDeals, mockActivities, getDealsWithRelations } from '@/lib/mock-data'
+import { TrendingUp, Users, Building2, Target, CheckCircle2, Clock, Calendar, ChevronLeft, ChevronRight, X, Plus, Loader2 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
+import { useWorkspace } from '@/lib/context/workspace-context'
+import { getTasks, getDashboardMetrics, createTask } from '@/lib/actions/tasks'
+import { getDeals } from '@/lib/actions/deals'
+import { getActivities } from '@/lib/actions/activities'
 
 export default function DashboardPage() {
-  const metrics = calculatePipelineMetrics()
-  const upcomingTasks = mockTasks.filter(t => !t.isCompleted).slice(0, 5)
-  const recentActivity = mockActivities.slice(0, 5)
-  const closingThisWeek = getDealsWithRelations().filter(d => {
-    const closeDate = new Date(d.expectedCloseDate)
+  const { workspaceId, userName, loading: wsLoading } = useWorkspace()
+  const [metrics, setMetrics] = useState({ totalValue: 0, weightedValue: 0, conversionRate: 0, totalDeals: 0, wonDeals: 0, contactCount: 0, companyCount: 0 })
+  const [tasks, setTasks] = useState<any[]>([])
+  const [deals, setDeals] = useState<any[]>([])
+  const [activities, setActivities] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!workspaceId) return
+    async function loadData() {
+      setLoading(true)
+      const [metricsRes, tasksRes, dealsRes, activitiesRes] = await Promise.all([
+        getDashboardMetrics(workspaceId),
+        getTasks(workspaceId, { onlyPending: true }),
+        getDeals(workspaceId),
+        getActivities(workspaceId),
+      ])
+      if (metricsRes.data) setMetrics(metricsRes.data)
+      if (tasksRes.data) setTasks(tasksRes.data)
+      if (dealsRes.data) setDeals(dealsRes.data)
+      if (activitiesRes.data) setActivities(activitiesRes.data)
+      setLoading(false)
+    }
+    loadData()
+  }, [workspaceId])
+
+  const upcomingTasks = tasks.filter(t => !t.is_completed).slice(0, 5)
+  const recentActivity = activities.slice(0, 5)
+  const closingThisWeek = deals.filter(d => {
+    if (!d.expected_close_date) return false
+    const closeDate = new Date(d.expected_close_date)
     const today = new Date()
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-    return closeDate >= today && closeDate <= nextWeek
+    return closeDate >= today && closeDate <= nextWeek && !d.stages?.is_closed_won && !d.stages?.is_closed_lost
   })
+  const overdueTasks = tasks.filter(t => !t.is_completed && t.due_date && new Date(t.due_date) < new Date())
 
-  const overdueTasks = mockTasks.filter(t => !t.isCompleted && new Date(t.dueDate) < new Date())
+  const firstName = userName?.split(' ')[0] || 'Usuario'
+
+  if (wsLoading || loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -29,13 +67,13 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
             <span className="text-2xl md:text-3xl">👋</span>
-            Hola, Alex
+            Hola, {firstName}
           </h1>
           <p className="text-xs md:text-sm text-white mt-1">Esto es lo que está pasando hoy</p>
         </div>
       </div>
 
-      {/* KPI Cards - Más visuales y simples */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         <Card className="border-l-4 border-l-blue-500 hover:shadow-xl transition-shadow">
           <CardContent className="p-3 md:p-6">
@@ -43,9 +81,6 @@ export default function DashboardPage() {
               <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                 <TrendingUp className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
-              <span className="text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                +12%
-              </span>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Ventas</p>
             <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(metrics.totalValue)}</div>
@@ -59,7 +94,7 @@ export default function DashboardPage() {
                 <Target className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
               <span className="text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                {mockDeals.length}
+                {metrics.totalDeals}
               </span>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Previsión</p>
@@ -73,9 +108,6 @@ export default function DashboardPage() {
               <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
                 <CheckCircle2 className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
-              <span className="text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                +5%
-              </span>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Éxito</p>
             <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white">{metrics.conversionRate}%</div>
@@ -126,18 +158,18 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-2">
                   {upcomingTasks.map((task) => {
-                    const deal = mockDeals.find(d => d.id === task.dealId)
-                    const isOverdue = new Date(task.dueDate) < new Date()
+                    const isOverdue = task.due_date && new Date(task.due_date) < new Date()
+                    const priority = task.metadata?.priority || 'medium'
 
                     return (
                       <div key={task.id} className="flex items-center gap-3 p-4 rounded-xl hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 dark:hover:from-blue-900/10 dark:hover:to-indigo-900/10 border border-transparent hover:border-blue-200/50 dark:hover:border-blue-800/30 transition-all group">
                         <input type="checkbox" className="h-5 w-5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-gray-900 dark:text-white truncate">{task.title}</span>
-                            {task.priority === 'high' && (
+                            <span className="font-medium text-gray-900 dark:text-white truncate">{task.subject}</span>
+                            {priority === 'high' && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                                ⚠️ Urgente
+                                Urgente
                               </span>
                             )}
                             {isOverdue && (
@@ -146,11 +178,13 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
-                          {deal && (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{deal.name}</p>
+                          {task.deals && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{task.deals.name}</p>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{task.dueDate}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                          {task.due_date ? new Date(task.due_date).toLocaleDateString('es-ES') : ''}
+                        </span>
                       </div>
                     )
                   })}
@@ -184,12 +218,14 @@ export default function DashboardPage() {
                         <div className="font-semibold text-gray-900 dark:text-white truncate">{deal.name}</div>
                         <div className="flex items-center gap-2 mt-1">
                           <Users className="h-3 w-3 text-gray-400" />
-                          <span className="text-sm text-gray-500 dark:text-gray-400">{deal.company?.name}</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{deal.companies?.name || '-'}</span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-lg text-green-600 dark:text-green-400">{formatCurrency(deal.value)}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{deal.expectedCloseDate}</div>
+                        <div className="font-bold text-lg text-green-600 dark:text-green-400">{formatCurrency(deal.value || 0)}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString('es-ES') : ''}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -202,7 +238,12 @@ export default function DashboardPage() {
         {/* Sidebar */}
         <div className="space-y-4 md:space-y-6">
           {/* Mini Calendar */}
-          <MiniCalendar tasks={mockTasks} />
+          <MiniCalendar tasks={tasks} workspaceId={workspaceId} onTaskCreated={() => {
+            // Refresh tasks
+            getTasks(workspaceId, { onlyPending: true }).then(res => {
+              if (res.data) setTasks(res.data)
+            })
+          }} />
 
           {/* Recent Activity */}
           <Card>
@@ -213,20 +254,24 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div key={activity.id} className="flex gap-3 relative">
-                    {index !== recentActivity.length - 1 && (
-                      <div className="absolute left-2 top-6 bottom-0 w-px bg-gradient-to-b from-blue-200 to-transparent dark:from-blue-800" />
-                    )}
-                    <div className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 dark:bg-blue-400 mt-1 ring-4 ring-white dark:ring-gray-800 z-10" />
-                    <div className="flex-1 pb-2">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.subject}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatRelativeTime(activity.createdAt)}</p>
+              {recentActivity.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Sin actividad reciente</p>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivity.map((activity, index) => (
+                    <div key={activity.id} className="flex gap-3 relative">
+                      {index !== recentActivity.length - 1 && (
+                        <div className="absolute left-2 top-6 bottom-0 w-px bg-gradient-to-b from-blue-200 to-transparent dark:from-blue-800" />
+                      )}
+                      <div className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 dark:bg-blue-400 mt-1 ring-4 ring-white dark:ring-gray-800 z-10" />
+                      <div className="flex-1 pb-2">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.subject || activity.description || 'Actividad'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatRelativeTime(activity.created_at)}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -237,11 +282,12 @@ export default function DashboardPage() {
 
 /* ─── Mini Calendar Component ─── */
 
-function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
+function MiniCalendar({ tasks, workspaceId, onTaskCreated }: { tasks: any[], workspaceId: string, onTaskCreated: () => void }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [showNewTask, setShowNewTask] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [newTask, setNewTask] = useState({ title: '', time: '09:00', priority: 'medium' as 'high' | 'medium' | 'low' })
 
   const today = new Date()
@@ -255,9 +301,10 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
   const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
 
   // Map: day number -> tasks for that day
-  const tasksByDay = new Map<number, typeof tasks>()
+  const tasksByDay = new Map<number, any[]>()
   tasks.forEach(t => {
-    const d = new Date(t.dueDate)
+    if (!t.due_date) return
+    const d = new Date(t.due_date)
     if (d.getMonth() === month && d.getFullYear() === year) {
       const day = d.getDate()
       if (!tasksByDay.has(day)) tasksByDay.set(day, [])
@@ -275,7 +322,6 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
 
   const dayNames = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do']
 
-  // Tareas del día seleccionado (o hoy si no hay selección)
   const activeDay = selectedDay ?? (month === today.getMonth() && year === today.getFullYear() ? today.getDate() : 1)
   const activeDayTasks = tasksByDay.get(activeDay) ?? []
   const activeDayDate = new Date(year, month, activeDay)
@@ -286,15 +332,27 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
     if (openExpanded) setExpanded(true)
   }
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(activeDay).padStart(2, '0')}`
-    alert(`Tarea creada: "${newTask.title}" para ${dateStr} a las ${newTask.time} (prioridad: ${newTask.priority})`)
+    setCreating(true)
+
+    const typeMap: Record<string, string> = { high: 'task', medium: 'task', low: 'task' }
+    await createTask(workspaceId, {
+      subject: newTask.title,
+      type: 'task',
+      due_date: dateStr,
+      scheduled_at: `${dateStr}T${newTask.time}:00`,
+      metadata: { priority: newTask.priority, dueTime: newTask.time },
+    })
+
+    setCreating(false)
     setNewTask({ title: '', time: '09:00', priority: 'medium' })
     setShowNewTask(false)
+    onTaskCreated()
   }
 
   const priorityLabel: Record<string, string> = { high: 'Alta', medium: 'Media', low: 'Baja' }
-  const typeIcons: Record<string, string> = { llamada: '📞', reunion: '🤝', tarea: '📋', visita: '🏢', email: '📧' }
+  const typeIcons: Record<string, string> = { call: '📞', meeting: '🤝', task: '📋', email: '📧', note: '📝' }
 
   const calendarGrid = (compact: boolean) => (
     <>
@@ -312,8 +370,8 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1
           const dayTasks = tasksByDay.get(day) ?? []
-          const hasPending = dayTasks.some(t => !t.isCompleted)
-          const hasHighPriority = dayTasks.some(t => !t.isCompleted && t.priority === 'high')
+          const hasPending = dayTasks.some(t => !t.is_completed)
+          const hasHighPriority = dayTasks.some(t => !t.is_completed && t.metadata?.priority === 'high')
           return (
             <button
               key={day}
@@ -352,19 +410,13 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
               Calendario
             </CardTitle>
             <div className="flex items-center gap-1">
-              <button
-                onClick={prevMonth}
-                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-              >
+              <button onClick={prevMonth} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
                 <ChevronLeft className="h-3.5 w-3.5 text-gray-500" />
               </button>
               <span className="text-xs font-medium text-gray-600 dark:text-gray-300 capitalize min-w-[100px] text-center">
                 {monthName}
               </span>
-              <button
-                onClick={nextMonth}
-                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-              >
+              <button onClick={nextMonth} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
                 <ChevronRight className="h-3.5 w-3.5 text-gray-500" />
               </button>
             </div>
@@ -459,10 +511,10 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
                     <div className="flex gap-2">
                       <button
                         onClick={handleCreateTask}
-                        disabled={!newTask.title.trim()}
+                        disabled={!newTask.title.trim() || creating}
                         className="flex-1 text-sm font-medium px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Crear tarea
+                        {creating ? 'Creando...' : 'Crear tarea'}
                       </button>
                       <button
                         onClick={() => { setShowNewTask(false); setNewTask({ title: '', time: '09:00', priority: 'medium' }) }}
@@ -488,41 +540,43 @@ function MiniCalendar({ tasks }: { tasks: typeof mockTasks }) {
                 ) : (
                   <div className="space-y-2">
                     {activeDayTasks
-                      .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
-                      .map(task => (
-                      <div key={task.id} className={`flex items-start gap-3 p-2.5 rounded-xl transition-all ${task.isCompleted ? 'opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}>
-                        <input
-                          type="checkbox"
-                          checked={task.isCompleted}
-                          readOnly
-                          className="mt-0.5 h-4 w-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm font-medium ${task.isCompleted ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                              {task.title}
-                            </span>
+                      .sort((a: any, b: any) => (a.metadata?.dueTime ?? a.scheduled_at ?? '').localeCompare(b.metadata?.dueTime ?? b.scheduled_at ?? ''))
+                      .map((task: any) => {
+                        const priority = task.metadata?.priority || 'medium'
+                        const dueTime = task.metadata?.dueTime || (task.scheduled_at ? new Date(task.scheduled_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '')
+                        return (
+                          <div key={task.id} className={`flex items-start gap-3 p-2.5 rounded-xl transition-all ${task.is_completed ? 'opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}>
+                            <input
+                              type="checkbox"
+                              checked={task.is_completed}
+                              readOnly
+                              className="mt-0.5 h-4 w-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-medium ${task.is_completed ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                                  {task.subject}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                {dueTime && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">{dueTime}</span>
+                                )}
+                                <span className="text-xs">{typeIcons[task.type] ?? '📋'}</span>
+                                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                                  priority === 'high'
+                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                    : priority === 'medium'
+                                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                                      : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                }`}>
+                                  {priorityLabel[priority]}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            {task.dueTime && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {task.dueTime}
-                              </span>
-                            )}
-                            <span className="text-xs">{typeIcons[task.type] ?? '📋'}</span>
-                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                              task.priority === 'high'
-                                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                                : task.priority === 'medium'
-                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                                  : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            }`}>
-                              {priorityLabel[task.priority]}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                        )
+                      })}
                   </div>
                 )}
               </div>

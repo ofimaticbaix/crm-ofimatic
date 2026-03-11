@@ -1,41 +1,103 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, TrendingUp, AlertCircle, Clock, X } from 'lucide-react'
-import { stages, getDealsByStage, getDealsWithRelations, mockCompanies } from '@/lib/mock-data'
+import { Plus, TrendingUp, AlertCircle, Clock, X, Loader2 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
+import { useWorkspace } from '@/lib/context/workspace-context'
+import { getDeals, createDeal } from '@/lib/actions/deals'
+import { getPipeline } from '@/lib/actions/pipeline'
+import { getCompanies } from '@/lib/actions/companies'
 
 export default function DealsPage() {
+  const { workspaceId, loading: workspaceLoading } = useWorkspace()
   const [showNewDealModal, setShowNewDealModal] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [pipeline, setPipeline] = useState<any>(null)
+  const [deals, setDeals] = useState<any[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
   const [newDeal, setNewDeal] = useState({
     name: '',
     value: '',
     companyId: '',
-    stage: 'prospecting',
+    stageId: '',
     expectedCloseDate: ''
   })
 
-  const allDeals = getDealsWithRelations()
+  // Load pipeline, deals, and companies from Supabase
+  useEffect(() => {
+    if (workspaceLoading || !workspaceId) return
 
-  const handleCreateDeal = () => {
-    alert(`Oportunidad creada: ${newDeal.name} - ${formatCurrency(Number(newDeal.value))}`)
+    async function loadData() {
+      setLoading(true)
+      const [pipelineRes, dealsRes, companiesRes] = await Promise.all([
+        getPipeline(workspaceId),
+        getDeals(workspaceId),
+        getCompanies(workspaceId),
+      ])
+
+      if (pipelineRes.data) {
+        setPipeline(pipelineRes.data)
+        // Default new deal stage to first stage
+        if (pipelineRes.data.stages?.length > 0) {
+          setNewDeal(prev => ({ ...prev, stageId: pipelineRes.data!.stages[0].id }))
+        }
+      }
+      if (dealsRes.data) setDeals(dealsRes.data)
+      if (companiesRes.data) setCompanies(companiesRes.data)
+
+      setLoading(false)
+    }
+
+    loadData()
+  }, [workspaceId, workspaceLoading])
+
+  const stages = pipeline?.stages || []
+
+  const handleCreateDeal = async () => {
+    if (!pipeline) return
+    setCreating(true)
+
+    const { data, error } = await createDeal(workspaceId, {
+      name: newDeal.name,
+      value: Number(newDeal.value),
+      company_id: newDeal.companyId || null,
+      pipeline_id: pipeline.id,
+      stage_id: newDeal.stageId,
+      expected_close_date: newDeal.expectedCloseDate || undefined,
+    })
+
+    if (error) {
+      console.error('Error creating deal:', error)
+      setCreating(false)
+      return
+    }
+
+    // Reload deals
+    const dealsRes = await getDeals(workspaceId)
+    if (dealsRes.data) setDeals(dealsRes.data)
+
     setShowNewDealModal(false)
     setNewDeal({
       name: '',
       value: '',
       companyId: '',
-      stage: 'prospecting',
+      stageId: stages[0]?.id || '',
       expectedCloseDate: ''
     })
+    setCreating(false)
   }
 
   const getDealRiskStatus = (deal: any) => {
+    const dateToCheck = deal.updated_at || deal.created_at
+    if (!dateToCheck) return 'healthy'
+
     const daysSinceActivity = Math.floor(
-      (new Date().getTime() - new Date(deal.lastActivity).getTime()) / (1000 * 60 * 60 * 24)
+      (new Date().getTime() - new Date(dateToCheck).getTime()) / (1000 * 60 * 60 * 24)
     )
 
     if (daysSinceActivity >= 7) return 'at-risk'
@@ -54,7 +116,15 @@ export default function DealsPage() {
     }
   }
 
-  const totalValue = allDeals.reduce((sum, deal) => sum + deal.value, 0)
+  const totalValue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
+
+  if (workspaceLoading || loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -63,7 +133,7 @@ export default function DealsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Embudo de Ventas</h1>
           <p className="text-xs md:text-sm text-white mt-1">
-            {allDeals.length} oportunidades • {formatCurrency(totalValue)}
+            {deals.length} oportunidades • {formatCurrency(totalValue)}
           </p>
         </div>
         <Button
@@ -77,9 +147,9 @@ export default function DealsPage() {
 
       {/* Pipeline Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-        {stages.map((stage) => {
-          const stageDeals = getDealsByStage(stage.id)
-          const stageValue = stageDeals.reduce((sum, deal) => sum + deal.value, 0)
+        {stages.map((stage: any) => {
+          const stageDeals = deals.filter(d => d.stage_id === stage.id)
+          const stageValue = stageDeals.reduce((sum: number, deal: any) => sum + (deal.value || 0), 0)
 
           return (
             <Card key={stage.id} className="hover:shadow-xl transition-shadow">
@@ -101,9 +171,9 @@ export default function DealsPage() {
 
       {/* Kanban Board */}
       <div className="flex gap-3 md:gap-6 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory">
-        {stages.map((stage) => {
-          const stageDeals = allDeals.filter(d => d.stage === stage.id)
-          const stageValue = stageDeals.reduce((sum, deal) => sum + deal.value, 0)
+        {stages.map((stage: any) => {
+          const stageDeals = deals.filter(d => d.stage_id === stage.id)
+          const stageValue = stageDeals.reduce((sum: number, deal: any) => sum + (deal.value || 0), 0)
 
           return (
             <div key={stage.id} className="flex-shrink-0 w-64 md:w-80 snap-start">
@@ -124,9 +194,10 @@ export default function DealsPage() {
 
               {/* Column Content */}
               <div className="space-y-3 p-4 bg-gray-50/50 dark:bg-gray-800/50 border-x border-b border-gray-200 dark:border-gray-700 rounded-b-2xl min-h-[500px]">
-                {stageDeals.map((deal) => {
+                {stageDeals.map((deal: any) => {
                   const riskStatus = getDealRiskStatus(deal)
                   const riskIcon = getRiskIcon(riskStatus)
+                  const contacts = deal.deal_contacts?.map((dc: any) => dc.contacts).filter(Boolean) || []
 
                   return (
                     <Card
@@ -147,34 +218,34 @@ export default function DealsPage() {
                         </div>
 
                         {/* Company */}
-                        {deal.company && (
+                        {deal.companies && (
                           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                            {deal.company.name}
+                            {deal.companies.name}
                           </p>
                         )}
 
                         {/* Value */}
                         <div className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                          {formatCurrency(deal.value)}
+                          {formatCurrency(deal.value || 0)}
                         </div>
 
                         {/* Contacts */}
-                        {deal.contacts && deal.contacts.length > 0 && (
+                        {contacts.length > 0 && (
                           <div className="flex items-center gap-2 mb-3">
                             <div className="flex -space-x-2">
-                              {deal.contacts.slice(0, 3).map((contact: any) => (
+                              {contacts.slice(0, 3).map((contact: any) => (
                                 <div
                                   key={contact.id}
                                   className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-semibold border-2 border-white dark:border-gray-800"
-                                  title={`${contact.firstName} ${contact.lastName}`}
+                                  title={`${contact.first_name} ${contact.last_name}`}
                                 >
-                                  {contact.firstName?.[0]}{contact.lastName?.[0]}
+                                  {contact.first_name?.[0]}{contact.last_name?.[0]}
                                 </div>
                               ))}
                             </div>
-                            {deal.contacts.length > 3 && (
+                            {contacts.length > 3 && (
                               <span className="text-xs text-gray-500 dark:text-gray-400">
-                                +{deal.contacts.length - 3}
+                                +{contacts.length - 3}
                               </span>
                             )}
                           </div>
@@ -182,11 +253,15 @@ export default function DealsPage() {
 
                         {/* Footer */}
                         <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
-                            Cierra: {new Date(deal.expectedCloseDate).toLocaleDateString('es-ES')}
-                          </span>
+                          {deal.expected_close_date ? (
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                              Cierra: {new Date(deal.expected_close_date).toLocaleDateString('es-ES')}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">Sin fecha</span>
+                          )}
                           <span className="text-xs text-gray-500 dark:text-gray-500">
-                            {formatRelativeTime(deal.lastActivity)}
+                            {formatRelativeTime(deal.updated_at || deal.created_at)}
                           </span>
                         </div>
                       </CardContent>
@@ -235,7 +310,7 @@ export default function DealsPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-white block mb-2">
-                    Valor (€) *
+                    Valor (EUR) *
                   </label>
                   <Input
                     type="number"
@@ -255,7 +330,7 @@ export default function DealsPage() {
                     className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
                   >
                     <option value="">Seleccionar empresa</option>
-                    {mockCompanies.map((company) => (
+                    {companies.map((company: any) => (
                       <option key={company.id} value={company.id}>
                         {company.name}
                       </option>
@@ -267,11 +342,11 @@ export default function DealsPage() {
                     Etapa *
                   </label>
                   <select
-                    value={newDeal.stage}
-                    onChange={(e) => setNewDeal({...newDeal, stage: e.target.value})}
+                    value={newDeal.stageId}
+                    onChange={(e) => setNewDeal({...newDeal, stageId: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
                   >
-                    {stages.map((stage) => (
+                    {stages.map((stage: any) => (
                       <option key={stage.id} value={stage.id}>
                         {stage.name}
                       </option>
@@ -294,9 +369,16 @@ export default function DealsPage() {
                 <Button
                   onClick={handleCreateDeal}
                   className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
-                  disabled={!newDeal.name || !newDeal.value || !newDeal.companyId || !newDeal.expectedCloseDate}
+                  disabled={!newDeal.name || !newDeal.value || !newDeal.companyId || !newDeal.expectedCloseDate || creating}
                 >
-                  Crear Oportunidad
+                  {creating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Creando...
+                    </>
+                  ) : (
+                    'Crear Oportunidad'
+                  )}
                 </Button>
                 <Button
                   variant="outline"

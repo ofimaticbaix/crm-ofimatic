@@ -1,14 +1,38 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CheckCircle2, Circle, Plus, Calendar, X, ChevronLeft, ChevronRight, List, CalendarDays, Building2, User, Clock } from 'lucide-react'
-import { mockTasks, mockDeals, mockCompanies, mockContacts, getCompanyById, getContactById, getContactsByCompany, getTasksByDate } from '@/lib/mock-data'
+import { CheckCircle2, Circle, Plus, Calendar, X, ChevronLeft, ChevronRight, List, CalendarDays, Building2, User, Clock, Loader2 } from 'lucide-react'
+import { useWorkspace } from '@/lib/context/workspace-context'
+import { getTasks, createTask, toggleTaskComplete } from '@/lib/actions/tasks'
+import { getCompanies } from '@/lib/actions/companies'
+import { getContacts } from '@/lib/actions/contacts'
+import { getDeals } from '@/lib/actions/deals'
+
+// Type for a task (activity) from Supabase with relations
+interface Task {
+  id: string
+  subject: string
+  type: string
+  due_date: string | null
+  scheduled_at: string | null
+  is_completed: boolean
+  completed_at: string | null
+  metadata: Record<string, any> | null
+  contact_id: string | null
+  company_id: string | null
+  deal_id: string | null
+  workspace_id: string
+  contacts: { id: string; first_name: string; last_name: string } | null
+  companies: { id: string; name: string } | null
+  deals: { id: string; name: string } | null
+}
 
 export default function TasksPage() {
+  const { workspaceId, loading: wsLoading } = useWorkspace()
   const [viewMode, setViewMode] = useState<'lista' | 'calendario'>('calendario')
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -24,23 +48,108 @@ export default function TasksPage() {
     dealId: '',
     companyId: '',
     contactId: '',
-    type: 'tarea'
+    type: 'task'
   })
 
-  const allTasks = mockTasks
-  const pendingTasks = allTasks.filter(t => !t.isCompleted)
-  const overdueTasks = pendingTasks.filter(t => new Date(t.dueDate) < new Date())
+  // Data state
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
+  const [contacts, setContacts] = useState<any[]>([])
+  const [deals, setDeals] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+
+  // Load data from Supabase
+  const loadData = useCallback(async () => {
+    if (!workspaceId) return
+    setLoading(true)
+    try {
+      const [tasksRes, companiesRes, contactsRes, dealsRes] = await Promise.all([
+        getTasks(workspaceId),
+        getCompanies(workspaceId),
+        getContacts(workspaceId),
+        getDeals(workspaceId),
+      ])
+      if (tasksRes.data) setTasks(tasksRes.data as Task[])
+      if (companiesRes.data) setCompanies(companiesRes.data)
+      if (contactsRes.data) setContacts(contactsRes.data)
+      if (dealsRes.data) setDeals(dealsRes.data)
+    } catch (err) {
+      console.error('Error loading tasks data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [workspaceId])
+
+  useEffect(() => {
+    if (!wsLoading && workspaceId) {
+      loadData()
+    }
+  }, [wsLoading, workspaceId, loadData])
+
+  const allTasks = tasks
+  const pendingTasks = allTasks.filter(t => !t.is_completed)
+  const overdueTasks = pendingTasks.filter(t => t.due_date && new Date(t.due_date) < new Date(new Date().toISOString().split('T')[0]))
   const todayStr = new Date().toISOString().split('T')[0]
-  const todayTasks = pendingTasks.filter(t => t.dueDate === todayStr)
+  const todayTasks = pendingTasks.filter(t => t.due_date === todayStr)
 
   const filteredContactsForNewTask = newTask.companyId
-    ? getContactsByCompany(newTask.companyId)
-    : mockContacts
+    ? contacts.filter(c => c.company_id === newTask.companyId)
+    : contacts
 
-  const handleCreateTask = () => {
-    alert(`Tarea creada: ${newTask.title}`)
-    setShowNewTaskModal(false)
-    setNewTask({ title: '', dueDate: '', dueTime: '', priority: 'medium', dealId: '', companyId: '', contactId: '', type: 'tarea' })
+  const handleCreateTask = async () => {
+    if (!workspaceId || !newTask.title || !newTask.dueDate) return
+    setCreating(true)
+    try {
+      const result = await createTask(workspaceId, {
+        subject: newTask.title,
+        type: newTask.type as any,
+        due_date: newTask.dueDate,
+        scheduled_at: newTask.dueTime ? `${newTask.dueDate}T${newTask.dueTime}:00` : undefined,
+        contact_id: newTask.contactId || null,
+        company_id: newTask.companyId || null,
+        deal_id: newTask.dealId || null,
+        metadata: {
+          priority: newTask.priority,
+          dueTime: newTask.dueTime || undefined,
+        },
+      })
+      if (result.error) {
+        console.error('Error creating task:', result.error)
+      } else {
+        setShowNewTaskModal(false)
+        setNewTask({ title: '', dueDate: '', dueTime: '', priority: 'medium', dealId: '', companyId: '', contactId: '', type: 'task' })
+        await loadData()
+      }
+    } catch (err) {
+      console.error('Error creating task:', err)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleToggleComplete = async (taskId: string) => {
+    try {
+      const result = await toggleTaskComplete(taskId)
+      if (!result.error) {
+        await loadData()
+      }
+    } catch (err) {
+      console.error('Error toggling task:', err)
+    }
+  }
+
+  const getPriorityFromTask = (task: Task): string => {
+    return task.metadata?.priority || 'medium'
+  }
+
+  const getDueTimeFromTask = (task: Task): string | null => {
+    if (task.metadata?.dueTime) return task.metadata.dueTime
+    if (task.scheduled_at) {
+      const time = new Date(task.scheduled_at)
+      return `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`
+    }
+    return null
   }
 
   const getPriorityColor = (priority: string) => {
@@ -63,17 +172,18 @@ export default function TasksPage() {
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      'tarea': 'Tarea', 'llamada': 'Llamada', 'visita': 'Visita', 'reunion': 'Reunión'
+      'task': 'Tarea', 'call': 'Llamada', 'meeting': 'Reunion', 'email': 'Email', 'note': 'Nota'
     }
     return labels[type] || type
   }
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      'tarea': 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-      'llamada': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-      'visita': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-      'reunion': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+      'task': 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+      'call': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+      'email': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      'meeting': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+      'note': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
     }
     return colors[type] || ''
   }
@@ -106,13 +216,15 @@ export default function TasksPage() {
   }, [currentMonth])
 
   const tasksByDateMap = useMemo(() => {
-    const map: Record<string, typeof mockTasks> = {}
+    const map: Record<string, Task[]> = {}
     allTasks.forEach(t => {
-      if (!map[t.dueDate]) map[t.dueDate] = []
-      map[t.dueDate].push(t)
+      const date = t.due_date
+      if (!date) return
+      if (!map[date]) map[date] = []
+      map[date].push(t)
     })
     return map
-  }, [])
+  }, [allTasks])
 
   const monthLabel = new Date(currentMonth.year, currentMonth.month).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
 
@@ -128,50 +240,65 @@ export default function TasksPage() {
 
   const selectedDateTasks = selectedDate ? (tasksByDateMap[selectedDate] || []) : []
 
-  const TaskRow = ({ task }: { task: typeof mockTasks[0] }) => {
-    const deal = task.dealId ? mockDeals.find(d => d.id === task.dealId) : null
-    const company = task.companyId ? getCompanyById(task.companyId) : null
-    const contact = task.contactId ? getContactById(task.contactId) : null
+  const TaskRow = ({ task }: { task: Task }) => {
+    const priority = getPriorityFromTask(task)
+    const dueTime = getDueTimeFromTask(task)
 
     return (
       <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-        <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
+        <button onClick={() => handleToggleComplete(task.id)} className="mt-0.5 flex-shrink-0">
+          {task.is_completed
+            ? <CheckCircle2 className="h-5 w-5 text-green-500" />
+            : <Circle className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+          }
+        </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-gray-900 dark:text-white">{task.title}</span>
-            <Badge className={`${getPriorityColor(task.priority)} rounded-xl text-[10px]`}>
-              {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
+            <span className={`font-medium ${task.is_completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{task.subject}</span>
+            <Badge className={`${getPriorityColor(priority)} rounded-xl text-[10px]`}>
+              {priority === 'high' ? 'Alta' : priority === 'medium' ? 'Media' : 'Baja'}
             </Badge>
             <Badge className={`${getTypeColor(task.type)} rounded-xl text-[10px]`}>
               {getTypeLabel(task.type)}
             </Badge>
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
-            {deal && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">{deal.name}</span>
+            {task.deals && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">{task.deals.name}</span>
             )}
-            {company && (
+            {task.companies && (
               <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                <Building2 className="h-3 w-3" /> {company.name}
+                <Building2 className="h-3 w-3" /> {task.companies.name}
               </span>
             )}
-            {contact && (
+            {task.contacts && (
               <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                <User className="h-3 w-3" /> {contact.firstName} {contact.lastName}
+                <User className="h-3 w-3" /> {task.contacts.first_name} {task.contacts.last_name}
               </span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-          {task.dueTime && (
+          {dueTime && (
             <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" /> {task.dueTime}
+              <Clock className="h-3 w-3" /> {dueTime}
             </span>
           )}
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" /> {task.dueDate}
-          </span>
+          {task.due_date && (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" /> {task.due_date}
+            </span>
+          )}
         </div>
+      </div>
+    )
+  }
+
+  // Loading state
+  if (wsLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-white/60" />
       </div>
     )
   }
@@ -277,13 +404,13 @@ export default function TasksPage() {
           {/* Upcoming Tasks */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-white">Próximas Tareas</CardTitle>
+              <CardTitle className="text-white">Proximas Tareas</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
                 {pendingTasks
-                  .filter(t => new Date(t.dueDate) > new Date())
-                  .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                  .filter(t => t.due_date && new Date(t.due_date) > new Date())
+                  .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
                   .map((task) => <TaskRow key={task.id} task={task} />)}
               </div>
             </CardContent>
@@ -310,7 +437,7 @@ export default function TasksPage() {
             <CardContent>
               {/* Day headers */}
               <div className="grid grid-cols-7 mb-2">
-                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
+                {['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'].map(d => (
                   <div key={d} className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 py-2">{d}</div>
                 ))}
               </div>
@@ -342,8 +469,8 @@ export default function TasksPage() {
                       </div>
                       <div className="flex flex-wrap gap-0.5">
                         {dayTasks.slice(0, 3).map(t => (
-                          <div key={t.id} className={`w-2 h-2 rounded-full ${getPriorityDot(t.priority)}`}
-                            title={t.title} />
+                          <div key={t.id} className={`w-2 h-2 rounded-full ${getPriorityDot(getPriorityFromTask(t))}`}
+                            title={t.subject} />
                         ))}
                         {dayTasks.length > 3 && (
                           <span className="text-[9px] text-gray-400">+{dayTasks.length - 3}</span>
@@ -363,7 +490,7 @@ export default function TasksPage() {
                 <CardTitle className="text-white text-base">
                   {selectedDate
                     ? new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
-                    : 'Selecciona un día'}
+                    : 'Selecciona un dia'}
                 </CardTitle>
                 {selectedDate && (
                   <Button size="sm" className="rounded-xl gap-1 text-xs"
@@ -378,31 +505,31 @@ export default function TasksPage() {
                 selectedDateTasks.length > 0 ? (
                   <div className="space-y-2">
                     {selectedDateTasks.map(task => {
-                      const company = task.companyId ? getCompanyById(task.companyId) : null
-                      const contact = task.contactId ? getContactById(task.contactId) : null
+                      const priority = getPriorityFromTask(task)
+                      const dueTime = getDueTimeFromTask(task)
                       return (
                         <div key={task.id} className="p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
                           <div className="flex items-center gap-2 mb-1">
-                            <div className={`w-2 h-2 rounded-full ${getPriorityDot(task.priority)}`} />
+                            <div className={`w-2 h-2 rounded-full ${getPriorityDot(priority)}`} />
                             <Badge className={`${getTypeColor(task.type)} rounded-xl text-[10px]`}>
                               {getTypeLabel(task.type)}
                             </Badge>
-                            {task.dueTime && (
+                            {dueTime && (
                               <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
-                                <Clock className="h-2.5 w-2.5" /> {task.dueTime}
+                                <Clock className="h-2.5 w-2.5" /> {dueTime}
                               </span>
                             )}
                           </div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{task.title}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{task.subject}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            {company && (
+                            {task.companies && (
                               <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
-                                <Building2 className="h-2.5 w-2.5" /> {company.name}
+                                <Building2 className="h-2.5 w-2.5" /> {task.companies.name}
                               </span>
                             )}
-                            {contact && (
+                            {task.contacts && (
                               <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
-                                <User className="h-2.5 w-2.5" /> {contact.firstName} {contact.lastName}
+                                <User className="h-2.5 w-2.5" /> {task.contacts.first_name} {task.contacts.last_name}
                               </span>
                             )}
                           </div>
@@ -411,10 +538,10 @@ export default function TasksPage() {
                     })}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Sin tareas para este día</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Sin tareas para este dia</p>
                 )
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Haz click en un día del calendario</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Haz click en un dia del calendario</p>
               )}
             </CardContent>
           </Card>
@@ -434,7 +561,7 @@ export default function TasksPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-white block mb-2">Título de la Tarea *</label>
+                  <label className="text-sm font-medium text-white block mb-2">Titulo de la Tarea *</label>
                   <Input value={newTask.title} onChange={(e) => setNewTask({...newTask, title: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
                     placeholder="Ej: Llamar a cliente para seguimiento" />
@@ -443,10 +570,11 @@ export default function TasksPage() {
                   <label className="text-sm font-medium text-white block mb-2">Tipo *</label>
                   <select value={newTask.type} onChange={(e) => setNewTask({...newTask, type: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
-                    <option value="tarea">Tarea</option>
-                    <option value="llamada">Llamada</option>
-                    <option value="visita">Visita</option>
-                    <option value="reunion">Reunión</option>
+                    <option value="task">Tarea</option>
+                    <option value="call">Llamada</option>
+                    <option value="meeting">Reunion</option>
+                    <option value="email">Email</option>
+                    <option value="note">Nota</option>
                   </select>
                 </div>
                 <div>
@@ -474,7 +602,7 @@ export default function TasksPage() {
                     onChange={(e) => setNewTask({...newTask, companyId: e.target.value, contactId: ''})}
                     className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
                     <option value="">Sin empresa</option>
-                    {mockCompanies.map(c => (
+                    {companies.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -486,7 +614,7 @@ export default function TasksPage() {
                     className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
                     <option value="">Sin contacto</option>
                     {filteredContactsForNewTask.map(c => (
-                      <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+                      <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
                     ))}
                   </select>
                 </div>
@@ -495,7 +623,7 @@ export default function TasksPage() {
                   <select value={newTask.dealId} onChange={(e) => setNewTask({...newTask, dealId: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
                     <option value="">Sin oportunidad asociada</option>
-                    {mockDeals.map((deal) => (
+                    {deals.map((deal) => (
                       <option key={deal.id} value={deal.id}>{deal.name}</option>
                     ))}
                   </select>
@@ -503,8 +631,8 @@ export default function TasksPage() {
               </div>
               <div className="flex gap-3 mt-6">
                 <Button onClick={handleCreateTask} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
-                  disabled={!newTask.title || !newTask.dueDate}>
-                  Crear Tarea
+                  disabled={!newTask.title || !newTask.dueDate || creating}>
+                  {creating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creando...</> : 'Crear Tarea'}
                 </Button>
                 <Button variant="outline" onClick={() => setShowNewTaskModal(false)}
                   className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">

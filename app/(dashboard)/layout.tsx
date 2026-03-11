@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings,
   Menu, X, LogOut, Upload, UserCheck, BarChart3, ChevronDown, ChevronRight,
@@ -11,6 +11,8 @@ import {
 import { ThemeToggle } from '@/components/theme-toggle'
 import { cn } from '@/lib/utils'
 import { mockDeals, mockContacts, getActiveCompanies, getOverdueCompanies } from '@/lib/mock-data'
+import { WorkspaceProvider, useWorkspace } from '@/lib/context/workspace-context'
+import { createClient } from '@/lib/supabase/client'
 
 const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
@@ -29,14 +31,18 @@ const clientSubItems = [
   { name: 'Cerrados', href: '/clients/cerrados', icon: Lock },
 ]
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [clientsOpen, setClientsOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { userName, userEmail, userInitials, workspaceName, loading } = useWorkspace()
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   // Auto-open clients submenu if on a clients page
   const isOnClientsPage = pathname.startsWith('/clients')
@@ -236,13 +242,13 @@ export default function DashboardLayout({
         <div className="p-3 border-t border-white/10 dark:border-gray-700/20">
           <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 dark:border-blue-400/20">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-lg flex-shrink-0">
-              AS
+              {loading ? '...' : userInitials || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">Alex Saumell</div>
-              <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">alex@ofimaticbaix.com</div>
+              <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">{loading ? 'Cargando...' : userName}</div>
+              <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">{loading ? '' : userEmail}</div>
             </div>
-            <button className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors group">
+            <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors group" title="Cerrar sesión">
               <LogOut className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
             </button>
           </div>
@@ -272,7 +278,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-2 md:gap-4">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/30 dark:bg-gray-800/30 border border-white/20 dark:border-gray-700/20">
               <span className="text-xs text-gray-600 dark:text-gray-400">Workspace:</span>
-              <span className="text-xs font-semibold text-gray-900 dark:text-white">OFIMATIC BAIX</span>
+              <span className="text-xs font-semibold text-gray-900 dark:text-white">{workspaceName || 'OFIMATIC BAIX'}</span>
             </div>
             <ThemeToggle />
           </div>
@@ -286,5 +292,17 @@ export default function DashboardLayout({
         </div>
       </main>
     </div>
+  )
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <WorkspaceProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </WorkspaceProvider>
   )
 }
