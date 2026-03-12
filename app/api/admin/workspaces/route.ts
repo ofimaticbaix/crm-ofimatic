@@ -18,13 +18,34 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
   const admin = createAdminClient()
-  const { data, error } = await admin
+
+  // Get workspaces with owner info via memberships
+  const { data: workspaces, error } = await admin
     .from('workspaces')
-    .select('id, name, slug, subscription_status, subscription_tier, plan_id, trial_ends_at, created_at, owner_id, users!workspaces_owner_id_fkey(email, full_name)')
+    .select('id, name, slug, subscription_status, subscription_tier, plan_id, trial_ends_at, created_at')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data })
+
+  // Get owners for each workspace
+  const enriched = await Promise.all(
+    (workspaces || []).map(async (ws) => {
+      const { data: membership } = await admin
+        .from('memberships')
+        .select('users(email, full_name)')
+        .eq('workspace_id', ws.id)
+        .eq('role', 'owner')
+        .limit(1)
+        .single()
+
+      return {
+        ...ws,
+        owner: membership?.users || null,
+      }
+    })
+  )
+
+  return NextResponse.json({ data: enriched })
 }
 
 // PATCH - Update workspace status/plan

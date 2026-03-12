@@ -15,15 +15,16 @@ interface Workspace {
   plan_id: string | null
   trial_ends_at: string | null
   created_at: string
-  owner_id: string
-  users: { email: string; full_name: string | null } | null
+  owner: { email: string; full_name: string | null } | null
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
   active: { label: 'Activo', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: CheckCircle },
   inactive: { label: 'Inactivo', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
+  trial: { label: 'Prueba', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: Clock },
   trialing: { label: 'Prueba', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: Clock },
   expired: { label: 'Expirado', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: AlertTriangle },
+  canceled: { label: 'Cancelado', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: XCircle },
 }
 
 const PLANS = [
@@ -58,12 +59,11 @@ export default function AdminPage() {
   async function loadWorkspaces() {
     try {
       const res = await fetch('/api/admin/workspaces')
+      const json = await res.json()
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Error cargando workspaces')
+        throw new Error(json.error || 'Error cargando workspaces')
       }
-      const { data } = await res.json()
-      setWorkspaces(data || [])
+      setWorkspaces(json.data || [])
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -207,8 +207,8 @@ export default function AdminPage() {
 
                     {/* Propietario */}
                     <td className="px-6 py-4">
-                      <p className="text-sm text-gray-300">{ws.users?.full_name || '-'}</p>
-                      <p className="text-xs text-gray-500">{ws.users?.email || '-'}</p>
+                      <p className="text-sm text-gray-300">{ws.owner?.full_name || '-'}</p>
+                      <p className="text-xs text-gray-500">{ws.owner?.email || '-'}</p>
                     </td>
 
                     {/* Estado */}
@@ -298,7 +298,7 @@ export default function AdminPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">{ws.name}</p>
-                      <p className="text-xs text-gray-500">{ws.users?.email || '-'}</p>
+                      <p className="text-xs text-gray-500">{ws.owner?.email || '-'}</p>
                     </div>
                   </div>
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusCfg.color}`}>
