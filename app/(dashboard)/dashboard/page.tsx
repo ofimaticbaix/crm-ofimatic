@@ -24,16 +24,20 @@ export default function DashboardPage() {
     if (!workspaceId) return
     async function loadData() {
       setLoading(true)
-      const [metricsRes, tasksRes, dealsRes, activitiesRes] = await Promise.all([
-        getDashboardMetrics(workspaceId),
-        getTasks(workspaceId, { onlyPending: true }),
-        getDeals(workspaceId),
-        getActivities(workspaceId),
-      ])
-      if (metricsRes.data) setMetrics(metricsRes.data)
-      if (tasksRes.data) setTasks(tasksRes.data)
-      if (dealsRes.data) setDeals(dealsRes.data)
-      if (activitiesRes.data) setActivities(activitiesRes.data)
+      try {
+        const [metricsRes, tasksRes, dealsRes, activitiesRes] = await Promise.all([
+          getDashboardMetrics(workspaceId).catch(e => ({ data: null, error: String(e) })),
+          getTasks(workspaceId, { onlyPending: true }).catch(e => ({ data: null, error: String(e) })),
+          getDeals(workspaceId).catch(e => ({ data: null, error: String(e) })),
+          getActivities(workspaceId).catch(e => ({ data: null, error: String(e) })),
+        ])
+        if (metricsRes.data) setMetrics(metricsRes.data)
+        if (tasksRes.data) setTasks(tasksRes.data)
+        if (dealsRes.data) setDeals(dealsRes.data)
+        if (activitiesRes.data) setActivities(activitiesRes.data)
+      } catch (err) {
+        console.error('Dashboard load error:', err)
+      }
       setLoading(false)
     }
     loadData()
@@ -69,7 +73,7 @@ export default function DashboardPage() {
             <span className="text-2xl md:text-3xl">👋</span>
             Hola, {firstName}
           </h1>
-          <p className="text-xs md:text-sm text-white mt-1">Esto es lo que está pasando hoy</p>
+          <p className="text-xs md:text-sm text-gray-300 mt-1">Esto es lo que está pasando hoy</p>
         </div>
       </div>
 

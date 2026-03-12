@@ -20,22 +20,30 @@ export interface DealInput {
 
 // Listar deals del workspace con relaciones
 export async function getDeals(workspaceId: string) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('deals')
-    .select(`
-      *,
-      companies(id, name),
-      stages(id, name, probability, position, is_closed_won, is_closed_lost),
-      deal_contacts(contact_id, role, is_primary, contacts(id, first_name, last_name, email))
-    `)
-    .eq('workspace_id', workspaceId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
+    const { data, error } = await supabase
+      .from('deals')
+      .select(`
+        *,
+        companies(id, name),
+        stages(id, name, probability, position, is_closed_won, is_closed_lost),
+        deal_contacts(contact_id, role, is_primary, contacts(id, first_name, last_name, email))
+      `)
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
 
-  if (error) return { data: null, error: error.message }
-  return { data, error: null }
+    if (error) {
+      console.error('getDeals error:', error.message)
+      return { data: [], error: error.message }
+    }
+    return { data: data || [], error: null }
+  } catch (err) {
+    console.error('getDeals error:', err)
+    return { data: [], error: String(err) }
+  }
 }
 
 // Obtener un deal con todas sus relaciones
@@ -63,6 +71,15 @@ export async function getDeal(id: string) {
 export async function createDeal(workspaceId: string, input: DealInput) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Check plan limit
+  const { data: limitCheck } = await supabase.rpc('check_plan_limit', {
+    p_workspace_id: workspaceId,
+    p_resource: 'deals',
+  })
+  if (limitCheck && !limitCheck.allowed) {
+    return { data: null, error: `Has alcanzado el limite de ${limitCheck.max} oportunidades en tu plan. Mejora tu plan para continuar.` }
+  }
 
   const { data, error } = await supabase
     .from('deals')

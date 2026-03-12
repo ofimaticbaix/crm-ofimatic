@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, TrendingUp, AlertCircle, Clock, X, Loader2 } from 'lucide-react'
+import { Plus, TrendingUp, AlertCircle, Clock, X, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getDeals, createDeal } from '@/lib/actions/deals'
+import { getDeals, createDeal, updateDeal, deleteDeal } from '@/lib/actions/deals'
 import { getPipeline } from '@/lib/actions/pipeline'
 import { getCompanies } from '@/lib/actions/companies'
 
@@ -20,6 +20,10 @@ export default function DealsPage() {
   const [pipeline, setPipeline] = useState<any>(null)
   const [deals, setDeals] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
+  const [editingDeal, setEditingDeal] = useState<any>(null)
+  const [deletingDealId, setDeletingDealId] = useState<string | null>(null)
+  const [updatingDeal, setUpdatingDeal] = useState(false)
+  const [deletingDeal, setDeletingDeal] = useState(false)
   const [newDeal, setNewDeal] = useState({
     name: '',
     value: '',
@@ -92,6 +96,35 @@ export default function DealsPage() {
     setCreating(false)
   }
 
+  const handleUpdateDeal = async () => {
+    if (!editingDeal) return
+    setUpdatingDeal(true)
+    const result = await updateDeal(editingDeal.id, {
+      name: editingDeal.name,
+      value: Number(editingDeal.value),
+      company_id: editingDeal.company_id || null,
+      stage_id: editingDeal.stage_id,
+      expected_close_date: editingDeal.expected_close_date || undefined,
+    })
+    setUpdatingDeal(false)
+    if (!result.error) {
+      setEditingDeal(null)
+      const dealsRes = await getDeals(workspaceId)
+      if (dealsRes.data) setDeals(dealsRes.data)
+    }
+  }
+
+  const handleDeleteDeal = async (id: string) => {
+    setDeletingDeal(true)
+    const result = await deleteDeal(id)
+    setDeletingDeal(false)
+    if (!result.error) {
+      setDeletingDealId(null)
+      const dealsRes = await getDeals(workspaceId)
+      if (dealsRes.data) setDeals(dealsRes.data)
+    }
+  }
+
   const getDealRiskStatus = (deal: any) => {
     const dateToCheck = deal.updated_at || deal.created_at
     if (!dateToCheck) return 'healthy'
@@ -132,7 +165,7 @@ export default function DealsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Embudo de Ventas</h1>
-          <p className="text-xs md:text-sm text-white mt-1">
+          <p className="text-xs md:text-sm text-gray-300 mt-1">
             {deals.length} oportunidades • {formatCurrency(totalValue)}
           </p>
         </div>
@@ -258,11 +291,23 @@ export default function DealsPage() {
                               Cierra: {new Date(deal.expected_close_date).toLocaleDateString('es-ES')}
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400">Sin fecha</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Sin fecha</span>
                           )}
                           <span className="text-xs text-gray-500 dark:text-gray-500">
                             {formatRelativeTime(deal.updated_at || deal.created_at)}
                           </span>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-2">
+                          <Button size="sm" onClick={(e) => { e.stopPropagation(); setEditingDeal({...deal, value: deal.value || 0, expected_close_date: deal.expected_close_date || ''}) }}
+                            className="flex-1 rounded-xl text-xs h-7">
+                            <Pencil className="h-3 w-3 mr-1" /> Editar
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setDeletingDealId(deal.id) }}
+                            className="rounded-xl text-xs h-7 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -270,7 +315,7 @@ export default function DealsPage() {
                 })}
 
                 {stageDeals.length === 0 && (
-                  <div className="flex items-center justify-center h-32 text-gray-400 dark:text-gray-500 text-sm">
+                  <div className="flex items-center justify-center h-32 text-gray-500 dark:text-gray-400 text-sm">
                     Sin oportunidades en esta etapa
                   </div>
                 )}
@@ -280,12 +325,98 @@ export default function DealsPage() {
         })}
       </div>
 
+      {/* Modal Editar Oportunidad */}
+      {editingDeal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-gray-900 dark:text-white">Editar Oportunidad</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setEditingDeal(null)} className="rounded-xl">
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
+                  <Input value={editingDeal.name || ''} onChange={(e) => setEditingDeal({...editingDeal, name: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Nombre de la oportunidad" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Valor (EUR) *</label>
+                  <Input type="number" value={editingDeal.value || ''} onChange={(e) => setEditingDeal({...editingDeal, value: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="45000" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Empresa</label>
+                  <select value={editingDeal.company_id || ''} onChange={(e) => setEditingDeal({...editingDeal, company_id: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="">Seleccionar empresa</option>
+                    {companies.map((company: any) => (
+                      <option key={company.id} value={company.id}>{company.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Etapa *</label>
+                  <select value={editingDeal.stage_id || ''} onChange={(e) => setEditingDeal({...editingDeal, stage_id: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    {stages.map((stage: any) => (
+                      <option key={stage.id} value={stage.id}>{stage.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Fecha de Cierre Esperada</label>
+                  <Input type="date" value={editingDeal.expected_close_date || ''} onChange={(e) => setEditingDeal({...editingDeal, expected_close_date: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button onClick={handleUpdateDeal} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  disabled={!editingDeal.name || !editingDeal.value || updatingDeal}>
+                  {updatingDeal ? 'Guardando...' : 'Guardar Cambios'}
+                </Button>
+                <Button variant="outline" onClick={() => setEditingDeal(null)}
+                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal Eliminar Oportunidad */}
+      {deletingDealId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-gray-900 dark:text-white">Eliminar Oportunidad</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">¿Estás seguro de que quieres eliminar esta oportunidad? Esta acción no se puede deshacer.</p>
+              <div className="flex gap-3">
+                <Button onClick={() => handleDeleteDeal(deletingDealId)} disabled={deletingDeal}
+                  className="flex-1 bg-red-600 hover:bg-red-700 rounded-xl">
+                  {deletingDeal ? 'Eliminando...' : 'Eliminar'}
+                </Button>
+                <Button variant="outline" onClick={() => setDeletingDealId(null)}
+                  className="flex-1 rounded-xl dark:border-gray-700 dark:text-gray-300">
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Modal Nueva Oportunidad */}
       {showNewDealModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-2xl">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-white">Nueva Oportunidad</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Nueva Oportunidad</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
@@ -298,7 +429,7 @@ export default function DealsPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-white block mb-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">
                     Nombre de la Oportunidad *
                   </label>
                   <Input
@@ -309,7 +440,7 @@ export default function DealsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">
                     Valor (EUR) *
                   </label>
                   <Input
@@ -321,13 +452,13 @@ export default function DealsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">
                     Empresa *
                   </label>
                   <select
                     value={newDeal.companyId}
                     onChange={(e) => setNewDeal({...newDeal, companyId: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="">Seleccionar empresa</option>
                     {companies.map((company: any) => (
@@ -338,13 +469,13 @@ export default function DealsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">
                     Etapa *
                   </label>
                   <select
                     value={newDeal.stageId}
                     onChange={(e) => setNewDeal({...newDeal, stageId: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white"
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                   >
                     {stages.map((stage: any) => (
                       <option key={stage.id} value={stage.id}>
@@ -354,7 +485,7 @@ export default function DealsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">
                     Fecha de Cierre Esperada *
                   </label>
                   <Input

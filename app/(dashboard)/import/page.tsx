@@ -36,12 +36,12 @@ function StepIndicator({ currentStep, steps }: { currentStep: ImportStep, steps:
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
             idx === currentIdx ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' :
             idx < currentIdx ? 'bg-green-500/20 text-green-300' :
-            'bg-gray-800 text-gray-500'
+            'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
           }`}>
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
               idx < currentIdx ? 'bg-green-500 text-white' :
               idx === currentIdx ? 'bg-blue-500 text-white' :
-              'bg-gray-700 text-gray-400'
+              'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
             }`}>
               {idx < currentIdx ? '✓' : idx + 1}
             </span>
@@ -403,7 +403,7 @@ export default function ImportPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-white">Importar Datos</h1>
-        <p className="text-xs md:text-sm text-gray-400 mt-1">
+        <p className="text-xs md:text-sm text-gray-300 mt-1">
           Importa contactos, empresas y facturas desde CSV, Excel o Access
         </p>
       </div>
@@ -416,8 +416,8 @@ export default function ImportPage() {
       {step === 'upload' && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-white">Subir Archivo</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-gray-900 dark:text-white">Subir Archivo</CardTitle>
+            <CardDescription className="text-gray-500 dark:text-gray-400">
               CSV, Excel (.xlsx, .xls) o Access (.mdb, .accdb)
             </CardDescription>
           </CardHeader>
@@ -425,7 +425,7 @@ export default function ImportPage() {
             {accessTables.length > 0 ? (
               // Selector de tabla Access
               <div className="space-y-4">
-                <p className="text-sm text-gray-300">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   El archivo Access contiene {accessTables.length} tablas. Selecciona cuál importar:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -434,10 +434,10 @@ export default function ImportPage() {
                       key={table}
                       onClick={() => handleAccessTableSelect(table)}
                       disabled={isProcessing}
-                      className="flex items-center gap-3 p-4 rounded-xl border border-gray-700 hover:border-blue-500 hover:bg-blue-500/10 transition-all text-left"
+                      className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-500/10 transition-all text-left"
                     >
                       <Database className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                      <span className="text-white text-sm font-medium">{table}</span>
+                      <span className="text-gray-900 dark:text-white text-sm font-medium">{table}</span>
                     </button>
                   ))}
                 </div>
@@ -453,15 +453,15 @@ export default function ImportPage() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-12 transition-all cursor-pointer ${
-                  isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-gray-700 hover:border-blue-500/50'
+                  isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-gray-200 dark:border-gray-700 hover:border-blue-500/50'
                 }`}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className={`h-12 w-12 mb-4 ${isDragging ? 'text-blue-400' : 'text-gray-400'}`} />
-                <p className="text-white mb-2 text-center">
+                <p className="text-gray-900 dark:text-white mb-2 text-center">
                   {isProcessing ? 'Procesando archivo...' : 'Arrastra tu archivo aquí o haz clic para seleccionar'}
                 </p>
-                <p className="text-sm text-gray-400 mb-4">CSV, XLSX, XLS, MDB o ACCDB</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">CSV, XLSX, XLS, MDB o ACCDB</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -486,10 +486,10 @@ export default function ImportPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle className="text-white">
+              <CardTitle className="text-gray-900 dark:text-white">
                 ¿Qué tipo de datos contiene "{fileName}"?
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-gray-500 dark:text-gray-400">
                 {rawData.length} filas detectadas con {sourceColumns.length} columnas
               </CardDescription>
             </CardHeader>
@@ -504,14 +504,14 @@ export default function ImportPage() {
                   <button
                     key={type}
                     onClick={() => handleEntityTypeSelect(type)}
-                    className={`flex items-start gap-4 p-5 rounded-xl border border-gray-700 hover:border-${color}-500 hover:bg-${color}-500/10 transition-all text-left group`}
+                    className={`flex items-start gap-4 p-5 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-${color}-500 hover:bg-${color}-500/10 transition-all text-left group`}
                   >
                     <div className={`p-3 rounded-lg bg-${color}-500/20 group-hover:bg-${color}-500/30 transition-colors`}>
                       <Icon className={`h-6 w-6 text-${color}-400`} />
                     </div>
                     <div>
-                      <div className="text-white font-semibold">{getEntityTypeLabel(type)}</div>
-                      <div className="text-sm text-gray-400 mt-1">{desc}</div>
+                      <div className="text-gray-900 dark:text-white font-semibold">{getEntityTypeLabel(type)}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{desc}</div>
                     </div>
                   </button>
                 ))}
@@ -526,7 +526,7 @@ export default function ImportPage() {
                   </p>
                   {matchingProfiles.map(profile => (
                     <div key={profile.id} className="flex items-center justify-between mt-2">
-                      <span className="text-sm text-gray-300">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {profile.name} ({getEntityTypeLabel(profile.entityType)}) - usado {profile.usageCount}x
                       </span>
                       <Button
@@ -568,8 +568,8 @@ export default function ImportPage() {
             <CardHeader>
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <CardTitle className="text-white">Mapeo de Columnas</CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardTitle className="text-gray-900 dark:text-white">Mapeo de Columnas</CardTitle>
+                  <CardDescription className="text-gray-500 dark:text-gray-400">
                     Asigna cada columna del archivo al campo correspondiente del CRM
                   </CardDescription>
                 </div>
@@ -581,12 +581,12 @@ export default function ImportPage() {
                         <FolderOpen className="h-4 w-4 mr-1" />
                         Cargar Perfil
                       </Button>
-                      <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-10 min-w-[240px] hidden group-hover:block">
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-10 min-w-[240px] hidden group-hover:block">
                         {savedProfiles.filter(p => p.entityType === entityType).map(profile => (
-                          <div key={profile.id} className="flex items-center justify-between px-3 py-2 hover:bg-gray-700/50">
+                          <div key={profile.id} className="flex items-center justify-between px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700/50">
                             <button
                               onClick={() => handleApplyProfile(profile)}
-                              className="text-sm text-gray-300 hover:text-white flex-1 text-left"
+                              className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex-1 text-left"
                             >
                               {profile.name}
                             </button>
@@ -617,13 +617,13 @@ export default function ImportPage() {
             <CardContent>
               {/* Guardar perfil inline */}
               {showSaveProfile && (
-                <div className="flex gap-2 mb-4 p-3 rounded-lg bg-gray-800/50 border border-gray-700">
+                <div className="flex gap-2 mb-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
                   <input
                     type="text"
                     value={profileName}
                     onChange={(e) => setProfileName(e.target.value)}
                     placeholder="Nombre del perfil (ej: Aniwin Contactos)"
-                    className="flex-1 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-700 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-blue-500"
+                    className="flex-1 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-blue-500"
                     onKeyDown={(e) => e.key === 'Enter' && handleSaveProfile()}
                   />
                   <Button size="sm" className="rounded-lg" onClick={handleSaveProfile} disabled={!profileName.trim()}>
@@ -647,27 +647,27 @@ export default function ImportPage() {
               {/* Tabla de mapeo */}
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-800/50">
+                  <thead className="bg-gray-50 dark:bg-gray-800/50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300">Columna Origen</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300">Valores Ejemplo</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300">Campo CRM</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 w-24">Confianza</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Columna Origen</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Valores Ejemplo</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Campo CRM</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-24">Confianza</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-700/50">
+                  <tbody className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
                     {mappings.map((mapping) => {
                       const isRequired = fields.find(f => f.key === mapping.targetField)?.required
                       const isMapped = mapping.targetField !== null
                       return (
-                        <tr key={mapping.sourceColumn} className="hover:bg-gray-800/30">
+                        <tr key={mapping.sourceColumn} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
                           <td className="px-4 py-3">
-                            <span className="text-sm text-white font-medium">{mapping.sourceColumn}</span>
+                            <span className="text-sm text-gray-900 dark:text-white font-medium">{mapping.sourceColumn}</span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-1">
                               {mapping.sampleValues.slice(0, 3).map((val, i) => (
-                                <span key={i} className="text-xs text-gray-400 bg-gray-800 px-2 py-0.5 rounded max-w-[120px] truncate">
+                                <span key={i} className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded max-w-[120px] truncate">
                                   {val}
                                 </span>
                               ))}
@@ -677,10 +677,10 @@ export default function ImportPage() {
                             <select
                               value={mapping.targetField || ''}
                               onChange={(e) => handleMappingChange(mapping.sourceColumn, e.target.value || null)}
-                              className={`text-sm rounded-lg bg-gray-800 border px-3 py-1.5 w-full max-w-[220px] focus:outline-none focus:border-blue-500 ${
-                                !isMapped ? 'border-gray-600 text-gray-400' :
-                                isRequired ? 'border-green-500/50 text-green-300' :
-                                'border-gray-700 text-white'
+                              className={`text-sm rounded-lg bg-white dark:bg-gray-800 border px-3 py-1.5 w-full max-w-[220px] focus:outline-none focus:border-blue-500 ${
+                                !isMapped ? 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400' :
+                                isRequired ? 'border-green-500/50 text-green-700 dark:text-green-300' :
+                                'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
                               }`}
                             >
                               <option value="">— Omitir —</option>
@@ -746,8 +746,8 @@ export default function ImportPage() {
                 <div className="flex items-center gap-3">
                   <FileSpreadsheet className="h-8 w-8 text-blue-500" />
                   <div>
-                    <div className="text-2xl font-bold text-white">{rawData.length}</div>
-                    <p className="text-sm text-gray-400">Total filas</p>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{rawData.length}</div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total filas</p>
                   </div>
                 </div>
               </CardContent>
@@ -757,8 +757,8 @@ export default function ImportPage() {
                 <div className="flex items-center gap-3">
                   <AlertCircle className="h-8 w-8 text-red-500" />
                   <div>
-                    <div className="text-2xl font-bold text-white">{summary.rowsWithErrors}</div>
-                    <p className="text-sm text-gray-400">Filas con errores</p>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{summary.rowsWithErrors}</div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Filas con errores</p>
                   </div>
                 </div>
               </CardContent>
@@ -768,8 +768,8 @@ export default function ImportPage() {
                 <div className="flex items-center gap-3">
                   <Info className="h-8 w-8 text-yellow-500" />
                   <div>
-                    <div className="text-2xl font-bold text-white">{summary.totalWarnings}</div>
-                    <p className="text-sm text-gray-400">Advertencias</p>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{summary.totalWarnings}</div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Advertencias</p>
                   </div>
                 </div>
               </CardContent>
@@ -790,7 +790,7 @@ export default function ImportPage() {
           {summary.totalErrors > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-white text-base">Resumen de Errores</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-white text-base">Resumen de Errores</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="max-h-40 overflow-y-auto space-y-1">
@@ -814,28 +814,28 @@ export default function ImportPage() {
           {/* Tabla de preview con datos mapeados */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-white">Vista Previa de Datos Mapeados</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-gray-900 dark:text-white">Vista Previa de Datos Mapeados</CardTitle>
+              <CardDescription className="text-gray-500 dark:text-gray-400">
                 Mostrando las primeras {Math.min(rawData.length, 15)} filas con los campos mapeados
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-800/50">
+                  <thead className="bg-gray-50 dark:bg-gray-800/50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 w-10">#</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 w-10">#</th>
                       {mappings.filter(m => m.targetField).map(mapping => {
                         const field = fields.find(f => f.key === mapping.targetField)
                         return (
-                          <th key={mapping.sourceColumn} className="px-3 py-2 text-left text-xs font-semibold text-gray-300">
+                          <th key={mapping.sourceColumn} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">
                             {mapping.targetField === '__custom__' ? mapping.sourceColumn : (field?.label || mapping.targetField)}
                           </th>
                         )
                       })}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-700/50">
+                  <tbody className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
                     {rawData.slice(0, 15).map((row, rowIdx) => {
                       const rowErrors = validationErrors.filter(e => e.row === rowIdx)
                       const hasError = rowErrors.some(e => e.severity === 'error')
@@ -844,7 +844,7 @@ export default function ImportPage() {
                         <tr key={rowIdx} className={`${
                           hasError ? 'bg-red-500/5 hover:bg-red-500/10' :
                           hasWarning ? 'bg-yellow-500/5 hover:bg-yellow-500/10' :
-                          'hover:bg-gray-800/30'
+                          'hover:bg-gray-50 dark:hover:bg-gray-800/30'
                         }`}>
                           <td className="px-3 py-2 text-xs text-gray-500">{rowIdx + 1}</td>
                           {mappings.filter(m => m.targetField).map(mapping => {
@@ -854,7 +854,7 @@ export default function ImportPage() {
                                 <span className={`text-xs ${
                                   cellError?.severity === 'error' ? 'text-red-300' :
                                   cellError?.severity === 'warning' ? 'text-yellow-300' :
-                                  'text-gray-300'
+                                  'text-gray-700 dark:text-gray-300'
                                 } max-w-[150px] truncate block`}>
                                   {row[mapping.sourceColumn] || '—'}
                                 </span>
@@ -916,8 +916,8 @@ export default function ImportPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Importación Completada</h2>
-            <p className="text-gray-400 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Importación Completada</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
               {getEntityTypeLabel(entityType)} procesados desde "{fileName}"
             </p>
 

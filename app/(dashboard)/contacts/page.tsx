@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Mail, Phone, Building2, X, Briefcase, Calendar, PhoneCall, MapPin, Loader2 } from 'lucide-react'
+import { Search, Plus, Mail, Phone, Building2, X, Briefcase, Calendar, PhoneCall, MapPin, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getContacts, createContact } from '@/lib/actions/contacts'
+import { getContacts, createContact, updateContact, deleteContact } from '@/lib/actions/contacts'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
 
@@ -22,6 +22,10 @@ export default function ContactsPage() {
   const [allActivities, setAllActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const [editingContact, setEditingContact] = useState<any>(null)
+  const [deletingContactId, setDeletingContactId] = useState<string | null>(null)
+  const [updating, setUpdating] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [newContact, setNewContact] = useState({
     firstName: '', lastName: '', email: '', phone: '', jobTitle: '', lifecycle: 'lead'
   })
@@ -93,6 +97,36 @@ export default function ContactsPage() {
     }
   }
 
+  const handleUpdateContact = async () => {
+    setUpdating(true)
+    const result = await updateContact(editingContact.id, {
+      first_name: editingContact.first_name,
+      last_name: editingContact.last_name,
+      email: editingContact.email,
+      phone: editingContact.phone,
+      job_title: editingContact.job_title,
+      lifecycle_stage: editingContact.lifecycle_stage,
+    })
+    setUpdating(false)
+    if (!result.error) {
+      setEditingContact(null)
+      const res = await getContacts(workspaceId)
+      if (res.data) setContacts(res.data)
+    }
+  }
+
+  const handleDeleteContact = async (id: string) => {
+    setDeleting(true)
+    const result = await deleteContact(id)
+    setDeleting(false)
+    if (!result.error) {
+      setDeletingContactId(null)
+      setSelectedContactId(null)
+      const res = await getContacts(workspaceId)
+      if (res.data) setContacts(res.data)
+    }
+  }
+
   // Get activities and deals for a specific contact
   const getContactActivities = (contactId: string) => allActivities.filter(a => a.contact_id === contactId)
   const getContactDeals = (contactId: string) => allDeals.filter(d =>
@@ -113,7 +147,7 @@ export default function ContactsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Contactos</h1>
-          <p className="text-xs md:text-sm text-white mt-1">{filteredContacts.length} contactos totales</p>
+          <p className="text-xs md:text-sm text-gray-300 mt-1">{filteredContacts.length} contactos totales</p>
         </div>
         <Button onClick={() => setShowNewContactModal(true)} className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
           <Plus className="h-4 w-4" />
@@ -241,7 +275,7 @@ export default function ContactsPage() {
             <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle_stage === 'customer').length}
             </div>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Clientes</p>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Clientes</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
@@ -249,7 +283,7 @@ export default function ContactsPage() {
             <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle_stage === 'prospect').length}
             </div>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Prospectos</p>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Prospectos</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
@@ -257,7 +291,7 @@ export default function ContactsPage() {
             <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               {contacts.filter(c => c.lifecycle_stage === 'lead' || !c.lifecycle_stage).length}
             </div>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Leads</p>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Leads</p>
           </CardContent>
         </Card>
       </div>
@@ -267,7 +301,7 @@ export default function ContactsPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-2xl">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-white">Nuevo Contacto</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Nuevo Contacto</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setShowNewContactModal(false)} className="rounded-xl">
                 <X className="h-4 w-4" />
               </Button>
@@ -275,34 +309,34 @@ export default function ContactsPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Nombre *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
                   <Input value={newContact.firstName} onChange={(e) => setNewContact({...newContact, firstName: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Juan" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Apellido *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Apellido *</label>
                   <Input value={newContact.lastName} onChange={(e) => setNewContact({...newContact, lastName: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Pérez" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Email *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email *</label>
                   <Input type="email" value={newContact.email} onChange={(e) => setNewContact({...newContact, email: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="juan@empresa.com" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Teléfono</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono</label>
                   <Input value={newContact.phone} onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 600 000 000" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Cargo</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Cargo</label>
                   <Input value={newContact.jobTitle} onChange={(e) => setNewContact({...newContact, jobTitle: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Director General" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Estado</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Estado</label>
                   <select value={newContact.lifecycle} onChange={(e) => setNewContact({...newContact, lifecycle: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="lead">Lead</option>
                     <option value="prospect">Prospecto</option>
                     <option value="customer">Cliente</option>
@@ -351,11 +385,11 @@ export default function ContactsPage() {
                       {selectedContact.first_name?.[0]}{selectedContact.last_name?.[0]}
                     </div>
                     <div>
-                      <CardTitle className="text-white text-xl">
+                      <CardTitle className="text-gray-900 dark:text-white text-xl">
                         {selectedContact.first_name} {selectedContact.last_name}
                       </CardTitle>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-gray-400">{selectedContact.job_title}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{selectedContact.job_title}</span>
                         <Badge className={`${getLifecycleColor(selectedContact.lifecycle_stage)} rounded-full text-xs`}>
                           {getLifecycleLabel(selectedContact.lifecycle_stage)}
                         </Badge>
@@ -477,8 +511,16 @@ export default function ContactsPage() {
 
                 {/* Actions */}
                 <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <Button onClick={() => { setEditingContact({...selectedContact}); setSelectedContactId(null) }}
+                    className="flex-1 rounded-xl shadow-lg">
+                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                  </Button>
+                  <Button variant="outline" onClick={() => setDeletingContactId(selectedContact.id)}
+                    className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                    <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                  </Button>
                   <Button variant="outline" onClick={() => setSelectedContactId(null)}
-                    className="flex-1 rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                    className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
                     Cerrar
                   </Button>
                 </div>
@@ -487,6 +529,92 @@ export default function ContactsPage() {
           </div>
         )
       })()}
+
+      {/* Modal Editar Contacto */}
+      {editingContact && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-gray-900 dark:text-white">Editar Contacto</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setEditingContact(null)} className="rounded-xl">
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
+                  <Input value={editingContact.first_name || ''} onChange={(e) => setEditingContact({...editingContact, first_name: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Juan" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Apellido *</label>
+                  <Input value={editingContact.last_name || ''} onChange={(e) => setEditingContact({...editingContact, last_name: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Pérez" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email *</label>
+                  <Input type="email" value={editingContact.email || ''} onChange={(e) => setEditingContact({...editingContact, email: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="juan@empresa.com" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono</label>
+                  <Input value={editingContact.phone || ''} onChange={(e) => setEditingContact({...editingContact, phone: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 600 000 000" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Cargo</label>
+                  <Input value={editingContact.job_title || ''} onChange={(e) => setEditingContact({...editingContact, job_title: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Director General" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Estado</label>
+                  <select value={editingContact.lifecycle_stage || 'lead'} onChange={(e) => setEditingContact({...editingContact, lifecycle_stage: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="lead">Lead</option>
+                    <option value="prospect">Prospecto</option>
+                    <option value="customer">Cliente</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button onClick={handleUpdateContact} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  disabled={!editingContact.first_name || !editingContact.last_name || !editingContact.email || updating}>
+                  {updating ? 'Guardando...' : 'Guardar Cambios'}
+                </Button>
+                <Button variant="outline" onClick={() => setEditingContact(null)}
+                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal Eliminar Contacto */}
+      {deletingContactId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-gray-900 dark:text-white">Eliminar Contacto</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">¿Estás seguro de que quieres eliminar este contacto? Esta acción no se puede deshacer.</p>
+              <div className="flex gap-3">
+                <Button onClick={() => handleDeleteContact(deletingContactId)} disabled={deleting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 rounded-xl">
+                  {deleting ? 'Eliminando...' : 'Eliminar'}
+                </Button>
+                <Button variant="outline" onClick={() => setDeletingContactId(null)}
+                  className="flex-1 rounded-xl dark:border-gray-700 dark:text-gray-300">
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

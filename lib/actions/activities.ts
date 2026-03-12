@@ -24,24 +24,32 @@ export async function getActivities(workspaceId: string, filters?: {
   dealId?: string
   onlyPending?: boolean
 }) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  let query = supabase
-    .from('activities')
-    .select('*, contacts(id, first_name, last_name), companies(id, name), deals(id, name)')
-    .eq('workspace_id', workspaceId)
-    .order('created_at', { ascending: false })
+    let query = supabase
+      .from('activities')
+      .select('*, contacts(id, first_name, last_name), companies(id, name), deals(id, name)')
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: false })
 
-  if (filters?.type) query = query.eq('type', filters.type)
-  if (filters?.contactId) query = query.eq('contact_id', filters.contactId)
-  if (filters?.companyId) query = query.eq('company_id', filters.companyId)
-  if (filters?.dealId) query = query.eq('deal_id', filters.dealId)
-  if (filters?.onlyPending) query = query.eq('is_completed', false)
+    if (filters?.type) query = query.eq('type', filters.type)
+    if (filters?.contactId) query = query.eq('contact_id', filters.contactId)
+    if (filters?.companyId) query = query.eq('company_id', filters.companyId)
+    if (filters?.dealId) query = query.eq('deal_id', filters.dealId)
+    if (filters?.onlyPending) query = query.eq('is_completed', false)
 
-  const { data, error } = await query.limit(50)
+    const { data, error } = await query.limit(50)
 
-  if (error) return { data: null, error: error.message }
-  return { data, error: null }
+    if (error) {
+      console.error('getActivities error:', error.message)
+      return { data: [], error: error.message }
+    }
+    return { data: data || [], error: null }
+  } catch (err) {
+    console.error('getActivities error:', err)
+    return { data: [], error: String(err) }
+  }
 }
 
 // Crear actividad/tarea

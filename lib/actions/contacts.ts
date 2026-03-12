@@ -51,6 +51,15 @@ export async function createContact(workspaceId: string, input: ContactInput) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Check plan limit
+  const { data: limitCheck } = await supabase.rpc('check_plan_limit', {
+    p_workspace_id: workspaceId,
+    p_resource: 'contacts',
+  })
+  if (limitCheck && !limitCheck.allowed) {
+    return { data: null, error: `Has alcanzado el limite de ${limitCheck.max} contactos en tu plan. Mejora tu plan para continuar.` }
+  }
+
   const { data, error } = await supabase
     .from('contacts')
     .insert({

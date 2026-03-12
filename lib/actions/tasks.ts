@@ -22,21 +22,29 @@ export async function getTasks(workspaceId: string, filters?: {
   onlyPending?: boolean
   date?: string
 }) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  let query = supabase
-    .from('activities')
-    .select('*, contacts(id, first_name, last_name), companies(id, name), deals(id, name)')
-    .eq('workspace_id', workspaceId)
-    .order('due_date', { ascending: true })
+    let query = supabase
+      .from('activities')
+      .select('*, contacts(id, first_name, last_name), companies(id, name), deals(id, name)')
+      .eq('workspace_id', workspaceId)
+      .order('due_date', { ascending: true })
 
-  if (filters?.onlyPending) query = query.eq('is_completed', false)
-  if (filters?.date) query = query.eq('due_date', filters.date)
+    if (filters?.onlyPending) query = query.eq('is_completed', false)
+    if (filters?.date) query = query.eq('due_date', filters.date)
 
-  const { data, error } = await query.limit(100)
+    const { data, error } = await query.limit(100)
 
-  if (error) return { data: null, error: error.message }
-  return { data, error: null }
+    if (error) {
+      console.error('getTasks error:', error.message)
+      return { data: [], error: error.message }
+    }
+    return { data: data || [], error: null }
+  } catch (err) {
+    console.error('getTasks error:', err)
+    return { data: [], error: String(err) }
+  }
 }
 
 // Create a task (activity)
@@ -96,48 +104,58 @@ export async function toggleTaskComplete(id: string) {
 
 // Get dashboard metrics
 export async function getDashboardMetrics(workspaceId: string) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  // Get deals with stages
-  const { data: deals } = await supabase
-    .from('deals')
-    .select('*, stages(id, name, probability, is_closed_won, is_closed_lost)')
-    .eq('workspace_id', workspaceId)
-    .is('deleted_at', null)
+    // Get deals with stages
+    const { data: deals, error: dealsErr } = await supabase
+      .from('deals')
+      .select('*, stages(id, name, probability, is_closed_won, is_closed_lost)')
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
 
-  // Get counts
-  const { count: contactCount } = await supabase
-    .from('contacts')
-    .select('*', { count: 'exact', head: true })
-    .eq('workspace_id', workspaceId)
-    .is('deleted_at', null)
+    if (dealsErr) console.error('getDashboardMetrics deals error:', dealsErr.message)
 
-  const { count: companyCount } = await supabase
-    .from('companies')
-    .select('*', { count: 'exact', head: true })
-    .eq('workspace_id', workspaceId)
-    .is('deleted_at', null)
+    // Get counts
+    const { count: contactCount } = await supabase
+      .from('contacts')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
 
-  const dealsArr = deals || []
-  const totalValue = dealsArr.reduce((sum: number, d: any) => sum + (d.value || 0), 0)
-  const weightedValue = dealsArr.reduce((sum: number, d: any) => {
-    const prob = d.stages?.probability || 0
-    return sum + ((d.value || 0) * prob / 100)
-  }, 0)
-  const wonDeals = dealsArr.filter((d: any) => d.stages?.is_closed_won).length
-  const totalDeals = dealsArr.length
-  const conversionRate = totalDeals > 0 ? Math.round((wonDeals / totalDeals) * 100) : 0
+    const { count: companyCount } = await supabase
+      .from('companies')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
 
-  return {
-    data: {
-      totalValue,
-      weightedValue,
-      conversionRate,
-      totalDeals,
-      wonDeals,
-      contactCount: contactCount || 0,
-      companyCount: companyCount || 0,
-    },
-    error: null,
+    const dealsArr = deals || []
+    const totalValue = dealsArr.reduce((sum: number, d: any) => sum + (d.value || 0), 0)
+    const weightedValue = dealsArr.reduce((sum: number, d: any) => {
+      const prob = d.stages?.probability || 0
+      return sum + ((d.value || 0) * prob / 100)
+    }, 0)
+    const wonDeals = dealsArr.filter((d: any) => d.stages?.is_closed_won).length
+    const totalDeals = dealsArr.length
+    const conversionRate = totalDeals > 0 ? Math.round((wonDeals / totalDeals) * 100) : 0
+
+    return {
+      data: {
+        totalValue,
+        weightedValue,
+        conversionRate,
+        totalDeals,
+        wonDeals,
+        contactCount: contactCount || 0,
+        companyCount: companyCount || 0,
+      },
+      error: null,
+    }
+  } catch (err) {
+    console.error('getDashboardMetrics error:', err)
+    return {
+      data: { totalValue: 0, weightedValue: 0, conversionRate: 0, totalDeals: 0, wonDeals: 0, contactCount: 0, companyCount: 0 },
+      error: String(err),
+    }
   }
 }

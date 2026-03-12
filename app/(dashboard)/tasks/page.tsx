@@ -298,7 +298,7 @@ export default function TasksPage() {
   if (wsLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500 dark:text-white/60" />
       </div>
     )
   }
@@ -309,18 +309,18 @@ export default function TasksPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Tareas</h1>
-          <p className="text-xs md:text-sm text-white mt-1">
+          <p className="text-xs md:text-sm text-gray-300 mt-1">
             {pendingTasks.length} pendientes · {overdueTasks.length} vencidas
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           {/* Toggle Vista */}
-          <div className="flex rounded-xl bg-white/10 dark:bg-gray-800/60 p-1 gap-1 backdrop-blur-sm">
+          <div className="flex rounded-xl bg-gray-100 dark:bg-gray-800/60 p-1 gap-1 backdrop-blur-sm">
             <button
               className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 viewMode === 'lista'
                   ? 'bg-white dark:bg-white text-gray-900 shadow-md'
-                  : 'text-white hover:bg-white/10'
+                  : 'text-gray-500 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10'
               }`}
               onClick={() => setViewMode('lista')}
             >
@@ -330,7 +330,7 @@ export default function TasksPage() {
               className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 viewMode === 'calendario'
                   ? 'bg-white dark:bg-white text-gray-900 shadow-md'
-                  : 'text-white hover:bg-white/10'
+                  : 'text-gray-500 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10'
               }`}
               onClick={() => setViewMode('calendario')}
             >
@@ -351,19 +351,19 @@ export default function TasksPage() {
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-3 md:p-6">
             <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">{todayTasks.length}</div>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Hoy</p>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Hoy</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-3 md:p-6">
             <div className="text-xl md:text-3xl font-bold text-red-600 dark:text-red-400">{overdueTasks.length}</div>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Vencidas</p>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Vencidas</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-3 md:p-6">
             <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">{pendingTasks.length}</div>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Totales</p>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Totales</p>
           </CardContent>
         </Card>
       </div>
@@ -388,7 +388,7 @@ export default function TasksPage() {
           {/* Today's Tasks */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-white">Tareas de Hoy</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Tareas de Hoy</CardTitle>
             </CardHeader>
             <CardContent>
               {todayTasks.length > 0 ? (
@@ -404,7 +404,7 @@ export default function TasksPage() {
           {/* Upcoming Tasks */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-white">Proximas Tareas</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Proximas Tareas</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
@@ -428,7 +428,7 @@ export default function TasksPage() {
                 <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => navigateMonth(-1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <CardTitle className="text-white capitalize">{monthLabel}</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-white capitalize">{monthLabel}</CardTitle>
                 <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => navigateMonth(1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -487,7 +487,7 @@ export default function TasksPage() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-base">
+                <CardTitle className="text-gray-900 dark:text-white text-base">
                   {selectedDate
                     ? new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
                     : 'Selecciona un dia'}
@@ -515,7 +515,7 @@ export default function TasksPage() {
                               {getTypeLabel(task.type)}
                             </Badge>
                             {dueTime && (
-                              <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
                                 <Clock className="h-2.5 w-2.5" /> {dueTime}
                               </span>
                             )}
@@ -523,12 +523,12 @@ export default function TasksPage() {
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{task.subject}</p>
                           <div className="flex items-center gap-2 mt-1">
                             {task.companies && (
-                              <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
+                              <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
                                 <Building2 className="h-2.5 w-2.5" /> {task.companies.name}
                               </span>
                             )}
                             {task.contacts && (
-                              <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
+                              <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
                                 <User className="h-2.5 w-2.5" /> {task.contacts.first_name} {task.contacts.last_name}
                               </span>
                             )}
@@ -553,7 +553,7 @@ export default function TasksPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-2xl">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-white">Nueva Tarea</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Nueva Tarea</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setShowNewTaskModal(false)} className="rounded-xl">
                 <X className="h-4 w-4" />
               </Button>
@@ -561,15 +561,15 @@ export default function TasksPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-white block mb-2">Titulo de la Tarea *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Titulo de la Tarea *</label>
                   <Input value={newTask.title} onChange={(e) => setNewTask({...newTask, title: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
                     placeholder="Ej: Llamar a cliente para seguimiento" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Tipo *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tipo *</label>
                   <select value={newTask.type} onChange={(e) => setNewTask({...newTask, type: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="task">Tarea</option>
                     <option value="call">Llamada</option>
                     <option value="meeting">Reunion</option>
@@ -578,29 +578,29 @@ export default function TasksPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Prioridad *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Prioridad *</label>
                   <select value={newTask.priority} onChange={(e) => setNewTask({...newTask, priority: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="low">Baja</option>
                     <option value="medium">Media</option>
                     <option value="high">Alta</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Fecha *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Fecha *</label>
                   <Input type="date" value={newTask.dueDate} onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Hora</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Hora</label>
                   <Input type="time" value={newTask.dueTime} onChange={(e) => setNewTask({...newTask, dueTime: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Empresa</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Empresa</label>
                   <select value={newTask.companyId}
                     onChange={(e) => setNewTask({...newTask, companyId: e.target.value, contactId: ''})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin empresa</option>
                     {companies.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -608,10 +608,10 @@ export default function TasksPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Contacto</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Contacto</label>
                   <select value={newTask.contactId}
                     onChange={(e) => setNewTask({...newTask, contactId: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin contacto</option>
                     {filteredContactsForNewTask.map(c => (
                       <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
@@ -619,9 +619,9 @@ export default function TasksPage() {
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-white block mb-2">Oportunidad Asociada</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Oportunidad Asociada</label>
                   <select value={newTask.dealId} onChange={(e) => setNewTask({...newTask, dealId: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin oportunidad asociada</option>
                     {deals.map((deal) => (
                       <option key={deal.id} value={deal.id}>{deal.name}</option>

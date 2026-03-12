@@ -8,11 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search, Plus, Globe, Users, X, Building2, TrendingUp,
   Mail, Phone, MapPin, User, Briefcase, DollarSign,
-  Calendar, ChevronRight, PhoneCall, PlusCircle, Loader2
+  Calendar, ChevronRight, PhoneCall, PlusCircle, Loader2, Pencil, Trash2
 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getCompanies, getCompany, createCompany } from '@/lib/actions/companies'
+import { getCompanies, getCompany, createCompany, updateCompany, deleteCompany } from '@/lib/actions/companies'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities, createActivity } from '@/lib/actions/activities'
 
@@ -33,6 +33,10 @@ export default function CompaniesPage() {
     time: '',
     notes: ''
   })
+  const [editingCompany, setEditingCompany] = useState<any>(null)
+  const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null)
+  const [updatingCompany, setUpdatingCompany] = useState(false)
+  const [deletingCompany, setDeletingCompany] = useState(false)
   const [newCompany, setNewCompany] = useState({
     name: '', industry: '', size: '', website: '', canal: '', email: '', phone: '', address: ''
   })
@@ -142,6 +146,37 @@ export default function CompaniesPage() {
     setNewActivity({ type: 'call', subject: '', contactId: '', followUpType: '', date: '', time: '', notes: '' })
   }
 
+  const handleUpdateCompany = async () => {
+    if (!editingCompany) return
+    setUpdatingCompany(true)
+    const result = await updateCompany(editingCompany.id, {
+      name: editingCompany.name,
+      industry: editingCompany.industry || undefined,
+      website: editingCompany.website || undefined,
+      company_size: editingCompany.company_size || undefined,
+      billing_address: editingCompany.billing_address || undefined,
+      custom_fields: editingCompany.custom_fields || undefined,
+    })
+    setUpdatingCompany(false)
+    if (!result.error) {
+      setEditingCompany(null)
+      const companiesRes = await getCompanies(workspaceId)
+      if (companiesRes.data) setCompanies(companiesRes.data)
+    }
+  }
+
+  const handleDeleteCompany = async (id: string) => {
+    setDeletingCompany(true)
+    const result = await deleteCompany(id)
+    setDeletingCompany(false)
+    if (!result.error) {
+      setDeletingCompanyId(null)
+      setSelectedCompany(null)
+      const companiesRes = await getCompanies(workspaceId)
+      if (companiesRes.data) setCompanies(companiesRes.data)
+    }
+  }
+
   const getCanalLabel = (canal: string) => {
     const canales: Record<string, string> = {
       'web': 'Pagina Web', 'referido': 'Referido', 'email': 'Email Marketing',
@@ -208,7 +243,7 @@ export default function CompaniesPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Empresas</h1>
-          <p className="text-xs md:text-sm text-white mt-1">{filteredCompanies.length} empresas totales</p>
+          <p className="text-xs md:text-sm text-gray-300 mt-1">{filteredCompanies.length} empresas totales</p>
         </div>
         <Button onClick={() => setShowNewCompanyModal(true)} className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Nueva Empresa
@@ -239,7 +274,7 @@ export default function CompaniesPage() {
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg text-white mb-1 truncate">{company.name}</h3>
+                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1 truncate">{company.name}</h3>
                     {company.industry && (
                       <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">{company.industry}</Badge>
                     )}
@@ -308,8 +343,8 @@ export default function CompaniesPage() {
       {/* Empty state */}
       {filteredCompanies.length === 0 && !loading && (
         <div className="text-center py-12">
-          <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-400">No se encontraron empresas</p>
+          <Building2 className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-gray-400">No se encontraron empresas</p>
         </div>
       )}
 
@@ -318,7 +353,7 @@ export default function CompaniesPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-white">Nueva Empresa</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Nueva Empresa</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setShowNewCompanyModal(false)} className="rounded-xl">
                 <X className="h-4 w-4" />
               </Button>
@@ -326,44 +361,44 @@ export default function CompaniesPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Nombre de la Empresa *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre de la Empresa *</label>
                   <Input value={newCompany.name} onChange={(e) => setNewCompany({...newCompany, name: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Acme Corporation" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Industria *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Industria *</label>
                   <Input value={newCompany.industry} onChange={(e) => setNewCompany({...newCompany, industry: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Tecnologia" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Email</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email</label>
                   <Input value={newCompany.email} onChange={(e) => setNewCompany({...newCompany, email: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="info@empresa.com" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Telefono</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Telefono</label>
                   <Input value={newCompany.phone} onChange={(e) => setNewCompany({...newCompany, phone: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 900 000 000" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Tamano (empleados) *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tamano (empleados) *</label>
                   <Input value={newCompany.size} onChange={(e) => setNewCompany({...newCompany, size: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="50-200" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Sitio Web</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Sitio Web</label>
                   <Input value={newCompany.website} onChange={(e) => setNewCompany({...newCompany, website: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="ejemplo.com" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Direccion</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Direccion</label>
                   <Input value={newCompany.address} onChange={(e) => setNewCompany({...newCompany, address: e.target.value})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Calle, Ciudad" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-white block mb-2">Canal *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Canal *</label>
                   <select value={newCompany.canal} onChange={(e) => setNewCompany({...newCompany, canal: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-gray-800/50 border border-gray-700 text-white">
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Seleccionar canal</option>
                     <option value="web">Pagina Web</option>
                     <option value="referido">Referido</option>
@@ -446,7 +481,7 @@ export default function CompaniesPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{activity.description}</p>
               )}
               {contact && (
-                <p className="text-[11px] text-gray-400 mt-1">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
                   {contact.first_name} {contact.last_name}
                 </p>
               )}
@@ -465,7 +500,7 @@ export default function CompaniesPage() {
                       {selectedCompany.name[0]}
                     </div>
                     <div>
-                      <CardTitle className="text-white text-xl">{selectedCompany.name}</CardTitle>
+                      <CardTitle className="text-gray-900 dark:text-white text-xl">{selectedCompany.name}</CardTitle>
                       <div className="flex items-center gap-2 mt-1">
                         {selectedCompany.industry && (
                           <Badge variant="outline" className="text-xs rounded-full dark:border-gray-700 dark:text-gray-300">{selectedCompany.industry}</Badge>
@@ -679,7 +714,7 @@ export default function CompaniesPage() {
                           <div className="space-y-2 min-h-[60px]">
                             {pendingActivities.map((a: any) => <ActivityCard key={a.id} activity={a} />)}
                             {pendingActivities.length === 0 && (
-                              <p className="text-xs text-gray-400 text-center py-4">Sin actividades</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Sin actividades</p>
                             )}
                           </div>
                         </div>
@@ -693,7 +728,7 @@ export default function CompaniesPage() {
                           <div className="space-y-2 min-h-[60px]">
                             {completedActivities.map((a: any) => <ActivityCard key={a.id} activity={a} />)}
                             {completedActivities.length === 0 && (
-                              <p className="text-xs text-gray-400 text-center py-4">Sin actividades</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Sin actividades</p>
                             )}
                           </div>
                         </div>
@@ -707,7 +742,7 @@ export default function CompaniesPage() {
                           <div className="space-y-2 min-h-[60px]">
                             {cancelledActivities.map((a: any) => <ActivityCard key={a.id} activity={a} />)}
                             {cancelledActivities.length === 0 && (
-                              <p className="text-xs text-gray-400 text-center py-4">Sin actividades</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Sin actividades</p>
                             )}
                           </div>
                         </div>
@@ -716,8 +751,15 @@ export default function CompaniesPage() {
 
                     {/* Acciones */}
                     <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <Button className="flex-1 rounded-xl" onClick={() => alert('Editar empresa - Proximamente')}>
-                        Editar Empresa
+                      <Button onClick={() => {
+                        setEditingCompany({...selectedCompany})
+                        setSelectedCompany(null)
+                      }} className="flex-1 rounded-xl shadow-lg">
+                        <Pencil className="h-4 w-4 mr-2" /> Editar
+                      </Button>
+                      <Button variant="outline" onClick={() => setDeletingCompanyId(selectedCompany.id)}
+                        className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                        <Trash2 className="h-4 w-4 mr-2" /> Eliminar
                       </Button>
                       <Button variant="outline" onClick={() => setSelectedCompany(null)}
                         className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
@@ -734,7 +776,7 @@ export default function CompaniesPage() {
               <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={() => setShowNewActivityModal(false)}>
                 <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
                   <CardHeader className="flex flex-row items-center justify-between pb-3">
-                    <CardTitle className="text-white text-base">Registrar Actividad</CardTitle>
+                    <CardTitle className="text-gray-900 dark:text-white text-base">Registrar Actividad</CardTitle>
                     <Button variant="ghost" size="sm" onClick={() => setShowNewActivityModal(false)} className="rounded-xl">
                       <X className="h-4 w-4" />
                     </Button>
@@ -742,9 +784,9 @@ export default function CompaniesPage() {
                   <CardContent>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-gray-400 block mb-1">Tipo *</label>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Tipo *</label>
                         <select value={newActivity.type} onChange={(e) => setNewActivity({...newActivity, type: e.target.value})}
-                          className="w-full rounded-xl px-3 py-2 text-sm bg-gray-800/50 border border-gray-700 text-white">
+                          className="w-full rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                           <option value="call">Llamada</option>
                           <option value="email">Email</option>
                           <option value="meeting">Reunion</option>
@@ -753,23 +795,23 @@ export default function CompaniesPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-400 block mb-1">Seguimiento</label>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Seguimiento</label>
                         <select value={newActivity.followUpType} onChange={(e) => setNewActivity({...newActivity, followUpType: e.target.value})}
-                          className="w-full rounded-xl px-3 py-2 text-sm bg-gray-800/50 border border-gray-700 text-white">
+                          className="w-full rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                           <option value="">Ninguno</option>
                           <option value="llamar">Llamar</option>
                           <option value="visitar">Visitar</option>
                         </select>
                       </div>
                       <div className="col-span-2">
-                        <label className="text-xs font-medium text-gray-400 block mb-1">Asunto *</label>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Asunto *</label>
                         <Input value={newActivity.subject} onChange={(e) => setNewActivity({...newActivity, subject: e.target.value})}
                           className="rounded-xl text-sm dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Descripcion breve" />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-400 block mb-1">Contacto</label>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Contacto</label>
                         <select value={newActivity.contactId} onChange={(e) => setNewActivity({...newActivity, contactId: e.target.value})}
-                          className="w-full rounded-xl px-3 py-2 text-sm bg-gray-800/50 border border-gray-700 text-white">
+                          className="w-full rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                           <option value="">Seleccionar</option>
                           {contacts.map((c: any) => (
                             <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
@@ -778,20 +820,20 @@ export default function CompaniesPage() {
                       </div>
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <label className="text-xs font-medium text-gray-400 block mb-1">Fecha</label>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Fecha</label>
                           <Input type="date" value={newActivity.date} onChange={(e) => setNewActivity({...newActivity, date: e.target.value})}
                             className="rounded-xl text-sm dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
                         </div>
                         <div className="w-24">
-                          <label className="text-xs font-medium text-gray-400 block mb-1">Hora</label>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Hora</label>
                           <Input type="time" value={newActivity.time} onChange={(e) => setNewActivity({...newActivity, time: e.target.value})}
                             className="rounded-xl text-sm dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
                         </div>
                       </div>
                       <div className="col-span-2">
-                        <label className="text-xs font-medium text-gray-400 block mb-1">Notas</label>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Notas</label>
                         <textarea value={newActivity.notes} onChange={(e) => setNewActivity({...newActivity, notes: e.target.value})}
-                          className="w-full rounded-xl px-3 py-2 text-sm bg-gray-800/50 border border-gray-700 text-white resize-none h-16"
+                          className="w-full rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white resize-none h-16"
                           placeholder="Notas adicionales..." />
                       </div>
                     </div>
@@ -812,6 +854,88 @@ export default function CompaniesPage() {
           </div>
         )
       })()}
+
+      {/* Modal Editar Empresa */}
+      {editingCompany && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-gray-900 dark:text-white">Editar Empresa</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setEditingCompany(null)} className="rounded-xl">
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
+                  <Input value={editingCompany.name || ''} onChange={(e) => setEditingCompany({...editingCompany, name: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Acme Corporation" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Industria</label>
+                  <Input value={editingCompany.industry || ''} onChange={(e) => setEditingCompany({...editingCompany, industry: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Tecnologia" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email</label>
+                  <Input value={editingCompany.custom_fields?.email || ''} onChange={(e) => setEditingCompany({...editingCompany, custom_fields: {...(editingCompany.custom_fields || {}), email: e.target.value}})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="info@empresa.com" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono</label>
+                  <Input value={editingCompany.custom_fields?.phone || ''} onChange={(e) => setEditingCompany({...editingCompany, custom_fields: {...(editingCompany.custom_fields || {}), phone: e.target.value}})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 900 000 000" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Sitio Web</label>
+                  <Input value={editingCompany.website || ''} onChange={(e) => setEditingCompany({...editingCompany, website: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="ejemplo.com" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Dirección</label>
+                  <Input value={editingCompany.billing_address?.street || ''} onChange={(e) => setEditingCompany({...editingCompany, billing_address: {...(editingCompany.billing_address || {}), street: e.target.value}})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Calle, Ciudad" />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button onClick={handleUpdateCompany} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  disabled={!editingCompany.name || updatingCompany}>
+                  {updatingCompany ? 'Guardando...' : 'Guardar Cambios'}
+                </Button>
+                <Button variant="outline" onClick={() => setEditingCompany(null)}
+                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal Eliminar Empresa */}
+      {deletingCompanyId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-gray-900 dark:text-white">Eliminar Empresa</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">¿Estás seguro de que quieres eliminar esta empresa? Esta acción no se puede deshacer.</p>
+              <div className="flex gap-3">
+                <Button onClick={() => handleDeleteCompany(deletingCompanyId)} disabled={deletingCompany}
+                  className="flex-1 bg-red-600 hover:bg-red-700 rounded-xl">
+                  {deletingCompany ? 'Eliminando...' : 'Eliminar'}
+                </Button>
+                <Button variant="outline" onClick={() => setDeletingCompanyId(null)}
+                  className="flex-1 rounded-xl dark:border-gray-700 dark:text-gray-300">
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
