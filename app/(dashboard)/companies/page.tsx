@@ -381,9 +381,16 @@ export default function CompaniesPage() {
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 900 000 000" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tamano (empleados) *</label>
-                  <Input value={newCompany.size} onChange={(e) => setNewCompany({...newCompany, size: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="50-200" />
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tamaño (empleados) *</label>
+                  <select value={newCompany.size} onChange={(e) => setNewCompany({...newCompany, size: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="">Seleccionar tamaño</option>
+                    <option value="1-10">1-10 empleados</option>
+                    <option value="11-50">11-50 empleados</option>
+                    <option value="51-200">51-200 empleados</option>
+                    <option value="201-500">201-500 empleados</option>
+                    <option value="501+">501+ empleados</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Sitio Web</label>
@@ -886,6 +893,18 @@ export default function CompaniesPage() {
                   <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono</label>
                   <Input value={editingCompany.custom_fields?.phone || ''} onChange={(e) => setEditingCompany({...editingCompany, custom_fields: {...(editingCompany.custom_fields || {}), phone: e.target.value}})}
                     className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 900 000 000" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tamaño (empleados)</label>
+                  <select value={editingCompany.company_size || ''} onChange={(e) => setEditingCompany({...editingCompany, company_size: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="">Seleccionar tamaño</option>
+                    <option value="1-10">1-10 empleados</option>
+                    <option value="11-50">11-50 empleados</option>
+                    <option value="51-200">51-200 empleados</option>
+                    <option value="201-500">201-500 empleados</option>
+                    <option value="501+">501+ empleados</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Sitio Web</label>
