@@ -49,13 +49,26 @@ export async function getContact(id: string) {
 // Crear contacto
 export async function createContact(workspaceId: string, input: ContactInput) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { data: null, error: `Error de autenticacion: ${authError?.message || 'No autenticado'}` }
+  }
+
+  if (!workspaceId) {
+    return { data: null, error: 'No se encontro el workspace. Recarga la pagina.' }
+  }
 
   // Check plan limit
-  const { data: limitCheck } = await supabase.rpc('check_plan_limit', {
+  const { data: limitCheck, error: rpcError } = await supabase.rpc('check_plan_limit', {
     p_workspace_id: workspaceId,
     p_resource: 'contacts',
   })
+
+  if (rpcError) {
+    console.error('check_plan_limit error:', rpcError)
+  }
+
   if (limitCheck && !limitCheck.allowed) {
     return { data: null, error: `Has alcanzado el limite de ${limitCheck.max} contactos en tu plan. Mejora tu plan para continuar.` }
   }
@@ -65,13 +78,16 @@ export async function createContact(workspaceId: string, input: ContactInput) {
     .insert({
       workspace_id: workspaceId,
       ...input,
-      created_by_id: user?.id,
-      owner_id: input.owner_id || user?.id,
+      created_by_id: user.id,
+      owner_id: input.owner_id || user.id,
     })
     .select()
     .single()
 
-  if (error) return { data: null, error: error.message }
+  if (error) {
+    console.error('createContact insert error:', error)
+    return { data: null, error: `Error creando contacto: ${error.message} (code: ${error.code})` }
+  }
   return { data, error: null }
 }
 

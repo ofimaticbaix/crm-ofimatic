@@ -50,7 +50,15 @@ export async function getTasks(workspaceId: string, filters?: {
 // Create a task (activity)
 export async function createTask(workspaceId: string, input: TaskInput) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { data: null, error: `Error de autenticacion: ${authError?.message || 'No autenticado'}` }
+  }
+
+  if (!workspaceId) {
+    return { data: null, error: 'No se encontro el workspace. Recarga la pagina.' }
+  }
 
   const { data, error } = await supabase
     .from('activities')
@@ -63,14 +71,17 @@ export async function createTask(workspaceId: string, input: TaskInput) {
       contact_id: input.contact_id || null,
       company_id: input.company_id || null,
       deal_id: input.deal_id || null,
-      created_by_id: user!.id,
-      assigned_to_id: input.assigned_to_id || user!.id,
+      created_by_id: user.id,
+      assigned_to_id: input.assigned_to_id || user.id,
       metadata: input.metadata || {},
     })
     .select()
     .single()
 
-  if (error) return { data: null, error: error.message }
+  if (error) {
+    console.error('createTask insert error:', error)
+    return { data: null, error: `Error creando tarea: ${error.message} (code: ${error.code})` }
+  }
   return { data, error: null }
 }
 
