@@ -1,6 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Admin emails that bypass all restrictions
+const ADMIN_EMAILS = ['alex@ofimaticbaix.com', 'a.saumellortuno98@gmail.com']
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -42,6 +45,11 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
+  }
+
+  // Admin emails bypass all subscription checks
+  if (user && ADMIN_EMAILS.includes(user.email?.toLowerCase() || '')) {
+    return supabaseResponse
   }
 
   // Verificar trial/suscripcion para usuarios autenticados en rutas protegidas

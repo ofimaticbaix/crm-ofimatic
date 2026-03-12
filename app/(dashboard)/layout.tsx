@@ -6,13 +6,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings,
   Menu, X, LogOut, Upload, UserCheck, BarChart3, ChevronDown, ChevronRight,
-  UserPlus, UserMinus, Lock
+  UserPlus, UserMinus, Lock, Shield
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 import { cn } from '@/lib/utils'
 import { WorkspaceProvider, useWorkspace } from '@/lib/context/workspace-context'
 import { createClient } from '@/lib/supabase/client'
+import { isAdminEmail } from '@/lib/admin'
 
 const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
@@ -210,6 +211,23 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               </Link>
             )
           })}
+
+          {/* Admin link - only for admin emails */}
+          {isAdminEmail(userEmail) && (
+            <div className="mt-4 pt-4 border-t border-gray-200/60 dark:border-gray-700/20">
+              <Link
+                href="/admin"
+                onClick={() => setSidebarOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative group bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20 text-red-400 hover:from-red-500/20 hover:to-orange-500/20"
+              >
+                <Shield className="w-5 h-5 flex-shrink-0" />
+                <span className="flex-1">Admin</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-wider">
+                  Super
+                </span>
+              </Link>
+            </div>
+          )}
         </nav>
 
         {/* Trial Banner */}
@@ -255,15 +273,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 {!loading && (
                   <span className={cn(
                     "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0",
-                    subscriptionStatus === 'trialing'
-                      ? "bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30"
-                      : planId === 'enterprise'
-                        ? "bg-purple-100 text-purple-700 border border-purple-300 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/30"
-                        : planId === 'pro'
-                          ? "bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30"
-                          : "bg-green-100 text-green-700 border border-green-300 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30"
+                    isAdminEmail(userEmail)
+                      ? "bg-red-100 text-red-700 border border-red-300 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30"
+                      : subscriptionStatus === 'trialing'
+                        ? "bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30"
+                        : planId === 'enterprise'
+                          ? "bg-purple-100 text-purple-700 border border-purple-300 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/30"
+                          : planId === 'pro'
+                            ? "bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30"
+                            : "bg-green-100 text-green-700 border border-green-300 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30"
                   )}>
-                    {subscriptionStatus === 'trialing' ? 'Trial' : plan?.name || planId}
+                    {isAdminEmail(userEmail) ? 'Admin' : subscriptionStatus === 'trialing' ? 'Trial' : plan?.name || planId}
                   </span>
                 )}
               </div>
