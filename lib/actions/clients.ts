@@ -212,12 +212,17 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
         daysSinceActivity = Math.floor((now.getTime() - new Date(lastActivityDate).getTime()) / (1000 * 60 * 60 * 24))
       }
 
-      // Determine status
-      // Check if all deals are closed (won or lost)
+      // Determine status - User-friendly logic:
+      // - Active: Has recent activity (7 days) OR upcoming scheduled activity
+      // - Overdue: No recent activity AND no upcoming activity (needs attention)
+      // - Closed: All deals are closed AND no upcoming activity
+
       const hasOpenDeals = companyDeals.some(d => {
         const stage = d.stages as any
         return d.status === 'open' && stage && !stage.is_closed_won && !stage.is_closed_lost
       })
+
+      const allDealsClosed = dealCount > 0 && !hasOpenDeals
 
       // Check if there's recent activity (last 7 days)
       const hasRecentActivity = lastActivityDate && new Date(lastActivityDate) >= sevenDaysAgo
@@ -227,14 +232,14 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
 
       let status: 'active' | 'overdue' | 'closed'
 
-      if (dealCount === 0 || !hasOpenDeals) {
-        // No deals or all deals closed
+      if (allDealsClosed && !hasUpcomingActivity) {
+        // All deals closed AND no future activity planned = truly closed
         status = 'closed'
       } else if (hasRecentActivity || hasUpcomingActivity) {
-        // Has open deals AND (recent activity OR upcoming scheduled activity)
+        // Has recent activity OR upcoming activity = active (regardless of deals)
         status = 'active'
       } else {
-        // Has open deals but no recent activity AND no upcoming activity
+        // No recent activity AND no upcoming activity = needs attention
         status = 'overdue'
       }
 
