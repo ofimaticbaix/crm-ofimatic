@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { geocodeCompany } from './geocoding'
-import { triggerWebhooks } from './webhooks'
+// Webhooks are now triggered via Supabase database triggers (see migrations/008_webhook_triggers.sql)
 
 export interface CompanyInput {
   name: string
@@ -106,18 +106,6 @@ export async function createCompany(workspaceId: string, input: CompanyInput) {
     geocodeCompany(data.id).catch(console.error)
   }
 
-  // Trigger webhooks
-  if (data) {
-    triggerWebhooks(workspaceId, 'company.created', {
-      id: data.id,
-      name: data.name,
-      industry: data.industry,
-      account_type: data.account_type,
-      email: data.email,
-      phone: data.phone,
-    })
-  }
-
   return { data, error: null }
 }
 
@@ -140,17 +128,6 @@ export async function updateCompany(id: string, input: Partial<CompanyInput>) {
     geocodeCompany(id).catch(console.error)
   }
 
-  // Trigger webhooks
-  if (data) {
-    triggerWebhooks(data.workspace_id, 'company.updated', {
-      id: data.id,
-      name: data.name,
-      industry: data.industry,
-      account_type: data.account_type,
-      changes: Object.keys(input),
-    })
-  }
-
   return { data, error: null }
 }
 
@@ -158,27 +135,12 @@ export async function updateCompany(id: string, input: Partial<CompanyInput>) {
 export async function deleteCompany(id: string) {
   const supabase = await createClient()
 
-  // Get company first for webhook
-  const { data: company } = await supabase
-    .from('companies')
-    .select('id, name, workspace_id')
-    .eq('id', id)
-    .single()
-
   const { error } = await supabase
     .from('companies')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
 
   if (error) return { error: error.message }
-
-  // Trigger webhooks
-  if (company) {
-    triggerWebhooks(company.workspace_id, 'company.deleted', {
-      id: company.id,
-      name: company.name,
-    })
-  }
 
   return { error: null }
 }
