@@ -75,14 +75,14 @@ ALTER TABLE visits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view visits in their workspace" ON visits
   FOR SELECT USING (
     workspace_id IN (
-      SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()
+      SELECT workspace_id FROM memberships WHERE user_id = auth.uid()
     )
   );
 
 CREATE POLICY "Users can create visits in their workspace" ON visits
   FOR INSERT WITH CHECK (
     workspace_id IN (
-      SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()
+      SELECT workspace_id FROM memberships WHERE user_id = auth.uid()
     )
   );
 
@@ -142,7 +142,7 @@ ALTER TABLE routes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view routes in their workspace" ON routes
   FOR SELECT USING (
     workspace_id IN (
-      SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()
+      SELECT workspace_id FROM memberships WHERE user_id = auth.uid()
     )
   );
 
