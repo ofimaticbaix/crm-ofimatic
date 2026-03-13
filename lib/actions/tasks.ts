@@ -87,6 +87,62 @@ export async function createTask(workspaceId: string, input: TaskInput) {
   return { data, error: null }
 }
 
+// Update a task
+export async function updateTask(id: string, input: Partial<TaskInput>) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { data: null, error: `Error de autenticacion: ${authError?.message || 'No autenticado'}` }
+  }
+
+  const updateData: Record<string, any> = {}
+  if (input.subject !== undefined) updateData.subject = input.subject
+  if (input.type !== undefined) updateData.type = input.type
+  if (input.due_date !== undefined) updateData.due_date = input.due_date
+  if (input.scheduled_at !== undefined) updateData.scheduled_at = input.scheduled_at
+  if (input.contact_id !== undefined) updateData.contact_id = input.contact_id
+  if (input.company_id !== undefined) updateData.company_id = input.company_id
+  if (input.deal_id !== undefined) updateData.deal_id = input.deal_id
+  if (input.metadata !== undefined) updateData.metadata = input.metadata
+
+  const { data, error } = await supabase
+    .from('activities')
+    .update(updateData)
+    .eq('id', id)
+    .select('*, contacts(id, first_name, last_name), companies(id, name), deals(id, name)')
+    .single()
+
+  if (error) {
+    console.error('updateTask error:', error)
+    return { data: null, error: `Error actualizando tarea: ${error.message}` }
+  }
+
+  return { data, error: null }
+}
+
+// Delete a task
+export async function deleteTask(id: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { data: null, error: `Error de autenticacion: ${authError?.message || 'No autenticado'}` }
+  }
+
+  const { error } = await supabase
+    .from('activities')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('deleteTask error:', error)
+    return { data: null, error: `Error eliminando tarea: ${error.message}` }
+  }
+
+  return { data: { id }, error: null }
+}
+
 // Toggle task completion
 export async function toggleTaskComplete(id: string) {
   const supabase = await createClient()

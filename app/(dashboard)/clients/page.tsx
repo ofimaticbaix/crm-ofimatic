@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Users, DollarSign, Calendar, Lock, AlertTriangle, Clock, Loader2 } from 'lucide-react'
+import { Users, DollarSign, Calendar, Lock, AlertTriangle, Clock, Loader2, CalendarCheck } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompaniesWithStatus, type CompaniesGrouped, type CompanyWithStatus } from '@/lib/actions/clients'
@@ -210,7 +210,17 @@ function CompanyCard({ company, variant }: { company: CompanyWithStatus; variant
               </>
             )}
           </div>
-          {company.last_activity_date && variant !== 'closed' && (
+          {company.next_activity_date && variant === 'active' && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
+                <CalendarCheck className="h-3.5 w-3.5" /> Proxima actividad
+              </span>
+              <span className="text-green-600 dark:text-green-400 font-bold text-xs">
+                {new Date(company.next_activity_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+              </span>
+            </div>
+          )}
+          {company.last_activity_date && variant !== 'closed' && !company.next_activity_date && (
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
                 <Calendar className="h-3.5 w-3.5" /> Ultima actividad

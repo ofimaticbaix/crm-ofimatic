@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Users, DollarSign, Calendar, Clock, AlertTriangle, Loader2 } from 'lucide-react'
+import { Users, DollarSign, Calendar, Clock, AlertTriangle, Loader2, CalendarCheck } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompaniesWithStatus, type CompanyWithStatus, type CompaniesGrouped } from '@/lib/actions/clients'

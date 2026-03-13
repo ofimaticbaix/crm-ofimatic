@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CheckCircle2, Circle, Plus, Calendar, X, ChevronLeft, ChevronRight, List, CalendarDays, Building2, User, Clock, Loader2 } from 'lucide-react'
+import { CheckCircle2, Circle, Plus, Calendar, X, ChevronLeft, ChevronRight, List, CalendarDays, Building2, User, Clock, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getTasks, createTask, toggleTaskComplete } from '@/lib/actions/tasks'
+import { getTasks, createTask, updateTask, deleteTask, toggleTaskComplete } from '@/lib/actions/tasks'
 import { getCompanies } from '@/lib/actions/companies'
 import { getContacts } from '@/lib/actions/contacts'
 import { getDeals } from '@/lib/actions/deals'
@@ -52,6 +52,19 @@ export default function TasksPage() {
     type: 'task'
   })
   const [creating, setCreating] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [editForm, setEditForm] = useState({
+    title: '',
+    dueDate: '',
+    dueTime: '',
+    priority: 'medium',
+    dealId: '',
+    companyId: '',
+    contactId: '',
+    type: 'task'
+  })
+  const [updating, setUpdating] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Cached data - loads instantly if cached
   const { data: tasks, loading: tasksLoading, refetch: refetchTasks } = useCachedData<Task[]>(
@@ -136,6 +149,73 @@ export default function TasksPage() {
       console.error('Error toggling task:', err)
     }
   }
+
+  const openEditModal = (task: Task) => {
+    const dueTime = getDueTimeFromTask(task)
+    setEditForm({
+      title: task.subject,
+      dueDate: task.due_date || '',
+      dueTime: dueTime || '',
+      priority: task.metadata?.priority || 'medium',
+      dealId: task.deal_id || '',
+      companyId: task.company_id || '',
+      contactId: task.contact_id || '',
+      type: task.type || 'task'
+    })
+    setEditingTask(task)
+  }
+
+  const handleUpdateTask = async () => {
+    if (!editingTask || !editForm.title || !editForm.dueDate) return
+    setUpdating(true)
+    try {
+      const result = await updateTask(editingTask.id, {
+        subject: editForm.title,
+        type: editForm.type as any,
+        due_date: editForm.dueDate,
+        scheduled_at: editForm.dueTime ? `${editForm.dueDate}T${editForm.dueTime}:00` : undefined,
+        contact_id: editForm.contactId || null,
+        company_id: editForm.companyId || null,
+        deal_id: editForm.dealId || null,
+        metadata: {
+          priority: editForm.priority,
+          dueTime: editForm.dueTime || undefined,
+        },
+      })
+      if (result.error) {
+        console.error('Error updating task:', result.error)
+      } else {
+        setEditingTask(null)
+        refetchTasks()
+      }
+    } catch (err) {
+      console.error('Error updating task:', err)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleDeleteTask = async () => {
+    if (!editingTask) return
+    setDeleting(true)
+    try {
+      const result = await deleteTask(editingTask.id)
+      if (result.error) {
+        console.error('Error deleting task:', result.error)
+      } else {
+        setEditingTask(null)
+        refetchTasks()
+      }
+    } catch (err) {
+      console.error('Error deleting task:', err)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const filteredContactsForEditTask = editForm.companyId
+    ? (contacts || []).filter(c => c.company_id === editForm.companyId)
+    : (contacts || [])
 
   const getPriorityFromTask = (task: Task): string => {
     return task.metadata?.priority || 'medium'
@@ -288,6 +368,13 @@ export default function TasksPage() {
             </span>
           )}
         </div>
+        <button
+          onClick={() => openEditModal(task)}
+          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0"
+          title="Editar tarea"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
       </div>
     )
   }
@@ -506,7 +593,8 @@ export default function TasksPage() {
                       const priority = getPriorityFromTask(task)
                       const dueTime = getDueTimeFromTask(task)
                       return (
-                        <div key={task.id} className="p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+                        <div key={task.id} className="p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
+                          onClick={() => openEditModal(task)}>
                           <div className="flex items-center gap-2 mb-1">
                             <div className={`w-2 h-2 rounded-full ${getPriorityDot(priority)}`} />
                             <Badge className={`${getTypeColor(task.type)} rounded-xl text-[10px]`}>
@@ -517,6 +605,7 @@ export default function TasksPage() {
                                 <Clock className="h-2.5 w-2.5" /> {dueTime}
                               </span>
                             )}
+                            <Pencil className="h-3 w-3 text-gray-400 ml-auto" />
                           </div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{task.subject}</p>
                           <div className="flex items-center gap-2 mt-1">
@@ -635,6 +724,107 @@ export default function TasksPage() {
                 <Button variant="outline" onClick={() => setShowNewTaskModal(false)}
                   className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
                   Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal Editar Tarea */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-gray-900 dark:text-white">Editar Tarea</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setEditingTask(null)} className="rounded-xl">
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Titulo de la Tarea *</label>
+                  <Input value={editForm.title} onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Ej: Llamar a cliente para seguimiento" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tipo *</label>
+                  <select value={editForm.type} onChange={(e) => setEditForm({...editForm, type: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="task">Tarea</option>
+                    <option value="call">Llamada</option>
+                    <option value="meeting">Reunion</option>
+                    <option value="email">Email</option>
+                    <option value="note">Nota</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Prioridad *</label>
+                  <select value={editForm.priority} onChange={(e) => setEditForm({...editForm, priority: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Fecha *</label>
+                  <Input type="date" value={editForm.dueDate} onChange={(e) => setEditForm({...editForm, dueDate: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Hora</label>
+                  <Input type="time" value={editForm.dueTime} onChange={(e) => setEditForm({...editForm, dueTime: e.target.value})}
+                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Empresa</label>
+                  <select value={editForm.companyId}
+                    onChange={(e) => setEditForm({...editForm, companyId: e.target.value, contactId: ''})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="">Sin empresa</option>
+                    {(companies || []).map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Contacto</label>
+                  <select value={editForm.contactId}
+                    onChange={(e) => setEditForm({...editForm, contactId: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="">Sin contacto</option>
+                    {filteredContactsForEditTask.map(c => (
+                      <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Oportunidad Asociada</label>
+                  <select value={editForm.dealId} onChange={(e) => setEditForm({...editForm, dealId: e.target.value})}
+                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                    <option value="">Sin oportunidad asociada</option>
+                    {(deals || []).map((deal) => (
+                      <option key={deal.id} value={deal.id}>{deal.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button onClick={handleUpdateTask} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                  disabled={!editForm.title || !editForm.dueDate || updating}>
+                  {updating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando...</> : 'Guardar Cambios'}
+                </Button>
+                <Button variant="outline" onClick={() => setEditingTask(null)}
+                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                  Cancelar
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteTask}
+                  className="rounded-xl"
+                  disabled={deleting}>
+                  {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </Button>
               </div>
             </CardContent>
