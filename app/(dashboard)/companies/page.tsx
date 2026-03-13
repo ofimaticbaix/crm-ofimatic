@@ -337,7 +337,7 @@ export default function CompaniesPage() {
 
   // Helper to get deals for a company from allDeals
   const getCompanyDeals = (companyId: string) => {
-    return allDeals.filter((d: any) => d.company_id === companyId)
+    return (allDeals || []).filter((d: any) => d.company_id === companyId)
   }
 
   // Extract custom fields helpers
