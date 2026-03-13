@@ -200,7 +200,7 @@ export async function testWebhook(webhookId: string) {
 // Simple implementation without crypto signatures
 // ============================================
 
-export function triggerWebhooks(
+export async function triggerWebhooks(
   _workspaceId: string,
   _event: WebhookEvent,
   _data: Record<string, unknown>
