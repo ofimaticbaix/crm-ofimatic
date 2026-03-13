@@ -16,9 +16,8 @@ import {
   deleteWebhook,
   testWebhook,
   getWebhookLogs,
-  WEBHOOK_EVENTS,
-  type WebhookEvent
 } from '@/lib/actions/webhooks'
+import { WEBHOOK_EVENTS, type WebhookEvent } from '@/lib/constants/webhook-events'
 
 interface WebhooksSectionProps {
   workspaceId: string

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { WebhookEvent } from '@/lib/constants/webhook-events'
 
 // Generate a simple random secret (no crypto dependency)
 function generateSecret(): string {
@@ -11,31 +12,6 @@ function generateSecret(): string {
   }
   return result
 }
-
-// Available webhook events
-export const WEBHOOK_EVENTS = {
-  // Contacts
-  'contact.created': 'Contacto creado',
-  'contact.updated': 'Contacto actualizado',
-  'contact.deleted': 'Contacto eliminado',
-  // Companies
-  'company.created': 'Empresa creada',
-  'company.updated': 'Empresa actualizada',
-  'company.deleted': 'Empresa eliminada',
-  // Deals
-  'deal.created': 'Oportunidad creada',
-  'deal.updated': 'Oportunidad actualizada',
-  'deal.stage_changed': 'Etapa de oportunidad cambiada',
-  'deal.won': 'Oportunidad ganada',
-  'deal.lost': 'Oportunidad perdida',
-  // Activities
-  'activity.created': 'Actividad creada',
-  // Tasks
-  'task.created': 'Tarea creada',
-  'task.completed': 'Tarea completada',
-} as const
-
-export type WebhookEvent = keyof typeof WEBHOOK_EVENTS
 
 export interface WebhookInput {
   name: string
