@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings,
   Menu, X, LogOut, Upload, UserCheck, BarChart3, ChevronDown, ChevronRight,
-  UserPlus, UserMinus, Lock, Shield, MapPin
+  UserPlus, UserMinus, Lock, Shield
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -19,7 +19,6 @@ const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Contactos', href: '/contacts', icon: Users },
   { name: 'Empresas', href: '/companies', icon: Building2 },
-  { name: 'Mapa', href: '/map', icon: MapPin },
   { name: 'Oportunidades', href: '/deals', icon: TrendingUp },
   { name: 'Tareas', href: '/tasks', icon: CheckSquare },
   { name: 'Métricas', href: '/metrics', icon: BarChart3 },

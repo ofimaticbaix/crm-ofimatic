@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Settings, Users, CreditCard, Bell, Check, Loader2, Zap, Crown, Building2, X, Copy, Mail, UserMinus, Clock, Plug } from 'lucide-react'
 import { ApiKeysSection } from '@/components/settings/api-keys-section'
+import { WebhooksSection } from '@/components/settings/webhooks-section'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { updateWorkspaceName } from '@/lib/actions/workspace'
 import { getPlans, getWorkspaceUsage } from '@/lib/actions/plans'
@@ -689,6 +690,9 @@ export default function SettingsPage() {
       </Card>
       {/* API Keys / n8n Integration */}
       <ApiKeysSection workspaceId={workspaceId} />
+
+      {/* Webhooks */}
+      <WebhooksSection workspaceId={workspaceId} />
     </div>
   )
 }

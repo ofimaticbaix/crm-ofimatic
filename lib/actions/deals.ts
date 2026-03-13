@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { triggerWebhooks } from './webhooks'
 
 export interface DealInput {
   name: string
@@ -95,6 +96,19 @@ export async function createDeal(workspaceId: string, input: DealInput) {
     .single()
 
   if (error) return { data: null, error: error.message }
+
+  // Trigger webhooks
+  if (data) {
+    triggerWebhooks(workspaceId, 'deal.created', {
+      id: data.id,
+      name: data.name,
+      value: data.value,
+      currency: data.currency,
+      stage_id: data.stage_id,
+      company_id: data.company_id,
+    })
+  }
+
   return { data, error: null }
 }
 
@@ -111,12 +125,32 @@ export async function updateDeal(id: string, input: Partial<DealInput>) {
     .single()
 
   if (error) return { data: null, error: error.message }
+
+  // Trigger webhooks
+  if (data) {
+    triggerWebhooks(data.workspace_id, 'deal.updated', {
+      id: data.id,
+      name: data.name,
+      value: data.value,
+      changes: Object.keys(input),
+    })
+  }
+
   return { data, error: null }
 }
 
 // Mover deal a otra etapa
 export async function updateDealStage(id: string, stageId: string) {
   const supabase = await createClient()
+
+  // Get old stage to detect won/lost
+  const { data: oldDeal } = await supabase
+    .from('deals')
+    .select('stage_id, workspace_id, name, value')
+    .eq('id', id)
+    .single()
+
+  const oldStageId = oldDeal?.stage_id
 
   const { data, error } = await supabase
     .from('deals')
@@ -126,6 +160,42 @@ export async function updateDealStage(id: string, stageId: string) {
     .single()
 
   if (error) return { data: null, error: error.message }
+
+  // Trigger webhooks
+  if (data && oldStageId !== stageId) {
+    // Get new stage info to check if won/lost
+    const { data: newStage } = await supabase
+      .from('stages')
+      .select('name, is_closed_won, is_closed_lost')
+      .eq('id', stageId)
+      .single()
+
+    // Trigger stage changed
+    triggerWebhooks(data.workspace_id, 'deal.stage_changed', {
+      id: data.id,
+      name: data.name,
+      value: data.value,
+      old_stage_id: oldStageId,
+      new_stage_id: stageId,
+      new_stage_name: newStage?.name,
+    })
+
+    // Trigger won/lost if applicable
+    if (newStage?.is_closed_won) {
+      triggerWebhooks(data.workspace_id, 'deal.won', {
+        id: data.id,
+        name: data.name,
+        value: data.value,
+      })
+    } else if (newStage?.is_closed_lost) {
+      triggerWebhooks(data.workspace_id, 'deal.lost', {
+        id: data.id,
+        name: data.name,
+        value: data.value,
+      })
+    }
+  }
+
   return { data, error: null }
 }
 

@@ -248,6 +248,40 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['routes']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['routes']['Insert']>
       }
+      webhooks: {
+        Row: {
+          id: string
+          workspace_id: string
+          name: string
+          url: string
+          secret: string | null
+          events: string[]
+          is_active: boolean
+          last_triggered_at: string | null
+          last_status_code: number | null
+          failure_count: number
+          created_by_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['webhooks']['Row'], 'id' | 'created_at' | 'updated_at' | 'failure_count'>
+        Update: Partial<Database['public']['Tables']['webhooks']['Insert']>
+      }
+      webhook_logs: {
+        Row: {
+          id: string
+          webhook_id: string
+          event_type: string
+          payload: Json
+          status_code: number | null
+          response_body: string | null
+          error_message: string | null
+          triggered_at: string
+          duration_ms: number | null
+        }
+        Insert: Omit<Database['public']['Tables']['webhook_logs']['Row'], 'id' | 'triggered_at'>
+        Update: Partial<Database['public']['Tables']['webhook_logs']['Insert']>
+      }
     }
   }
 }

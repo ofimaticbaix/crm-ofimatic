@@ -14,6 +14,130 @@ interface NominatimResponse {
   display_name: string
 }
 
+// Spanish address abbreviations to expand for better geocoding
+const SPANISH_ABBREVIATIONS: Record<string, string> = {
+  'c/': 'Calle',
+  'c.': 'Calle',
+  'ctra.': 'Carretera',
+  'ctra': 'Carretera',
+  'avda.': 'Avenida',
+  'avda': 'Avenida',
+  'av.': 'Avenida',
+  'av': 'Avenida',
+  'pza.': 'Plaza',
+  'pza': 'Plaza',
+  'pl.': 'Plaza',
+  'pl': 'Plaza',
+  'pº': 'Paseo',
+  'p.º': 'Paseo',
+  'rda.': 'Ronda',
+  'rda': 'Ronda',
+  'cno.': 'Camino',
+  'cno': 'Camino',
+  'pje.': 'Pasaje',
+  'pje': 'Pasaje',
+  'urb.': 'Urbanización',
+  'urb': 'Urbanización',
+  'pol.': 'Polígono',
+  'pol': 'Polígono',
+  'ind.': 'Industrial',
+  'ind': 'Industrial',
+  'nº': '',
+  'núm.': '',
+  'num.': '',
+  'n.': '',
+}
+
+// Normalize Spanish addresses for better geocoding
+function normalizeSpanishAddress(address: string): string {
+  let normalized = address
+
+  // Remove floor/door details that confuse geocoders
+  // Examples: "Local 2º", "Piso 3", "Pta. 4", "Bajo", "Ático", "1º A"
+  normalized = normalized.replace(/,?\s*(local|piso|pta\.?|puerta|bajo|ático|entresuelo|planta)\s*\d*[ºª]?\s*[a-z]?/gi, '')
+  normalized = normalized.replace(/,?\s*\d+[ºª]\s*[a-z]?\s*(izq\.?|dcha\.?|izquierda|derecha|centro|ctr\.?)?/gi, '')
+
+  // Expand abbreviations (case insensitive)
+  for (const [abbrev, full] of Object.entries(SPANISH_ABBREVIATIONS)) {
+    const regex = new RegExp(`\\b${abbrev.replace('.', '\\.')}\\s*`, 'gi')
+    normalized = normalized.replace(regex, full ? `${full} ` : '')
+  }
+
+  // Clean up extra spaces and commas
+  normalized = normalized.replace(/\s+/g, ' ')
+  normalized = normalized.replace(/,\s*,/g, ',')
+  normalized = normalized.replace(/^\s*,\s*/, '')
+  normalized = normalized.replace(/\s*,\s*$/, '')
+  normalized = normalized.trim()
+
+  return normalized
+}
+
+// Extract street number from address
+function extractStreetNumber(street: string): { streetName: string; number: string } {
+  // Match patterns like "Carretera d'Esplugues, 42" or "Calle Mayor 15"
+  const match = street.match(/^(.+?),?\s*(\d+)(?:\s*-\s*\d+)?(?:\s*,.*)?$/)
+  if (match) {
+    return { streetName: match[1].trim(), number: match[2] }
+  }
+  return { streetName: street, number: '' }
+}
+
+// Geocode using structured parameters (more precise)
+async function geocodeStructured(params: {
+  street?: string
+  city?: string
+  postalcode?: string
+  state?: string
+  country?: string
+}): Promise<{ data: GeocodingResult | null; error: string | null }> {
+  try {
+    const searchParams = new URLSearchParams({
+      format: 'json',
+      limit: '1',
+      addressdetails: '1',
+    })
+
+    if (params.street) searchParams.set('street', params.street)
+    if (params.city) searchParams.set('city', params.city)
+    if (params.postalcode) searchParams.set('postalcode', params.postalcode)
+    if (params.state) searchParams.set('state', params.state)
+    if (params.country) searchParams.set('country', params.country || 'Spain')
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?${searchParams.toString()}`,
+      {
+        headers: {
+          'User-Agent': 'CRM-AI-Native/1.0',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      return { data: null, error: 'Error en servicio de geocoding' }
+    }
+
+    const results: NominatimResponse[] = await response.json()
+
+    if (!results || results.length === 0) {
+      return { data: null, error: 'No se encontró la dirección' }
+    }
+
+    const result = results[0]
+    return {
+      data: {
+        latitude: parseFloat(result.lat),
+        longitude: parseFloat(result.lon),
+        displayName: result.display_name,
+      },
+      error: null,
+    }
+  } catch (error) {
+    console.error('Structured geocoding error:', error)
+    return { data: null, error: 'Error de conexión' }
+  }
+}
+
 // Geocode an address using Nominatim (OpenStreetMap) - FREE
 export async function geocodeAddress(address: string): Promise<{ data: GeocodingResult | null; error: string | null }> {
   if (!address || address.trim().length < 5) {
@@ -21,9 +145,12 @@ export async function geocodeAddress(address: string): Promise<{ data: Geocoding
   }
 
   try {
-    const encodedAddress = encodeURIComponent(address)
+    // Normalize Spanish address
+    const normalizedAddress = normalizeSpanishAddress(address)
+    const encodedAddress = encodeURIComponent(normalizedAddress)
+
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1`,
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1&addressdetails=1`,
       {
         headers: {
           'User-Agent': 'CRM-AI-Native/1.0', // Required by Nominatim ToS
@@ -96,84 +223,138 @@ export async function geocodeCompany(companyId: string): Promise<{ success: bool
   }
 
   // Try multiple sources for address
-  let fullAddress = ''
-
-  // 1. Try billing_address object
   const address = company.billing_address as Record<string, string> | null
-  if (address) {
-    fullAddress = [
-      address.street,
+
+  if (!address || (!address.street && !address.city)) {
+    // Check for string format
+    if (typeof company.billing_address === 'string' && company.billing_address.length > 10) {
+      const result = await geocodeAddress(company.billing_address + ', España')
+      if (result.data) {
+        const { error: updateError } = await supabase
+          .from('companies')
+          .update({
+            latitude: result.data.latitude,
+            longitude: result.data.longitude,
+            geocoded_at: new Date().toISOString(),
+          })
+          .eq('id', companyId)
+
+        if (updateError) return { success: false, error: updateError.message }
+        return { success: true, error: null }
+      }
+    }
+
+    // Check custom_fields
+    const customFields = company.custom_fields as Record<string, string> | null
+    if (customFields) {
+      const direccion = customFields.direccion || customFields.address || customFields.ubicacion
+      if (direccion) {
+        const result = await geocodeAddress(direccion + ', España')
+        if (result.data) {
+          const { error: updateError } = await supabase
+            .from('companies')
+            .update({
+              latitude: result.data.latitude,
+              longitude: result.data.longitude,
+              geocoded_at: new Date().toISOString(),
+            })
+            .eq('id', companyId)
+
+          if (updateError) return { success: false, error: updateError.message }
+          return { success: true, error: null }
+        }
+      }
+    }
+
+    return { success: false, error: `Sin dirección: ${company.name}. Edita la empresa y añade dirección completa.` }
+  }
+
+  // Normalize the street address
+  const normalizedStreet = address.street ? normalizeSpanishAddress(address.street) : ''
+  const { streetName, number } = extractStreetNumber(normalizedStreet)
+
+  // Geocode with multiple attempts, from most specific to least
+  let geocoded = null
+
+  // Attempt 1: Structured search with street number
+  if (streetName && number) {
+    const result = await geocodeStructured({
+      street: `${number} ${streetName}`,
+      city: address.city,
+      postalcode: address.postal_code,
+      state: address.province,
+      country: address.country || 'Spain',
+    })
+    if (result.data) {
+      geocoded = result.data
+    }
+  }
+
+  // Attempt 2: Structured search without number
+  if (!geocoded && streetName) {
+    // Small delay for rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1100))
+
+    const result = await geocodeStructured({
+      street: streetName,
+      city: address.city,
+      postalcode: address.postal_code,
+      state: address.province,
+      country: address.country || 'Spain',
+    })
+    if (result.data) {
+      geocoded = result.data
+    }
+  }
+
+  // Attempt 3: Free-form search with full normalized address
+  if (!geocoded) {
+    await new Promise(resolve => setTimeout(resolve, 1100))
+
+    const fullAddress = [
+      normalizedStreet,
       address.city,
       address.postal_code,
       address.province,
       address.country || 'España',
-    ]
-      .filter(Boolean)
-      .join(', ')
-  }
+    ].filter(Boolean).join(', ')
 
-  // 2. If billing_address is a string (old format), use it directly
-  if (!fullAddress && typeof company.billing_address === 'string') {
-    fullAddress = company.billing_address + ', España'
-  }
-
-  // 3. Try custom_fields.direccion or similar
-  const customFields = company.custom_fields as Record<string, string> | null
-  if (!fullAddress && customFields) {
-    const direccion = customFields.direccion || customFields.address || customFields.ubicacion
-    if (direccion) {
-      fullAddress = direccion + ', España'
+    const result = await geocodeAddress(fullAddress)
+    if (result.data) {
+      geocoded = result.data
     }
   }
 
-  // 4. Last resort: try company name + España (for well-known companies)
-  if (!fullAddress || fullAddress.length < 10) {
-    return { success: false, error: `Sin dirección: ${company.name}. Edita la empresa y añade dirección completa.` }
+  // Attempt 4: Just street name + city + postal code (without province)
+  if (!geocoded && streetName && address.city) {
+    await new Promise(resolve => setTimeout(resolve, 1100))
+
+    const result = await geocodeAddress(`${streetName}, ${address.city}, ${address.postal_code || ''}, España`)
+    if (result.data) {
+      geocoded = result.data
+    }
   }
 
-  // Geocode - try full address first, then simplified versions
-  let geocoded = null
-  let geocodeError = null
+  // Attempt 5: City + postal code only (fallback to city center)
+  if (!geocoded && address.city) {
+    await new Promise(resolve => setTimeout(resolve, 1100))
 
-  // Try 1: Full address
-  const result1 = await geocodeAddress(fullAddress)
-  if (result1.data) {
-    geocoded = result1.data
-  } else {
-    // Try 2: Without street number details (just city + postal code + province)
-    const simplifiedAddress = [
-      address?.city,
-      address?.postal_code,
-      address?.province,
-      address?.country || 'España',
-    ].filter(Boolean).join(', ')
-
-    if (simplifiedAddress.length > 10) {
-      const result2 = await geocodeAddress(simplifiedAddress)
-      if (result2.data) {
-        geocoded = result2.data
-      } else {
-        // Try 3: Just city + province + country
-        const minimalAddress = [
-          address?.city,
-          address?.province,
-          'España',
-        ].filter(Boolean).join(', ')
-
-        const result3 = await geocodeAddress(minimalAddress)
-        if (result3.data) {
-          geocoded = result3.data
-        } else {
-          geocodeError = `No se encontró: ${fullAddress}`
-        }
-      }
-    } else {
-      geocodeError = result1.error
+    const result = await geocodeStructured({
+      city: address.city,
+      postalcode: address.postal_code,
+      state: address.province,
+      country: address.country || 'Spain',
+    })
+    if (result.data) {
+      geocoded = result.data
     }
   }
 
   if (!geocoded) {
-    return { success: false, error: geocodeError || 'No se pudo geocodificar' }
+    return {
+      success: false,
+      error: `No se encontró: ${normalizedStreet}, ${address.city}. Verifica que la dirección sea correcta.`,
+    }
   }
 
   // Update company with coordinates
@@ -231,6 +412,28 @@ export async function geocodeAllCompanies(workspaceId: string): Promise<{
   }
 
   return { processed, errors, total: companies.length, errorDetails }
+}
+
+// Force re-geocode a company (clear existing and geocode again)
+export async function reGeocodeCompany(companyId: string): Promise<{ success: boolean; error: string | null }> {
+  const supabase = await createClient()
+
+  // Clear existing coordinates first
+  const { error: clearError } = await supabase
+    .from('companies')
+    .update({
+      latitude: null,
+      longitude: null,
+      geocoded_at: null,
+    })
+    .eq('id', companyId)
+
+  if (clearError) {
+    return { success: false, error: clearError.message }
+  }
+
+  // Now geocode again
+  return geocodeCompany(companyId)
 }
 
 // Get companies with coordinates for map display

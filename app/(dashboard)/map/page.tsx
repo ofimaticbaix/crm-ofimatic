@@ -10,7 +10,7 @@ import {
   Phone, Mail, Clock, Loader2, RefreshCw, Filter
 } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getGeocodedCompanies, geocodeAllCompanies } from '@/lib/actions/geocoding'
+import { getGeocodedCompanies, geocodeAllCompanies, reGeocodeCompany } from '@/lib/actions/geocoding'
 import { checkIn, getActiveVisit } from '@/lib/actions/visits'
 
 // Dynamic import to avoid SSR issues with Leaflet
@@ -55,6 +55,7 @@ export default function MapPage() {
   const [showCheckInModal, setShowCheckInModal] = useState(false)
   const [checkInCompany, setCheckInCompany] = useState<Company | null>(null)
   const [checkInPurpose, setCheckInPurpose] = useState('')
+  const [reGeocoding, setReGeocoding] = useState(false)
 
   // Load companies
   useEffect(() => {
@@ -426,6 +427,37 @@ export default function MapPage() {
                   >
                     <Navigation className="h-4 w-4" />
                     Cómo llegar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full rounded-xl gap-2 text-gray-500"
+                    disabled={reGeocoding}
+                    onClick={async () => {
+                      setReGeocoding(true)
+                      const result = await reGeocodeCompany(selectedCompany.id)
+                      if (result.error) {
+                        alert(`Error: ${result.error}`)
+                      } else {
+                        // Reload companies
+                        const companiesRes = await getGeocodedCompanies(workspaceId!)
+                        if (companiesRes.data) {
+                          setCompanies(companiesRes.data as Company[])
+                          // Update selected company with new coords
+                          const updated = companiesRes.data.find(c => c.id === selectedCompany.id)
+                          if (updated) setSelectedCompany(updated as Company)
+                        }
+                        alert('Ubicación actualizada correctamente')
+                      }
+                      setReGeocoding(false)
+                    }}
+                  >
+                    {reGeocoding ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                    Re-geocodificar
                   </Button>
                 </div>
               </CardContent>
