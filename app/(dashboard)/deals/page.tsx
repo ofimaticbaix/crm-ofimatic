@@ -350,7 +350,7 @@ export default function DealsPage() {
                   <select value={editingDeal.company_id || ''} onChange={(e) => setEditingDeal({...editingDeal, company_id: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Seleccionar empresa</option>
-                    {companies.map((company: any) => (
+                    {(companies || []).map((company: any) => (
                       <option key={company.id} value={company.id}>{company.name}</option>
                     ))}
                   </select>
@@ -459,7 +459,7 @@ export default function DealsPage() {
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="">Seleccionar empresa</option>
-                    {companies.map((company: any) => (
+                    {(companies || []).map((company: any) => (
                       <option key={company.id} value={company.id}>
                         {company.name}
                       </option>
