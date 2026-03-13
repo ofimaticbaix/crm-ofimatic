@@ -1,29 +1,15 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { randomBytes, createHmac } from 'node:crypto'
 
-// Web Crypto API compatible functions (works in Edge runtime)
+// Node.js crypto functions (Server Actions run in Node.js runtime)
 function generateSecret(): string {
-  const array = new Uint8Array(32)
-  globalThis.crypto.getRandomValues(array)
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+  return randomBytes(32).toString('hex')
 }
 
-async function createHmacSignature(secret: string, payload: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const keyData = encoder.encode(secret)
-  const data = encoder.encode(payload)
-
-  const key = await globalThis.crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-
-  const signature = await globalThis.crypto.subtle.sign('HMAC', key, data)
-  return Array.from(new Uint8Array(signature), byte => byte.toString(16).padStart(2, '0')).join('')
+function createHmacSignature(secret: string, payload: string): string {
+  return createHmac('sha256', secret).update(payload).digest('hex')
 }
 
 // Available webhook events
@@ -210,7 +196,7 @@ async function sendWebhook(
     // Create signature
     const payloadString = JSON.stringify(payload)
     const signature = webhook.secret
-      ? await createHmacSignature(webhook.secret, payloadString)
+      ? createHmacSignature(webhook.secret, payloadString)
       : undefined
 
     // Send request
