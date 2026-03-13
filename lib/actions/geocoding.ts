@@ -84,10 +84,10 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
 export async function geocodeCompany(companyId: string): Promise<{ success: boolean; error: string | null }> {
   const supabase = await createClient()
 
-  // Get company address
+  // Get company address - include name for fallback geocoding
   const { data: company, error: fetchError } = await supabase
     .from('companies')
-    .select('id, billing_address')
+    .select('id, name, billing_address, custom_fields')
     .eq('id', companyId)
     .single()
 
@@ -95,24 +95,40 @@ export async function geocodeCompany(companyId: string): Promise<{ success: bool
     return { success: false, error: 'Empresa no encontrada' }
   }
 
+  // Try multiple sources for address
+  let fullAddress = ''
+
+  // 1. Try billing_address object
   const address = company.billing_address as Record<string, string> | null
-  if (!address) {
-    return { success: false, error: 'La empresa no tiene dirección' }
+  if (address) {
+    fullAddress = [
+      address.street,
+      address.city,
+      address.postal_code,
+      address.province,
+      address.country || 'España',
+    ]
+      .filter(Boolean)
+      .join(', ')
   }
 
-  // Build full address string
-  const fullAddress = [
-    address.street,
-    address.city,
-    address.postal_code,
-    address.province,
-    address.country || 'España',
-  ]
-    .filter(Boolean)
-    .join(', ')
+  // 2. If billing_address is a string (old format), use it directly
+  if (!fullAddress && typeof company.billing_address === 'string') {
+    fullAddress = company.billing_address + ', España'
+  }
 
+  // 3. Try custom_fields.direccion or similar
+  const customFields = company.custom_fields as Record<string, string> | null
+  if (!fullAddress && customFields) {
+    const direccion = customFields.direccion || customFields.address || customFields.ubicacion
+    if (direccion) {
+      fullAddress = direccion + ', España'
+    }
+  }
+
+  // 4. Last resort: try company name + España (for well-known companies)
   if (!fullAddress || fullAddress.length < 10) {
-    return { success: false, error: 'Dirección incompleta' }
+    return { success: false, error: `Sin dirección: ${company.name}. Edita la empresa y añade dirección completa.` }
   }
 
   // Geocode
@@ -140,23 +156,29 @@ export async function geocodeCompany(companyId: string): Promise<{ success: bool
 }
 
 // Batch geocode all companies without coordinates
-export async function geocodeAllCompanies(workspaceId: string): Promise<{ processed: number; errors: number }> {
+export async function geocodeAllCompanies(workspaceId: string): Promise<{
+  processed: number
+  errors: number
+  total: number
+  errorDetails: string[]
+}> {
   const supabase = await createClient()
 
   const { data: companies, error } = await supabase
     .from('companies')
-    .select('id')
+    .select('id, name')
     .eq('workspace_id', workspaceId)
     .is('latitude', null)
     .is('deleted_at', null)
     .limit(50) // Rate limiting: max 50 at a time
 
   if (error || !companies) {
-    return { processed: 0, errors: 1 }
+    return { processed: 0, errors: 1, total: 0, errorDetails: ['Error al obtener empresas'] }
   }
 
   let processed = 0
   let errors = 0
+  const errorDetails: string[] = []
 
   for (const company of companies) {
     const result = await geocodeCompany(company.id)
@@ -164,12 +186,13 @@ export async function geocodeAllCompanies(workspaceId: string): Promise<{ proces
       processed++
     } else {
       errors++
+      errorDetails.push(`${company.name}: ${result.error}`)
     }
     // Rate limiting: 1 request per second (Nominatim requirement)
     await new Promise(resolve => setTimeout(resolve, 1100))
   }
 
-  return { processed, errors }
+  return { processed, errors, total: companies.length, errorDetails }
 }
 
 // Get companies with coordinates for map display

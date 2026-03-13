@@ -132,7 +132,27 @@ export default function MapPage() {
       setCompanies(companiesRes.data as Company[])
     }
     setGeocoding(false)
-    alert(`Geocodificadas ${result.processed} empresas. Errores: ${result.errors}`)
+
+    // Build detailed message
+    let message = `Procesadas: ${result.total} empresas\n`
+    message += `✓ Geocodificadas: ${result.processed}\n`
+    message += `✗ Errores: ${result.errors}\n`
+
+    if (result.errorDetails.length > 0) {
+      message += `\nDetalles de errores:\n`
+      result.errorDetails.slice(0, 5).forEach(err => {
+        message += `• ${err}\n`
+      })
+      if (result.errorDetails.length > 5) {
+        message += `... y ${result.errorDetails.length - 5} más`
+      }
+    }
+
+    if (result.errors > 0) {
+      message += `\n\n💡 Tip: Ve a Empresas y añade la dirección completa (calle, ciudad, código postal) para poder geocodificar.`
+    }
+
+    alert(message)
   }
 
   // Handle check-in
