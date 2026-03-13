@@ -401,16 +401,16 @@ export default function CompaniesPage() {
                 </div>
 
                 <div className="space-y-1.5 mb-3">
-                  {getCustomField(company, 'email') && (
+                  {company.email && (
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <Mail className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                      <span className="truncate">{getCustomField(company, 'email')}</span>
+                      <span className="truncate">{company.email}</span>
                     </div>
                   )}
-                  {getCustomField(company, 'phone') && (
+                  {company.phone && (
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <Phone className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                      <span>{getCustomField(company, 'phone')}</span>
+                      <span>{company.phone}</span>
                     </div>
                   )}
                   {company.company_size && (
@@ -864,24 +864,24 @@ export default function CompaniesPage() {
                         Informacion de Contacto
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {getCustomField(selectedCompany, 'email') && (
+                        {selectedCompany.email && (
                           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
                             <Mail className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
                             <div>
                               <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
-                              <a href={`mailto:${getCustomField(selectedCompany, 'email')}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                {getCustomField(selectedCompany, 'email')}
+                              <a href={`mailto:${selectedCompany.email}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                {selectedCompany.email}
                               </a>
                             </div>
                           </div>
                         )}
-                        {getCustomField(selectedCompany, 'phone') && (
+                        {selectedCompany.phone && (
                           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
                             <Phone className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                             <div>
                               <p className="text-xs text-gray-500 dark:text-gray-400">Telefono</p>
-                              <a href={`tel:${getCustomField(selectedCompany, 'phone')}`} className="text-sm font-medium text-gray-900 dark:text-white hover:underline">
-                                {getCustomField(selectedCompany, 'phone')}
+                              <a href={`tel:${selectedCompany.phone}`} className="text-sm font-medium text-gray-900 dark:text-white hover:underline">
+                                {selectedCompany.phone}
                               </a>
                             </div>
                           </div>

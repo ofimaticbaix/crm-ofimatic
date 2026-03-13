@@ -171,8 +171,17 @@ export default function ContactsPage() {
       last_name: editingContact.last_name,
       email: editingContact.email,
       phone: editingContact.phone,
+      mobile: editingContact.mobile || undefined,
       job_title: editingContact.job_title,
+      department: editingContact.department || undefined,
+      linkedin_url: editingContact.linkedin_url || undefined,
       lifecycle_stage: editingContact.lifecycle_stage,
+      lead_source: editingContact.lead_source || undefined,
+      is_decision_maker: editingContact.is_decision_maker,
+      language: editingContact.language,
+      birthday: editingContact.birthday || undefined,
+      consent_marketing: editingContact.consent_marketing,
+      notes: editingContact.notes || undefined,
     })
     setUpdating(false)
     if (!result.error) {
@@ -746,57 +755,159 @@ export default function ContactsPage() {
         )
       })()}
 
-      {/* Modal Editar Contacto */}
+      {/* Modal Editar Contacto - Completo */}
       {editingContact && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700">
               <CardTitle className="text-gray-900 dark:text-white">Editar Contacto</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setEditingContact(null)} className="rounded-xl">
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
-                  <Input value={editingContact.first_name || ''} onChange={(e) => setEditingContact({...editingContact, first_name: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Juan" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Apellido *</label>
-                  <Input value={editingContact.last_name || ''} onChange={(e) => setEditingContact({...editingContact, last_name: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Pérez" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email *</label>
-                  <Input type="email" value={editingContact.email || ''} onChange={(e) => setEditingContact({...editingContact, email: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="juan@empresa.com" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono</label>
-                  <Input value={editingContact.phone || ''} onChange={(e) => setEditingContact({...editingContact, phone: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 600 000 000" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Cargo</label>
-                  <Input value={editingContact.job_title || ''} onChange={(e) => setEditingContact({...editingContact, job_title: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Director General" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Estado</label>
-                  <select value={editingContact.lifecycle_stage || 'lead'} onChange={(e) => setEditingContact({...editingContact, lifecycle_stage: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <option value="lead">Lead</option>
-                    <option value="prospect">Prospecto</option>
-                    <option value="customer">Cliente</option>
-                  </select>
+            <CardContent className="space-y-6 pt-6">
+              {/* DATOS PERSONALES */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <User className="h-4 w-4" /> Datos Personales
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
+                    <Input value={editingContact.first_name || ''} onChange={(e) => setEditingContact({...editingContact, first_name: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Juan" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Apellidos *</label>
+                    <Input value={editingContact.last_name || ''} onChange={(e) => setEditingContact({...editingContact, last_name: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Pérez García" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email *</label>
+                    <Input type="email" value={editingContact.email || ''} onChange={(e) => setEditingContact({...editingContact, email: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="juan@empresa.com" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono fijo</label>
+                    <Input value={editingContact.phone || ''} onChange={(e) => setEditingContact({...editingContact, phone: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 93 000 0000" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Móvil</label>
+                    <Input value={editingContact.mobile || ''} onChange={(e) => setEditingContact({...editingContact, mobile: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 600 000 000" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Cargo</label>
+                    <Input value={editingContact.job_title || ''} onChange={(e) => setEditingContact({...editingContact, job_title: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Director General" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Departamento</label>
+                    <Input value={editingContact.department || ''} onChange={(e) => setEditingContact({...editingContact, department: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Ventas" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">LinkedIn</label>
+                    <Input value={editingContact.linkedin_url || ''} onChange={(e) => setEditingContact({...editingContact, linkedin_url: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="linkedin.com/in/..." />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+
+              {/* CLASIFICACIÓN */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Building2 className="h-4 w-4" /> Clasificación
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Estado *</label>
+                    <select value={editingContact.lifecycle_stage || 'lead'} onChange={(e) => setEditingContact({...editingContact, lifecycle_stage: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="lead">Lead</option>
+                      <option value="prospect">Prospecto</option>
+                      <option value="customer">Cliente</option>
+                      <option value="evangelist">Evangelista</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Canal de origen</label>
+                    <select value={editingContact.lead_source || ''} onChange={(e) => setEditingContact({...editingContact, lead_source: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="">Seleccionar canal</option>
+                      <option value="web">Página Web</option>
+                      <option value="referido">Referido</option>
+                      <option value="email">Email Marketing</option>
+                      <option value="social">Redes Sociales</option>
+                      <option value="llamada">Llamada Fría</option>
+                      <option value="evento">Evento/Feria</option>
+                      <option value="publicidad">Publicidad Online</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3 pt-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editingContact.is_decision_maker || false}
+                        onChange={(e) => setEditingContact({...editingContact, is_decision_maker: e.target.checked})}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                        <CheckCircle className="h-4 w-4 text-green-500" /> Es decisor
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* PREFERENCIAS */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" /> Preferencias
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Idioma preferido</label>
+                    <select value={editingContact.language || 'es'} onChange={(e) => setEditingContact({...editingContact, language: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="es">Español</option>
+                      <option value="ca">Catalán</option>
+                      <option value="en">Inglés</option>
+                      <option value="fr">Francés</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Cumpleaños</label>
+                    <Input type="date" value={editingContact.birthday || ''} onChange={(e) => setEditingContact({...editingContact, birthday: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
+                  </div>
+                  <div className="flex items-center gap-3 pt-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editingContact.consent_marketing || false}
+                        onChange={(e) => setEditingContact({...editingContact, consent_marketing: e.target.checked})}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Acepta comunicaciones de marketing (RGPD)</span>
+                    </label>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Notas</label>
+                    <textarea value={editingContact.notes || ''} onChange={(e) => setEditingContact({...editingContact, notes: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white resize-none h-20"
+                      placeholder="Notas adicionales..." />
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTONES */}
+              <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                 <Button onClick={handleUpdateContact} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
                   disabled={!editingContact.first_name || !editingContact.last_name || !editingContact.email || updating}>
-                  {updating ? 'Guardando...' : 'Guardar Cambios'}
+                  {updating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando...</> : 'Guardar Cambios'}
                 </Button>
                 <Button variant="outline" onClick={() => setEditingContact(null)}
                   className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
