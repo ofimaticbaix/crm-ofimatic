@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { getCurrentWorkspace, getUserProfile } from '@/lib/actions/workspace'
+import { getWorkspaceWithProfile } from '@/lib/actions/workspace'
 
 interface PlanData {
   id: string
@@ -66,19 +66,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function load() {
       try {
-        const [wsResult, profileResult] = await Promise.all([
-          getCurrentWorkspace().catch(() => ({ data: null, error: 'Failed' })),
-          getUserProfile().catch(() => ({ data: null, error: 'Failed' })),
-        ])
+        // Single optimized call for workspace + profile
+        const result = await getWorkspaceWithProfile()
 
-        if (wsResult.data) {
-          const fullName = profileResult.data?.full_name || wsResult.data.userEmail?.split('@')[0] || 'Usuario'
+        if (result.data) {
+          const fullName = result.data.userName
           const parts = fullName.split(' ')
           const initials = parts.length >= 2
             ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
             : fullName.substring(0, 2).toUpperCase()
 
-          const workspace = wsResult.data.workspace
+          const workspace = result.data.workspace
           const trialEndsAt = workspace?.trial_ends_at || null
           let trialDaysLeft: number | null = null
           if (trialEndsAt) {
@@ -87,22 +85,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           }
 
           setData({
-            workspaceId: wsResult.data.workspaceId,
-            userId: wsResult.data.userId,
-            userEmail: wsResult.data.userEmail || '',
+            workspaceId: result.data.workspaceId,
+            userId: result.data.userId,
+            userEmail: result.data.userEmail || '',
             userName: fullName,
             userInitials: initials,
-            role: wsResult.data.role,
+            role: result.data.role,
             workspaceName: workspace?.name || 'Mi Empresa',
-            planId: wsResult.data.planId || 'starter',
-            plan: wsResult.data.plan || null,
+            planId: result.data.planId || 'starter',
+            plan: result.data.plan || null,
             subscriptionStatus: workspace?.subscription_status || 'trialing',
             trialEndsAt,
             trialDaysLeft,
             loading: false,
           })
         } else {
-          console.error('Workspace load error:', wsResult.error)
+          console.error('Workspace load error:', result.error)
           setData(prev => ({ ...prev, loading: false }))
         }
       } catch (err) {

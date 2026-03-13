@@ -2,8 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-// Obtener el workspace actual del usuario autenticado
-export async function getCurrentWorkspace() {
+// Obtener workspace + perfil en una sola llamada (optimizado)
+export async function getWorkspaceWithProfile() {
   try {
     const supabase = await createClient()
 
@@ -12,26 +12,36 @@ export async function getCurrentWorkspace() {
       return { data: null, error: 'No autenticado' }
     }
 
-    const { data: membership, error } = await supabase
-      .from('memberships')
-      .select('workspace_id, role, workspaces(id, name, slug, plan_id, subscription_status, subscription_tier, trial_ends_at, plans(*))')
-      .eq('user_id', user.id)
-      .limit(1)
-      .single()
+    // Ejecutar ambas queries en paralelo
+    const [membershipResult, profileResult] = await Promise.all([
+      supabase
+        .from('memberships')
+        .select('workspace_id, role, workspaces(id, name, slug, plan_id, subscription_status, subscription_tier, trial_ends_at, plans(*))')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single(),
+      supabase
+        .from('users')
+        .select('full_name, avatar_url')
+        .eq('id', user.id)
+        .single()
+    ])
 
-    if (error) {
-      console.error('getCurrentWorkspace error:', error.message)
-      return { data: null, error: error.message }
+    if (membershipResult.error) {
+      console.error('getWorkspaceWithProfile error:', membershipResult.error.message)
+      return { data: null, error: membershipResult.error.message }
     }
 
-    const workspace = membership.workspaces as any
+    const workspace = membershipResult.data.workspaces as any
+    const profile = profileResult.data
 
     return {
       data: {
         userId: user.id,
         userEmail: user.email,
-        workspaceId: membership.workspace_id as string,
-        role: membership.role as string,
+        userName: profile?.full_name || user.email?.split('@')[0] || 'Usuario',
+        workspaceId: membershipResult.data.workspace_id as string,
+        role: membershipResult.data.role as string,
         workspace,
         plan: workspace?.plans || null,
         planId: workspace?.plan_id || 'starter',
@@ -39,9 +49,14 @@ export async function getCurrentWorkspace() {
       error: null,
     }
   } catch (err) {
-    console.error('getCurrentWorkspace error:', err)
+    console.error('getWorkspaceWithProfile error:', err)
     return { data: null, error: String(err) }
   }
+}
+
+// Legacy: mantener por compatibilidad (llama a la nueva función)
+export async function getCurrentWorkspace() {
+  return getWorkspaceWithProfile()
 }
 
 // Actualizar nombre del workspace
@@ -59,7 +74,7 @@ export async function updateWorkspaceName(workspaceId: string, name: string) {
   }
 }
 
-// Obtener perfil del usuario
+// Legacy: mantener por compatibilidad
 export async function getUserProfile() {
   const supabase = await createClient()
 
