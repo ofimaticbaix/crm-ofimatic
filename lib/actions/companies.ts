@@ -10,10 +10,19 @@ export interface CompanyInput {
   annual_revenue?: number
   vat_number?: string
   billing_address?: Record<string, any>
+  shipping_address?: Record<string, any>
   linkedin_url?: string
   owner_id?: string
   health_score?: number
   custom_fields?: Record<string, any>
+  // New fields
+  account_type?: 'customer' | 'prospect' | 'lead' | 'partner' | 'supplier'
+  account_status?: 'active' | 'inactive' | 'negotiating' | 'churned'
+  description?: string
+  founded_year?: number
+  employees_exact?: number
+  phone?: string
+  email?: string
 }
 
 // Listar empresas del workspace (con conteo de contactos)

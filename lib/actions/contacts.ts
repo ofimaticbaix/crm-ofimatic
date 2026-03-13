@@ -9,10 +9,22 @@ export interface ContactInput {
   phone?: string
   mobile?: string
   job_title?: string
+  department?: string
   company_id?: string | null
+  linkedin_url?: string
+  twitter_handle?: string
+  website?: string
   lifecycle_stage?: string
   lead_source?: string
+  language?: string
   owner_id?: string
+  consent_marketing?: boolean
+  consent_communications?: boolean
+  // New fields
+  birthday?: string
+  gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say'
+  is_decision_maker?: boolean
+  notes?: string
   custom_fields?: Record<string, any>
 }
 

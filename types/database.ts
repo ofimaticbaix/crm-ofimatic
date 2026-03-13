@@ -51,6 +51,7 @@ export interface Database {
           phone: string | null
           mobile: string | null
           job_title: string | null
+          department: string | null
           company_id: string | null
           linkedin_url: string | null
           twitter_handle: string | null
@@ -64,6 +65,10 @@ export interface Database {
           consent_marketing: boolean
           consent_communications: boolean
           consent_date: string | null
+          birthday: string | null
+          gender: 'male' | 'female' | 'other' | 'prefer_not_to_say' | null
+          is_decision_maker: boolean
+          notes: string | null
           custom_fields: Json
           metadata: Json
           created_at: string
@@ -91,6 +96,13 @@ export interface Database {
           updated_by_id: string | null
           health_score: number | null
           lifetime_value: number
+          account_type: 'customer' | 'prospect' | 'lead' | 'partner' | 'supplier'
+          account_status: 'active' | 'inactive' | 'negotiating' | 'churned'
+          description: string | null
+          founded_year: number | null
+          employees_exact: number | null
+          phone: string | null
+          email: string | null
           custom_fields: Json
           metadata: Json
           created_at: string

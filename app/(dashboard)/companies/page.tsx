@@ -15,6 +15,7 @@ import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompanies, getCompany, createCompany, updateCompany, deleteCompany } from '@/lib/actions/companies'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities, createActivity } from '@/lib/actions/activities'
+import { getContacts, createContact } from '@/lib/actions/contacts'
 
 export default function CompaniesPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
@@ -38,8 +39,39 @@ export default function CompaniesPage() {
   const [updatingCompany, setUpdatingCompany] = useState(false)
   const [deletingCompany, setDeletingCompany] = useState(false)
   const [newCompany, setNewCompany] = useState({
-    name: '', industry: '', size: '', website: '', canal: '', email: '', phone: '', address: ''
+    // Basic data
+    name: '',
+    vat_number: '',
+    industry: '',
+    company_size: '',
+    website: '',
+    email: '',
+    phone: '',
+    linkedin_url: '',
+    description: '',
+    // Address
+    street: '',
+    city: '',
+    postal_code: '',
+    province: '',
+    country: 'España',
+    // Classification
+    account_type: 'prospect' as const,
+    account_status: 'active' as const,
+    canal: '',
+    annual_revenue: '',
   })
+
+  // Contact selector state
+  const [allContacts, setAllContacts] = useState<any[]>([])
+  const [selectedContacts, setSelectedContacts] = useState<any[]>([])
+  const [contactSearchQuery, setContactSearchQuery] = useState('')
+  const [showContactDropdown, setShowContactDropdown] = useState(false)
+  const [showInlineContactForm, setShowInlineContactForm] = useState(false)
+  const [newInlineContact, setNewInlineContact] = useState({
+    first_name: '', last_name: '', email: '', job_title: ''
+  })
+  const [creatingContact, setCreatingContact] = useState(false)
 
   // Real data state
   const [companies, setCompanies] = useState<any[]>([])
@@ -96,29 +128,108 @@ export default function CompaniesPage() {
     )
   })
 
+  // Load contacts when modal opens
+  useEffect(() => {
+    if (showNewCompanyModal && workspaceId) {
+      getContacts(workspaceId).then(res => {
+        if (res.data) setAllContacts(res.data)
+      })
+    }
+  }, [showNewCompanyModal, workspaceId])
+
+  // Filter contacts for dropdown
+  const filteredContactsForDropdown = allContacts.filter(c => {
+    if (!contactSearchQuery) return true
+    const fullName = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase()
+    return fullName.includes(contactSearchQuery.toLowerCase()) ||
+      c.email?.toLowerCase().includes(contactSearchQuery.toLowerCase())
+  }).filter(c => !selectedContacts.find(sc => sc.id === c.id)).slice(0, 5)
+
+  const handleAddExistingContact = (contact: any) => {
+    setSelectedContacts([...selectedContacts, contact])
+    setContactSearchQuery('')
+    setShowContactDropdown(false)
+  }
+
+  const handleRemoveContact = (contactId: string) => {
+    setSelectedContacts(selectedContacts.filter(c => c.id !== contactId))
+  }
+
+  const handleCreateInlineContact = async () => {
+    if (!workspaceId) return
+    setCreatingContact(true)
+    const result = await createContact(workspaceId, {
+      first_name: newInlineContact.first_name,
+      last_name: newInlineContact.last_name,
+      email: newInlineContact.email,
+      job_title: newInlineContact.job_title,
+    })
+    setCreatingContact(false)
+    if (result.error) {
+      alert(`Error: ${result.error}`)
+      return
+    }
+    if (result.data) {
+      setSelectedContacts([...selectedContacts, result.data])
+      setAllContacts([result.data, ...allContacts])
+    }
+    setShowInlineContactForm(false)
+    setNewInlineContact({ first_name: '', last_name: '', email: '', job_title: '' })
+  }
+
+  const resetNewCompanyForm = () => {
+    setNewCompany({
+      name: '', vat_number: '', industry: '', company_size: '', website: '', email: '', phone: '',
+      linkedin_url: '', description: '', street: '', city: '', postal_code: '', province: '',
+      country: 'España', account_type: 'prospect', account_status: 'active', canal: '', annual_revenue: '',
+    })
+    setSelectedContacts([])
+    setContactSearchQuery('')
+    setShowInlineContactForm(false)
+  }
+
   const handleCreateCompany = async () => {
     if (!workspaceId) return
     const result = await createCompany(workspaceId, {
       name: newCompany.name,
+      vat_number: newCompany.vat_number || undefined,
       industry: newCompany.industry || undefined,
-      company_size: newCompany.size || undefined,
+      company_size: newCompany.company_size || undefined,
       website: newCompany.website || undefined,
-      billing_address: newCompany.address ? { street: newCompany.address } : undefined,
+      email: newCompany.email || undefined,
+      phone: newCompany.phone || undefined,
+      linkedin_url: newCompany.linkedin_url || undefined,
+      description: newCompany.description || undefined,
+      account_type: newCompany.account_type,
+      account_status: newCompany.account_status,
+      annual_revenue: newCompany.annual_revenue ? parseFloat(newCompany.annual_revenue) : undefined,
+      billing_address: {
+        street: newCompany.street || undefined,
+        city: newCompany.city || undefined,
+        postal_code: newCompany.postal_code || undefined,
+        province: newCompany.province || undefined,
+        country: newCompany.country || undefined,
+      },
       custom_fields: {
         ...(newCompany.canal ? { canal: newCompany.canal } : {}),
-        ...(newCompany.email ? { email: newCompany.email } : {}),
-        ...(newCompany.phone ? { phone: newCompany.phone } : {}),
       },
     })
     if (result.error) {
       alert(`Error: ${result.error}`)
       return
     }
+    // Update contacts to associate with this company
+    if (result.data && selectedContacts.length > 0) {
+      const { updateContact } = await import('@/lib/actions/contacts')
+      for (const contact of selectedContacts) {
+        await updateContact(contact.id, { company_id: result.data.id })
+      }
+    }
     // Reload companies
     const companiesRes = await getCompanies(workspaceId)
     if (companiesRes.data) setCompanies(companiesRes.data)
     setShowNewCompanyModal(false)
-    setNewCompany({ name: '', industry: '', size: '', website: '', canal: '', email: '', phone: '', address: '' })
+    resetNewCompanyForm()
   }
 
   const handleCreateActivity = async () => {
@@ -348,86 +459,282 @@ export default function CompaniesPage() {
         </div>
       )}
 
-      {/* Modal Nueva Empresa */}
+      {/* Modal Nueva Empresa - Completo */}
       {showNewCompanyModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700">
               <CardTitle className="text-gray-900 dark:text-white">Nueva Empresa</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowNewCompanyModal(false)} className="rounded-xl">
+              <Button variant="ghost" size="sm" onClick={() => { setShowNewCompanyModal(false); resetNewCompanyForm() }} className="rounded-xl">
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre de la Empresa *</label>
-                  <Input value={newCompany.name} onChange={(e) => setNewCompany({...newCompany, name: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Acme Corporation" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Industria *</label>
-                  <Input value={newCompany.industry} onChange={(e) => setNewCompany({...newCompany, industry: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Tecnologia" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email</label>
-                  <Input value={newCompany.email} onChange={(e) => setNewCompany({...newCompany, email: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="info@empresa.com" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Telefono</label>
-                  <Input value={newCompany.phone} onChange={(e) => setNewCompany({...newCompany, phone: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 900 000 000" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tamaño (empleados) *</label>
-                  <select value={newCompany.size} onChange={(e) => setNewCompany({...newCompany, size: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <option value="">Seleccionar tamaño</option>
-                    <option value="1-10">1-10 empleados</option>
-                    <option value="11-50">11-50 empleados</option>
-                    <option value="51-200">51-200 empleados</option>
-                    <option value="201-500">201-500 empleados</option>
-                    <option value="501+">501+ empleados</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Sitio Web</label>
-                  <Input value={newCompany.website} onChange={(e) => setNewCompany({...newCompany, website: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="ejemplo.com" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Direccion</label>
-                  <Input value={newCompany.address} onChange={(e) => setNewCompany({...newCompany, address: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Calle, Ciudad" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Canal *</label>
-                  <select value={newCompany.canal} onChange={(e) => setNewCompany({...newCompany, canal: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <option value="">Seleccionar canal</option>
-                    <option value="web">Pagina Web</option>
-                    <option value="referido">Referido</option>
-                    <option value="email">Email Marketing</option>
-                    <option value="social">Redes Sociales</option>
-                    <option value="llamada">Llamada Fria</option>
-                    <option value="evento">Evento/Feria</option>
-                    <option value="publicidad">Publicidad Online</option>
-                    <option value="otro">Otro</option>
-                  </select>
+            <CardContent className="space-y-6 pt-6">
+
+              {/* SECCIÓN 1: DATOS BÁSICOS */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Building2 className="h-4 w-4" /> Datos Básicos
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre de la Empresa *</label>
+                    <Input value={newCompany.name} onChange={(e) => setNewCompany({...newCompany, name: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Acme Corporation" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">CIF/NIF</label>
+                    <Input value={newCompany.vat_number} onChange={(e) => setNewCompany({...newCompany, vat_number: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="B12345678" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Industria</label>
+                    <Input value={newCompany.industry} onChange={(e) => setNewCompany({...newCompany, industry: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Tecnología, Construcción, etc." />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tamaño (empleados)</label>
+                    <select value={newCompany.company_size} onChange={(e) => setNewCompany({...newCompany, company_size: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="">Seleccionar tamaño</option>
+                      <option value="1-10">1-10 empleados</option>
+                      <option value="11-50">11-50 empleados</option>
+                      <option value="51-200">51-200 empleados</option>
+                      <option value="201-500">201-500 empleados</option>
+                      <option value="501+">501+ empleados</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Sitio Web</label>
+                    <Input value={newCompany.website} onChange={(e) => setNewCompany({...newCompany, website: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="www.ejemplo.com" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email</label>
+                    <Input type="email" value={newCompany.email} onChange={(e) => setNewCompany({...newCompany, email: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="info@empresa.com" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono</label>
+                    <Input value={newCompany.phone} onChange={(e) => setNewCompany({...newCompany, phone: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 900 000 000" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">LinkedIn</label>
+                    <Input value={newCompany.linkedin_url} onChange={(e) => setNewCompany({...newCompany, linkedin_url: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="linkedin.com/company/..." />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Descripción</label>
+                    <textarea value={newCompany.description} onChange={(e) => setNewCompany({...newCompany, description: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white resize-none h-20"
+                      placeholder="Breve descripción de la empresa..." />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+
+              {/* SECCIÓN 2: DIRECCIÓN */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" /> Dirección
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Calle y número</label>
+                    <Input value={newCompany.street} onChange={(e) => setNewCompany({...newCompany, street: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Calle Mayor, 123" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Ciudad</label>
+                    <Input value={newCompany.city} onChange={(e) => setNewCompany({...newCompany, city: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Barcelona" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Código Postal</label>
+                    <Input value={newCompany.postal_code} onChange={(e) => setNewCompany({...newCompany, postal_code: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="08001" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Provincia</label>
+                    <Input value={newCompany.province} onChange={(e) => setNewCompany({...newCompany, province: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Barcelona" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">País</label>
+                    <Input value={newCompany.country} onChange={(e) => setNewCompany({...newCompany, country: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="España" />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 3: PERSONAS DE CONTACTO */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Users className="h-4 w-4" /> Personas de Contacto
+                </h3>
+
+                {/* Buscador de contactos existentes */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    value={contactSearchQuery}
+                    onChange={(e) => { setContactSearchQuery(e.target.value); setShowContactDropdown(true) }}
+                    onFocus={() => setShowContactDropdown(true)}
+                    className="pl-10 rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    placeholder="Buscar contacto existente..."
+                  />
+                  {showContactDropdown && contactSearchQuery && filteredContactsForDropdown.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto">
+                      {filteredContactsForDropdown.map(contact => (
+                        <button
+                          key={contact.id}
+                          onClick={() => handleAddExistingContact(contact)}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                            {(contact.first_name?.[0] || '')}{(contact.last_name?.[0] || '')}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{contact.first_name} {contact.last_name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{contact.email}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Contactos seleccionados */}
+                {selectedContacts.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Contactos asociados:</p>
+                    {selectedContacts.map(contact => (
+                      <div key={contact.id} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 border dark:border-gray-700">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-xs font-medium">
+                            {(contact.first_name?.[0] || '')}{(contact.last_name?.[0] || '')}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{contact.first_name} {contact.last_name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{contact.job_title || contact.email}</p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => handleRemoveContact(contact.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Botón y formulario inline para nuevo contacto */}
+                {!showInlineContactForm ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowInlineContactForm(true)} className="rounded-xl gap-2">
+                    <PlusCircle className="h-4 w-4" /> Añadir nuevo contacto
+                  </Button>
+                ) : (
+                  <div className="p-4 rounded-xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        value={newInlineContact.first_name}
+                        onChange={(e) => setNewInlineContact({...newInlineContact, first_name: e.target.value})}
+                        className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white text-sm"
+                        placeholder="Nombre *"
+                      />
+                      <Input
+                        value={newInlineContact.last_name}
+                        onChange={(e) => setNewInlineContact({...newInlineContact, last_name: e.target.value})}
+                        className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white text-sm"
+                        placeholder="Apellidos *"
+                      />
+                      <Input
+                        type="email"
+                        value={newInlineContact.email}
+                        onChange={(e) => setNewInlineContact({...newInlineContact, email: e.target.value})}
+                        className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white text-sm"
+                        placeholder="Email *"
+                      />
+                      <Input
+                        value={newInlineContact.job_title}
+                        onChange={(e) => setNewInlineContact({...newInlineContact, job_title: e.target.value})}
+                        className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white text-sm"
+                        placeholder="Cargo"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => { setShowInlineContactForm(false); setNewInlineContact({ first_name: '', last_name: '', email: '', job_title: '' }) }} className="rounded-xl text-sm">
+                        Cancelar
+                      </Button>
+                      <Button size="sm" onClick={handleCreateInlineContact} disabled={!newInlineContact.first_name || !newInlineContact.last_name || !newInlineContact.email || creatingContact} className="rounded-xl text-sm">
+                        {creatingContact ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Añadir'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECCIÓN 4: CLASIFICACIÓN */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" /> Clasificación
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tipo de Cuenta *</label>
+                    <select value={newCompany.account_type} onChange={(e) => setNewCompany({...newCompany, account_type: e.target.value as any})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="lead">Lead</option>
+                      <option value="prospect">Prospecto</option>
+                      <option value="customer">Cliente</option>
+                      <option value="partner">Partner</option>
+                      <option value="supplier">Proveedor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Estado *</label>
+                    <select value={newCompany.account_status} onChange={(e) => setNewCompany({...newCompany, account_status: e.target.value as any})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="active">Activo</option>
+                      <option value="inactive">Inactivo</option>
+                      <option value="negotiating">En negociación</option>
+                      <option value="churned">Perdido</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Canal de Captación</label>
+                    <select value={newCompany.canal} onChange={(e) => setNewCompany({...newCompany, canal: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="">Seleccionar canal</option>
+                      <option value="web">Página Web</option>
+                      <option value="referido">Referido</option>
+                      <option value="email">Email Marketing</option>
+                      <option value="social">Redes Sociales</option>
+                      <option value="llamada">Llamada Fría</option>
+                      <option value="evento">Evento/Feria</option>
+                      <option value="publicidad">Publicidad Online</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Facturación Anual (€)</label>
+                    <Input type="number" value={newCompany.annual_revenue} onChange={(e) => setNewCompany({...newCompany, annual_revenue: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="100000" />
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTONES DE ACCIÓN */}
+              <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                 <Button onClick={handleCreateCompany} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
-                  disabled={!newCompany.name || !newCompany.industry || !newCompany.size || !newCompany.canal}>
+                  disabled={!newCompany.name}>
                   Crear Empresa
                 </Button>
-                <Button variant="outline" onClick={() => setShowNewCompanyModal(false)}
+                <Button variant="outline" onClick={() => { setShowNewCompanyModal(false); resetNewCompanyForm() }}
                   className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
                   Cancelar
                 </Button>
               </div>
+
             </CardContent>
           </Card>
         </div>
