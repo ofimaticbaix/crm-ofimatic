@@ -2,7 +2,25 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { randomBytes, createHash } from 'crypto'
+
+// Generate random hex string (replacement for crypto.randomBytes)
+function generateRandomHex(length: number): string {
+  const chars = '0123456789abcdef'
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
+// SHA-256 hash using Web Crypto API (compatible with all runtimes)
+async function sha256Hash(input: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(input)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 // Generar una nueva API key para el workspace
 export async function createApiKey(workspaceId: string, name: string) {
@@ -15,8 +33,8 @@ export async function createApiKey(workspaceId: string, name: string) {
     }
 
     // Generar la key
-    const rawKey = `crm_${randomBytes(32).toString('hex')}`
-    const keyHash = createHash('sha256').update(rawKey).digest('hex')
+    const rawKey = `crm_${generateRandomHex(64)}`
+    const keyHash = await sha256Hash(rawKey)
     const keyPrefix = rawKey.slice(4, 12) // Primeros 8 chars despues de "crm_"
 
     const { data, error } = await supabase
@@ -94,7 +112,7 @@ export async function validateApiKey(apiKey: string) {
       return { data: null, error: 'API key invalida' }
     }
 
-    const keyHash = createHash('sha256').update(apiKey).digest('hex')
+    const keyHash = await sha256Hash(apiKey)
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
