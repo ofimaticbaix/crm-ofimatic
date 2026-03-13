@@ -200,15 +200,14 @@ export async function testWebhook(webhookId: string) {
 // Simple implementation without crypto signatures
 // ============================================
 
-export async function triggerWebhooks(
-  workspaceId: string,
-  event: WebhookEvent,
-  data: Record<string, unknown>
+export function triggerWebhooks(
+  _workspaceId: string,
+  _event: WebhookEvent,
+  _data: Record<string, unknown>
 ) {
-  // Fire and forget - don't block the main operation
-  sendWebhooksAsync(workspaceId, event, data).catch(() => {
-    // Silently ignore errors - webhooks should not break main operations
-  })
+  // TEMPORARILY DISABLED - debugging deployment issue
+  // Will re-enable once base app is working
+  return
 }
 
 async function sendWebhooksAsync(
