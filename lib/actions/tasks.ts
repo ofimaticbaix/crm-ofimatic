@@ -106,22 +106,6 @@ export async function updateTask(id: string, input: Partial<TaskInput>) {
   if (input.deal_id !== undefined) updateData.deal_id = input.deal_id
   if (input.metadata !== undefined) updateData.metadata = input.metadata
 
-  console.log('=== UPDATE TASK START ===')
-  console.log('Task ID:', id)
-  console.log('Update data:', JSON.stringify(updateData, null, 2))
-
-  // First, verify the task exists and get current values
-  const { data: currentTask, error: fetchError } = await supabase
-    .from('activities')
-    .select('id, due_date, scheduled_at, subject')
-    .eq('id', id)
-    .single()
-
-  console.log('Current task before update:', currentTask)
-  if (fetchError) {
-    console.error('Error fetching current task:', fetchError)
-  }
-
   const { data, error } = await supabase
     .from('activities')
     .update(updateData)
@@ -131,12 +115,9 @@ export async function updateTask(id: string, input: Partial<TaskInput>) {
 
   if (error) {
     console.error('updateTask error:', error)
-    console.error('Error details:', JSON.stringify(error, null, 2))
     return { data: null, error: `Error actualizando tarea: ${error.message}` }
   }
 
-  console.log('Task AFTER update:', { due_date: data?.due_date, scheduled_at: data?.scheduled_at, subject: data?.subject })
-  console.log('=== UPDATE TASK END ===')
   return { data, error: null }
 }
 

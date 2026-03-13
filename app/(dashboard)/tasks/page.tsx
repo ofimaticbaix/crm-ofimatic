@@ -187,28 +187,18 @@ export default function TasksPage() {
       },
     }
 
-    console.log('=== FRONTEND UPDATE TASK ===')
-    console.log('Task ID:', editingTask.id)
-    console.log('Original due_date:', editingTask.due_date)
-    console.log('New due_date:', editForm.dueDate)
-    console.log('Full payload:', JSON.stringify(updatePayload, null, 2))
-
     try {
       const result = await updateTask(editingTask.id, updatePayload)
-      console.log('Server response:', result)
 
       if (result.error) {
         console.error('Error updating task:', result.error)
-        alert('Error: ' + result.error)
       } else {
-        console.log('Update successful, new data:', result.data)
         setEditingTask(null)
         refetchTasks()
         invalidateCache('clients-status')
       }
     } catch (err) {
-      console.error('Exception updating task:', err)
-      alert('Exception: ' + String(err))
+      console.error('Error updating task:', err)
     } finally {
       setUpdating(false)
     }
