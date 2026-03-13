@@ -201,13 +201,17 @@ export async function testWebhook(webhookId: string) {
 // ============================================
 
 export async function triggerWebhooks(
-  _workspaceId: string,
-  _event: WebhookEvent,
-  _data: Record<string, unknown>
+  workspaceId: string,
+  event: WebhookEvent,
+  data: Record<string, unknown>
 ) {
-  // TEMPORARILY DISABLED - debugging deployment issue
-  // Will re-enable once base app is working
-  return
+  // Fire and forget - use setTimeout to completely detach from current execution
+  // This prevents any issues with the Server Action context
+  setTimeout(() => {
+    sendWebhooksAsync(workspaceId, event, data).catch(() => {
+      // Silently ignore - webhooks should never break main operations
+    })
+  }, 0)
 }
 
 async function sendWebhooksAsync(

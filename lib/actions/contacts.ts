@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-// import { triggerWebhooks } from './webhooks'
+import { triggerWebhooks } from './webhooks'
 
 export interface ContactInput {
   first_name?: string
@@ -102,10 +102,17 @@ export async function createContact(workspaceId: string, input: ContactInput) {
     return { data: null, error: `Error creando contacto: ${error.message} (code: ${error.code})` }
   }
 
-  // Webhooks disabled temporarily
-  // if (data) {
-  //   triggerWebhooks(workspaceId, 'contact.created', {...})
-  // }
+  // Trigger webhooks
+  if (data) {
+    triggerWebhooks(workspaceId, 'contact.created', {
+      id: data.id,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      email: data.email,
+      company_id: data.company_id,
+      lifecycle_stage: data.lifecycle_stage,
+    })
+  }
 
   return { data, error: null }
 }
@@ -124,7 +131,16 @@ export async function updateContact(id: string, input: Partial<ContactInput>) {
 
   if (error) return { data: null, error: error.message }
 
-  // Webhooks disabled temporarily
+  // Trigger webhooks
+  if (data) {
+    triggerWebhooks(data.workspace_id, 'contact.updated', {
+      id: data.id,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      email: data.email,
+      changes: Object.keys(input),
+    })
+  }
 
   return { data, error: null }
 }
@@ -147,7 +163,15 @@ export async function deleteContact(id: string) {
 
   if (error) return { error: error.message }
 
-  // Webhooks disabled temporarily
+  // Trigger webhooks
+  if (contact) {
+    triggerWebhooks(contact.workspace_id, 'contact.deleted', {
+      id: contact.id,
+      first_name: contact.first_name,
+      last_name: contact.last_name,
+      email: contact.email,
+    })
+  }
 
   return { error: null }
 }
