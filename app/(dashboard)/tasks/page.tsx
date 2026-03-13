@@ -172,31 +172,43 @@ export default function TasksPage() {
   const handleUpdateTask = async () => {
     if (!editingTask || !editForm.title || !editForm.dueDate) return
     setUpdating(true)
-    console.log('handleUpdateTask - editForm:', editForm)
+
+    const updatePayload = {
+      subject: editForm.title,
+      type: editForm.type as any,
+      due_date: editForm.dueDate,
+      scheduled_at: editForm.dueTime ? `${editForm.dueDate}T${editForm.dueTime}:00` : null,
+      contact_id: editForm.contactId || null,
+      company_id: editForm.companyId || null,
+      deal_id: editForm.dealId || null,
+      metadata: {
+        priority: editForm.priority,
+        dueTime: editForm.dueTime || null,
+      },
+    }
+
+    console.log('=== FRONTEND UPDATE TASK ===')
+    console.log('Task ID:', editingTask.id)
+    console.log('Original due_date:', editingTask.due_date)
+    console.log('New due_date:', editForm.dueDate)
+    console.log('Full payload:', JSON.stringify(updatePayload, null, 2))
+
     try {
-      const result = await updateTask(editingTask.id, {
-        subject: editForm.title,
-        type: editForm.type as any,
-        due_date: editForm.dueDate,
-        scheduled_at: editForm.dueTime ? `${editForm.dueDate}T${editForm.dueTime}:00` : null,
-        contact_id: editForm.contactId || null,
-        company_id: editForm.companyId || null,
-        deal_id: editForm.dealId || null,
-        metadata: {
-          priority: editForm.priority,
-          dueTime: editForm.dueTime || null,
-        },
-      })
+      const result = await updateTask(editingTask.id, updatePayload)
+      console.log('Server response:', result)
+
       if (result.error) {
         console.error('Error updating task:', result.error)
+        alert('Error: ' + result.error)
       } else {
+        console.log('Update successful, new data:', result.data)
         setEditingTask(null)
         refetchTasks()
-        // Invalidate clients cache since task activities affect client status
         invalidateCache('clients-status')
       }
     } catch (err) {
-      console.error('Error updating task:', err)
+      console.error('Exception updating task:', err)
+      alert('Exception: ' + String(err))
     } finally {
       setUpdating(false)
     }
