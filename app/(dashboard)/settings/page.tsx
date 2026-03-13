@@ -524,7 +524,7 @@ export default function SettingsPage() {
 
           {/* Plan Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {plans.map((p) => {
+            {(plans || []).map((p) => {
               const isCurrent = p.id === planId
               const isPopular = p.id === 'pro'
               const price = billingPeriod === 'monthly' ? p.price_monthly : Math.round(p.price_yearly / 12 * 100) / 100
