@@ -261,7 +261,7 @@ async function sendWebhooksAsync(
             payload,
             status_code: response.status,
             duration_ms: durationMs,
-          }).then(() => {}).catch(() => {})
+          }).then(() => {}, () => {})
 
         } catch {
           // Ignore individual webhook errors
