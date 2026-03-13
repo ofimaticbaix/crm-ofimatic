@@ -7,7 +7,7 @@ import { getCompanies } from '@/lib/actions/companies'
 import { getDeals } from '@/lib/actions/deals'
 import { getTasks } from '@/lib/actions/tasks'
 import { getActivities } from '@/lib/actions/activities'
-import { getDashboardMetrics } from '@/lib/actions/metrics'
+import { getFullMetrics } from '@/lib/actions/metrics'
 import { getPlans, getWorkspaceUsage } from '@/lib/actions/plans'
 import { getWorkspaceMembers, getWorkspaceInvitations } from '@/lib/actions/invitations'
 
@@ -37,7 +37,7 @@ const routePrefetchers: Record<string, (workspaceId: string) => Promise<void>> =
   },
   '/dashboard': async (workspaceId) => {
     await Promise.all([
-      prefetchData(`dashboard-metrics-${workspaceId}`, () => getDashboardMetrics(workspaceId)),
+      prefetchData(`dashboard-metrics-${workspaceId}`, () => getFullMetrics(workspaceId)),
       prefetchData(`tasks-${workspaceId}`, () => getTasks(workspaceId), 60000),
       prefetchData(`deals-${workspaceId}`, () => getDeals(workspaceId), 60000),
     ])
@@ -63,7 +63,7 @@ const routePrefetchers: Record<string, (workspaceId: string) => Promise<void>> =
     await prefetchData(`clients-status-${workspaceId}`, () => getCompanies(workspaceId))
   },
   '/metrics': async (workspaceId) => {
-    await prefetchData(`dashboard-metrics-${workspaceId}`, () => getDashboardMetrics(workspaceId))
+    await prefetchData(`dashboard-metrics-${workspaceId}`, () => getFullMetrics(workspaceId))
   },
 }
 
