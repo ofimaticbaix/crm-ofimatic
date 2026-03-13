@@ -1,15 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import crypto from 'crypto'
+import { headers } from 'next/headers'
 
-// Node.js crypto functions (Server Actions run in Node.js runtime)
+// Generate a random secret using UUID (works in all runtimes)
 function generateSecret(): string {
-  return crypto.randomBytes(32).toString('hex')
-}
-
-function createHmacSignature(secret: string, payload: string): string {
-  return crypto.createHmac('sha256', secret).update(payload).digest('hex')
+  // Generate 2 UUIDs and combine them for a 64-char hex string
+  const uuid1 = globalThis.crypto.randomUUID().replace(/-/g, '')
+  const uuid2 = globalThis.crypto.randomUUID().replace(/-/g, '')
+  return uuid1 + uuid2
 }
 
 // Available webhook events
@@ -144,14 +143,14 @@ export async function getWebhookLogs(webhookId: string, limit = 20) {
   return { data, error: null }
 }
 
-// Test webhook (send test payload)
+// Test webhook - calls the internal API route
 export async function testWebhook(webhookId: string) {
   const supabase = await createClient()
 
   // Get webhook
   const { data: webhook, error } = await supabase
     .from('webhooks')
-    .select('*')
+    .select('workspace_id, name')
     .eq('id', webhookId)
     .single()
 
@@ -159,101 +158,42 @@ export async function testWebhook(webhookId: string) {
     return { success: false, error: 'Webhook no encontrado' }
   }
 
-  // Send test payload
-  const testPayload = {
-    event: 'test',
-    timestamp: new Date().toISOString(),
-    data: {
-      message: 'Este es un evento de prueba desde tu CRM',
-      webhook_id: webhookId,
-      webhook_name: webhook.name,
-    },
-  }
-
-  const result = await sendWebhook(webhook, 'test', testPayload)
-  return result
-}
-
-// ============================================
-// INTERNAL: Trigger webhook for an event
-// ============================================
-
-interface WebhookPayload {
-  event: string
-  timestamp: string
-  data: Record<string, unknown>
-}
-
-async function sendWebhook(
-  webhook: { id: string; url: string; secret: string | null },
-  eventType: string,
-  payload: WebhookPayload
-): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient()
-  const startTime = Date.now()
-
+  // Call internal API to trigger the test
   try {
-    // Create signature
-    const payloadString = JSON.stringify(payload)
-    const signature = webhook.secret
-      ? createHmacSignature(webhook.secret, payloadString)
-      : undefined
+    const headersList = await headers()
+    const host = headersList.get('host') || 'localhost:3000'
+    const protocol = host.includes('localhost') ? 'http' : 'https'
 
-    // Send request
-    const response = await fetch(webhook.url, {
+    const response = await fetch(`${protocol}://${host}/api/internal/trigger-webhook`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Webhook-Event': eventType,
-        'X-Webhook-Timestamp': payload.timestamp,
-        ...(signature && { 'X-Webhook-Signature': `sha256=${signature}` }),
+        'x-internal-secret': process.env.INTERNAL_API_SECRET || '',
       },
-      body: payloadString,
+      body: JSON.stringify({
+        workspaceId: webhook.workspace_id,
+        event: 'test',
+        data: {
+          message: 'Este es un evento de prueba desde tu CRM',
+          webhook_id: webhookId,
+          webhook_name: webhook.name,
+        },
+      }),
     })
 
-    const durationMs = Date.now() - startTime
-    const responseBody = await response.text().catch(() => '')
-
-    // Log the delivery
-    await supabase.from('webhook_logs').insert({
-      webhook_id: webhook.id,
-      event_type: eventType,
-      payload,
-      status_code: response.status,
-      response_body: responseBody.slice(0, 1000), // Limit response size
-      duration_ms: durationMs,
-    })
-
-    // Update webhook status
-    await supabase
-      .from('webhooks')
-      .update({
-        last_triggered_at: new Date().toISOString(),
-        last_status_code: response.status,
-        failure_count: response.ok ? 0 : supabase.rpc('increment_failure_count', { webhook_id: webhook.id }),
-      })
-      .eq('id', webhook.id)
-
-    return { success: response.ok }
-  } catch (error) {
-    const durationMs = Date.now() - startTime
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-
-    // Log the failure
-    await supabase.from('webhook_logs').insert({
-      webhook_id: webhook.id,
-      event_type: eventType,
-      payload,
-      error_message: errorMessage,
-      duration_ms: durationMs,
-    })
-
-    return { success: false, error: errorMessage }
+    if (response.ok) {
+      return { success: true }
+    } else {
+      return { success: false, error: 'Error enviando webhook' }
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
   }
 }
 
 // ============================================
 // PUBLIC: Trigger webhooks for events
+// Uses internal API route for crypto compatibility
 // ============================================
 
 export async function triggerWebhooks(
@@ -261,28 +201,30 @@ export async function triggerWebhooks(
   event: WebhookEvent,
   data: Record<string, unknown>
 ) {
-  const supabase = await createClient()
-
-  // Get active webhooks that listen to this event
-  const { data: webhooks, error } = await supabase
-    .from('webhooks')
-    .select('id, url, secret')
-    .eq('workspace_id', workspaceId)
-    .eq('is_active', true)
-    .contains('events', [event])
-
-  if (error || !webhooks || webhooks.length === 0) {
-    return // No webhooks to trigger
-  }
-
-  const payload: WebhookPayload = {
-    event,
-    timestamp: new Date().toISOString(),
-    data,
-  }
-
   // Fire and forget - don't block the main operation
-  Promise.all(
-    webhooks.map(webhook => sendWebhook(webhook, event, payload))
-  ).catch(console.error)
+  // Use internal API route which runs in Node.js runtime
+  triggerWebhooksAsync(workspaceId, event, data).catch(console.error)
+}
+
+async function triggerWebhooksAsync(
+  workspaceId: string,
+  event: WebhookEvent,
+  data: Record<string, unknown>
+) {
+  try {
+    const headersList = await headers()
+    const host = headersList.get('host') || 'localhost:3000'
+    const protocol = host.includes('localhost') ? 'http' : 'https'
+
+    await fetch(`${protocol}://${host}/api/internal/trigger-webhook`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-secret': process.env.INTERNAL_API_SECRET || '',
+      },
+      body: JSON.stringify({ workspaceId, event, data }),
+    })
+  } catch (err) {
+    console.error('Failed to trigger webhooks:', err)
+  }
 }

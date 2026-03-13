@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { geocodeCompany } from './geocoding'
-// import { triggerWebhooks } from './webhooks' // Temporarily disabled
+import { triggerWebhooks } from './webhooks'
 
 export interface CompanyInput {
   name: string
@@ -106,10 +106,17 @@ export async function createCompany(workspaceId: string, input: CompanyInput) {
     geocodeCompany(data.id).catch(console.error)
   }
 
-  // Trigger webhooks - temporarily disabled
-  // if (data) {
-  //   triggerWebhooks(workspaceId, 'company.created', { ... })
-  // }
+  // Trigger webhooks
+  if (data) {
+    triggerWebhooks(workspaceId, 'company.created', {
+      id: data.id,
+      name: data.name,
+      industry: data.industry,
+      account_type: data.account_type,
+      email: data.email,
+      phone: data.phone,
+    })
+  }
 
   return { data, error: null }
 }
@@ -133,10 +140,16 @@ export async function updateCompany(id: string, input: Partial<CompanyInput>) {
     geocodeCompany(id).catch(console.error)
   }
 
-  // Trigger webhooks - temporarily disabled
-  // if (data) {
-  //   triggerWebhooks(data.workspace_id, 'company.updated', { ... })
-  // }
+  // Trigger webhooks
+  if (data) {
+    triggerWebhooks(data.workspace_id, 'company.updated', {
+      id: data.id,
+      name: data.name,
+      industry: data.industry,
+      account_type: data.account_type,
+      changes: Object.keys(input),
+    })
+  }
 
   return { data, error: null }
 }
@@ -159,10 +172,13 @@ export async function deleteCompany(id: string) {
 
   if (error) return { error: error.message }
 
-  // Trigger webhooks - temporarily disabled
-  // if (company) {
-  //   triggerWebhooks(company.workspace_id, 'company.deleted', { ... })
-  // }
+  // Trigger webhooks
+  if (company) {
+    triggerWebhooks(company.workspace_id, 'company.deleted', {
+      id: company.id,
+      name: company.name,
+    })
+  }
 
   return { error: null }
 }

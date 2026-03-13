@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-// import { triggerWebhooks } from './webhooks' // Temporarily disabled
+import { triggerWebhooks } from './webhooks'
 
 // Tasks are stored in the activities table with specific types
 // Mock type mapping: llamada→call, tarea→task, reunion→meeting, visita→meeting, email→email
@@ -84,10 +84,18 @@ export async function createTask(workspaceId: string, input: TaskInput) {
     return { data: null, error: `Error creando tarea: ${error.message} (code: ${error.code})` }
   }
 
-  // Trigger webhooks - temporarily disabled
-  // if (data) {
-  //   triggerWebhooks(workspaceId, 'task.created', { ... })
-  // }
+  // Trigger webhooks
+  if (data) {
+    triggerWebhooks(workspaceId, 'task.created', {
+      id: data.id,
+      subject: data.subject,
+      type: data.type,
+      due_date: data.due_date,
+      contact_id: data.contact_id,
+      company_id: data.company_id,
+      deal_id: data.deal_id,
+    })
+  }
 
   return { data, error: null }
 }
@@ -118,10 +126,15 @@ export async function toggleTaskComplete(id: string) {
 
   if (error) return { data: null, error: error.message }
 
-  // Trigger webhook when task is completed - temporarily disabled
-  // if (data && newCompleted) {
-  //   triggerWebhooks(data.workspace_id, 'task.completed', { ... })
-  // }
+  // Trigger webhook when task is completed
+  if (data && newCompleted) {
+    triggerWebhooks(data.workspace_id, 'task.completed', {
+      id: data.id,
+      subject: data.subject,
+      type: data.type,
+      completed_at: data.completed_at,
+    })
+  }
 
   return { data, error: null }
 }
