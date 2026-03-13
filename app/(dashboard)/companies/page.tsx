@@ -262,18 +262,28 @@ export default function CompaniesPage() {
     setUpdatingCompany(true)
     const result = await updateCompany(editingCompany.id, {
       name: editingCompany.name,
+      vat_number: editingCompany.vat_number || undefined,
       industry: editingCompany.industry || undefined,
-      website: editingCompany.website || undefined,
       company_size: editingCompany.company_size || undefined,
+      website: editingCompany.website || undefined,
+      email: editingCompany.email || undefined,
+      phone: editingCompany.phone || undefined,
+      linkedin_url: editingCompany.linkedin_url || undefined,
+      description: editingCompany.description || undefined,
       billing_address: editingCompany.billing_address || undefined,
+      account_type: editingCompany.account_type || undefined,
+      account_status: editingCompany.account_status || undefined,
+      annual_revenue: editingCompany.annual_revenue || undefined,
       custom_fields: editingCompany.custom_fields || undefined,
     })
     setUpdatingCompany(false)
-    if (!result.error) {
-      setEditingCompany(null)
-      const companiesRes = await getCompanies(workspaceId)
-      if (companiesRes.data) setCompanies(companiesRes.data)
+    if (result.error) {
+      alert(`Error: ${result.error}`)
+      return
     }
+    setEditingCompany(null)
+    const companiesRes = await getCompanies(workspaceId)
+    if (companiesRes.data) setCompanies(companiesRes.data)
   }
 
   const handleDeleteCompany = async (id: string) => {
@@ -1169,62 +1179,150 @@ export default function CompaniesPage() {
         )
       })()}
 
-      {/* Modal Editar Empresa */}
+      {/* Modal Editar Empresa - Completo */}
       {editingCompany && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700">
               <CardTitle className="text-gray-900 dark:text-white">Editar Empresa</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setEditingCompany(null)} className="rounded-xl">
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
-                  <Input value={editingCompany.name || ''} onChange={(e) => setEditingCompany({...editingCompany, name: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Acme Corporation" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Industria</label>
-                  <Input value={editingCompany.industry || ''} onChange={(e) => setEditingCompany({...editingCompany, industry: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Tecnologia" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email</label>
-                  <Input value={editingCompany.custom_fields?.email || ''} onChange={(e) => setEditingCompany({...editingCompany, custom_fields: {...(editingCompany.custom_fields || {}), email: e.target.value}})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="info@empresa.com" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono</label>
-                  <Input value={editingCompany.custom_fields?.phone || ''} onChange={(e) => setEditingCompany({...editingCompany, custom_fields: {...(editingCompany.custom_fields || {}), phone: e.target.value}})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 900 000 000" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tamaño (empleados)</label>
-                  <select value={editingCompany.company_size || ''} onChange={(e) => setEditingCompany({...editingCompany, company_size: e.target.value})}
-                    className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <option value="">Seleccionar tamaño</option>
-                    <option value="1-10">1-10 empleados</option>
-                    <option value="11-50">11-50 empleados</option>
-                    <option value="51-200">51-200 empleados</option>
-                    <option value="201-500">201-500 empleados</option>
-                    <option value="501+">501+ empleados</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Sitio Web</label>
-                  <Input value={editingCompany.website || ''} onChange={(e) => setEditingCompany({...editingCompany, website: e.target.value})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="ejemplo.com" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Dirección</label>
-                  <Input value={editingCompany.billing_address?.street || ''} onChange={(e) => setEditingCompany({...editingCompany, billing_address: {...(editingCompany.billing_address || {}), street: e.target.value}})}
-                    className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Calle, Ciudad" />
+            <CardContent className="space-y-6 pt-6">
+              {/* DATOS BÁSICOS */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Building2 className="h-4 w-4" /> Datos Básicos
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
+                    <Input value={editingCompany.name || ''} onChange={(e) => setEditingCompany({...editingCompany, name: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Acme Corporation" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">CIF/NIF</label>
+                    <Input value={editingCompany.vat_number || ''} onChange={(e) => setEditingCompany({...editingCompany, vat_number: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="B12345678" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Industria</label>
+                    <Input value={editingCompany.industry || ''} onChange={(e) => setEditingCompany({...editingCompany, industry: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Tecnología" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tamaño (empleados)</label>
+                    <select value={editingCompany.company_size || ''} onChange={(e) => setEditingCompany({...editingCompany, company_size: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="">Seleccionar</option>
+                      <option value="1-10">1-10</option>
+                      <option value="11-50">11-50</option>
+                      <option value="51-200">51-200</option>
+                      <option value="201-500">201-500</option>
+                      <option value="501+">501+</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Sitio Web</label>
+                    <Input value={editingCompany.website || ''} onChange={(e) => setEditingCompany({...editingCompany, website: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="www.ejemplo.com" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email</label>
+                    <Input type="email" value={editingCompany.email || ''} onChange={(e) => setEditingCompany({...editingCompany, email: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="info@empresa.com" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono</label>
+                    <Input value={editingCompany.phone || ''} onChange={(e) => setEditingCompany({...editingCompany, phone: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 900 000 000" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">LinkedIn</label>
+                    <Input value={editingCompany.linkedin_url || ''} onChange={(e) => setEditingCompany({...editingCompany, linkedin_url: e.target.value})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="linkedin.com/company/..." />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Descripción</label>
+                    <textarea value={editingCompany.description || ''} onChange={(e) => setEditingCompany({...editingCompany, description: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white resize-none h-20"
+                      placeholder="Descripción de la empresa..." />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+
+              {/* DIRECCIÓN */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" /> Dirección (necesaria para mapa)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Calle y número</label>
+                    <Input value={editingCompany.billing_address?.street || ''} onChange={(e) => setEditingCompany({...editingCompany, billing_address: {...(editingCompany.billing_address || {}), street: e.target.value}})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Carrer de la Indústria, 45" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Ciudad</label>
+                    <Input value={editingCompany.billing_address?.city || ''} onChange={(e) => setEditingCompany({...editingCompany, billing_address: {...(editingCompany.billing_address || {}), city: e.target.value}})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Barcelona" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Código Postal</label>
+                    <Input value={editingCompany.billing_address?.postal_code || ''} onChange={(e) => setEditingCompany({...editingCompany, billing_address: {...(editingCompany.billing_address || {}), postal_code: e.target.value}})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="08001" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Provincia</label>
+                    <Input value={editingCompany.billing_address?.province || ''} onChange={(e) => setEditingCompany({...editingCompany, billing_address: {...(editingCompany.billing_address || {}), province: e.target.value}})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Barcelona" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">País</label>
+                    <Input value={editingCompany.billing_address?.country || 'España'} onChange={(e) => setEditingCompany({...editingCompany, billing_address: {...(editingCompany.billing_address || {}), country: e.target.value}})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="España" />
+                  </div>
+                </div>
+              </div>
+
+              {/* CLASIFICACIÓN */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" /> Clasificación
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Tipo de Cuenta</label>
+                    <select value={editingCompany.account_type || 'prospect'} onChange={(e) => setEditingCompany({...editingCompany, account_type: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="lead">Lead</option>
+                      <option value="prospect">Prospecto</option>
+                      <option value="customer">Cliente</option>
+                      <option value="partner">Partner</option>
+                      <option value="supplier">Proveedor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Estado</label>
+                    <select value={editingCompany.account_status || 'active'} onChange={(e) => setEditingCompany({...editingCompany, account_status: e.target.value})}
+                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                      <option value="active">Activo</option>
+                      <option value="inactive">Inactivo</option>
+                      <option value="negotiating">En negociación</option>
+                      <option value="churned">Perdido</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Facturación Anual (€)</label>
+                    <Input type="number" value={editingCompany.annual_revenue || ''} onChange={(e) => setEditingCompany({...editingCompany, annual_revenue: e.target.value ? parseFloat(e.target.value) : undefined})}
+                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="100000" />
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTONES */}
+              <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
                 <Button onClick={handleUpdateCompany} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
                   disabled={!editingCompany.name || updatingCompany}>
                   {updatingCompany ? 'Guardando...' : 'Guardar Cambios'}
