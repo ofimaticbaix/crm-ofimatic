@@ -131,10 +131,48 @@ export async function geocodeCompany(companyId: string): Promise<{ success: bool
     return { success: false, error: `Sin dirección: ${company.name}. Edita la empresa y añade dirección completa.` }
   }
 
-  // Geocode
-  const { data: geocoded, error: geocodeError } = await geocodeAddress(fullAddress)
+  // Geocode - try full address first, then simplified versions
+  let geocoded = null
+  let geocodeError = null
 
-  if (geocodeError || !geocoded) {
+  // Try 1: Full address
+  const result1 = await geocodeAddress(fullAddress)
+  if (result1.data) {
+    geocoded = result1.data
+  } else {
+    // Try 2: Without street number details (just city + postal code + province)
+    const simplifiedAddress = [
+      address?.city,
+      address?.postal_code,
+      address?.province,
+      address?.country || 'España',
+    ].filter(Boolean).join(', ')
+
+    if (simplifiedAddress.length > 10) {
+      const result2 = await geocodeAddress(simplifiedAddress)
+      if (result2.data) {
+        geocoded = result2.data
+      } else {
+        // Try 3: Just city + province + country
+        const minimalAddress = [
+          address?.city,
+          address?.province,
+          'España',
+        ].filter(Boolean).join(', ')
+
+        const result3 = await geocodeAddress(minimalAddress)
+        if (result3.data) {
+          geocoded = result3.data
+        } else {
+          geocodeError = `No se encontró: ${fullAddress}`
+        }
+      }
+    } else {
+      geocodeError = result1.error
+    }
+  }
+
+  if (!geocoded) {
     return { success: false, error: geocodeError || 'No se pudo geocodificar' }
   }
 
