@@ -201,17 +201,14 @@ export async function testWebhook(webhookId: string) {
 // ============================================
 
 export async function triggerWebhooks(
-  workspaceId: string,
-  event: WebhookEvent,
-  data: Record<string, unknown>
+  _workspaceId: string,
+  _event: WebhookEvent,
+  _data: Record<string, unknown>
 ) {
-  // Fire and forget - use setTimeout to completely detach from current execution
-  // This prevents any issues with the Server Action context
-  setTimeout(() => {
-    sendWebhooksAsync(workspaceId, event, data).catch(() => {
-      // Silently ignore - webhooks should never break main operations
-    })
-  }, 0)
+  // NOTE: Webhook triggering is disabled in Server Actions due to Vercel runtime limitations.
+  // Webhooks will be implemented via Supabase Database Triggers or Edge Functions instead.
+  // The UI for managing webhooks and the test functionality still work.
+  return
 }
 
 async function sendWebhooksAsync(
