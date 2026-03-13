@@ -1,14 +1,15 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { headers } from 'next/headers'
 
-// Generate a random secret using UUID (works in all runtimes)
+// Generate a simple random secret (no crypto dependency)
 function generateSecret(): string {
-  // Generate 2 UUIDs and combine them for a 64-char hex string
-  const uuid1 = globalThis.crypto.randomUUID().replace(/-/g, '')
-  const uuid2 = globalThis.crypto.randomUUID().replace(/-/g, '')
-  return uuid1 + uuid2
+  const chars = 'abcdef0123456789'
+  let result = ''
+  for (let i = 0; i < 64; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
 }
 
 // Available webhook events
@@ -143,14 +144,14 @@ export async function getWebhookLogs(webhookId: string, limit = 20) {
   return { data, error: null }
 }
 
-// Test webhook - calls the internal API route
+// Test webhook - sends directly without crypto signature
 export async function testWebhook(webhookId: string) {
   const supabase = await createClient()
 
   // Get webhook
   const { data: webhook, error } = await supabase
     .from('webhooks')
-    .select('workspace_id, name')
+    .select('*')
     .eq('id', webhookId)
     .single()
 
@@ -158,34 +159,37 @@ export async function testWebhook(webhookId: string) {
     return { success: false, error: 'Webhook no encontrado' }
   }
 
-  // Call internal API to trigger the test
-  try {
-    const headersList = await headers()
-    const host = headersList.get('host') || 'localhost:3000'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
+  const testPayload = {
+    event: 'test',
+    timestamp: new Date().toISOString(),
+    data: {
+      message: 'Este es un evento de prueba desde tu CRM',
+      webhook_id: webhookId,
+      webhook_name: webhook.name,
+    },
+  }
 
-    const response = await fetch(`${protocol}://${host}/api/internal/trigger-webhook`, {
+  try {
+    const response = await fetch(webhook.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-internal-secret': process.env.INTERNAL_API_SECRET || '',
+        'X-Webhook-Event': 'test',
+        'X-Webhook-Timestamp': testPayload.timestamp,
       },
-      body: JSON.stringify({
-        workspaceId: webhook.workspace_id,
-        event: 'test',
-        data: {
-          message: 'Este es un evento de prueba desde tu CRM',
-          webhook_id: webhookId,
-          webhook_name: webhook.name,
-        },
-      }),
+      body: JSON.stringify(testPayload),
     })
 
-    if (response.ok) {
-      return { success: true }
-    } else {
-      return { success: false, error: 'Error enviando webhook' }
-    }
+    // Log the test
+    await supabase.from('webhook_logs').insert({
+      webhook_id: webhookId,
+      event_type: 'test',
+      payload: testPayload,
+      status_code: response.status,
+      duration_ms: 0,
+    })
+
+    return { success: response.ok }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
   }
@@ -193,7 +197,7 @@ export async function testWebhook(webhookId: string) {
 
 // ============================================
 // PUBLIC: Trigger webhooks for events
-// Uses internal API route for crypto compatibility
+// Simple implementation without crypto signatures
 // ============================================
 
 export async function triggerWebhooks(
@@ -202,29 +206,69 @@ export async function triggerWebhooks(
   data: Record<string, unknown>
 ) {
   // Fire and forget - don't block the main operation
-  // Use internal API route which runs in Node.js runtime
-  triggerWebhooksAsync(workspaceId, event, data).catch(console.error)
+  sendWebhooksAsync(workspaceId, event, data).catch(() => {
+    // Silently ignore errors - webhooks should not break main operations
+  })
 }
 
-async function triggerWebhooksAsync(
+async function sendWebhooksAsync(
   workspaceId: string,
   event: WebhookEvent,
   data: Record<string, unknown>
 ) {
   try {
-    const headersList = await headers()
-    const host = headersList.get('host') || 'localhost:3000'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
+    const supabase = await createClient()
 
-    await fetch(`${protocol}://${host}/api/internal/trigger-webhook`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-internal-secret': process.env.INTERNAL_API_SECRET || '',
-      },
-      body: JSON.stringify({ workspaceId, event, data }),
-    })
-  } catch (err) {
-    console.error('Failed to trigger webhooks:', err)
+    // Get active webhooks that listen to this event
+    const { data: webhooks, error } = await supabase
+      .from('webhooks')
+      .select('id, url, secret')
+      .eq('workspace_id', workspaceId)
+      .eq('is_active', true)
+      .contains('events', [event])
+
+    if (error || !webhooks || webhooks.length === 0) {
+      return // No webhooks to trigger
+    }
+
+    const payload = {
+      event,
+      timestamp: new Date().toISOString(),
+      data,
+    }
+
+    // Send to all webhooks in parallel
+    await Promise.allSettled(
+      webhooks.map(async (webhook) => {
+        try {
+          const startTime = Date.now()
+          const response = await fetch(webhook.url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Webhook-Event': event,
+              'X-Webhook-Timestamp': payload.timestamp,
+            },
+            body: JSON.stringify(payload),
+          })
+
+          const durationMs = Date.now() - startTime
+
+          // Log the delivery (fire and forget)
+          supabase.from('webhook_logs').insert({
+            webhook_id: webhook.id,
+            event_type: event,
+            payload,
+            status_code: response.status,
+            duration_ms: durationMs,
+          }).then(() => {}).catch(() => {})
+
+        } catch {
+          // Ignore individual webhook errors
+        }
+      })
+    )
+  } catch {
+    // Silently fail - don't break main operations
   }
 }
