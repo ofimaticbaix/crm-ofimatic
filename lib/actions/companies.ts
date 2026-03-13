@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { geocodeCompany } from './geocoding'
 
 export interface CompanyInput {
   name: string
@@ -98,6 +99,12 @@ export async function createCompany(workspaceId: string, input: CompanyInput) {
     console.error('createCompany insert error:', error)
     return { data: null, error: `Error creando empresa: ${error.message} (code: ${error.code})` }
   }
+
+  // Geocode company address asynchronously (fire and forget)
+  if (data && input.billing_address) {
+    geocodeCompany(data.id).catch(console.error)
+  }
+
   return { data, error: null }
 }
 
@@ -114,6 +121,12 @@ export async function updateCompany(id: string, input: Partial<CompanyInput>) {
     .single()
 
   if (error) return { data: null, error: error.message }
+
+  // Re-geocode if address was updated
+  if (data && input.billing_address) {
+    geocodeCompany(id).catch(console.error)
+  }
+
   return { data, error: null }
 }
 

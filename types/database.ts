@@ -103,6 +103,10 @@ export interface Database {
           employees_exact: number | null
           phone: string | null
           email: string | null
+          // Geolocation fields
+          latitude: number | null
+          longitude: number | null
+          geocoded_at: string | null
           custom_fields: Json
           metadata: Json
           created_at: string
@@ -197,6 +201,52 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['activities']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['activities']['Insert']>
+      }
+      visits: {
+        Row: {
+          id: string
+          workspace_id: string
+          company_id: string
+          contact_id: string | null
+          deal_id: string | null
+          user_id: string
+          check_in_at: string
+          check_in_latitude: number | null
+          check_in_longitude: number | null
+          check_in_address: string | null
+          check_out_at: string | null
+          check_out_latitude: number | null
+          check_out_longitude: number | null
+          visit_type: 'presencial' | 'videollamada' | 'llamada'
+          purpose: string | null
+          notes: string | null
+          outcome: 'positive' | 'neutral' | 'negative' | 'no_show' | null
+          next_steps: string | null
+          duration_minutes: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['visits']['Row'], 'id' | 'created_at' | 'updated_at' | 'duration_minutes'>
+        Update: Partial<Database['public']['Tables']['visits']['Insert']>
+      }
+      routes: {
+        Row: {
+          id: string
+          workspace_id: string
+          user_id: string
+          name: string
+          planned_date: string
+          status: 'planned' | 'in_progress' | 'completed' | 'cancelled'
+          company_ids: string[]
+          total_distance_km: number | null
+          estimated_duration_minutes: number | null
+          route_polyline: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['routes']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['routes']['Insert']>
       }
     }
   }
