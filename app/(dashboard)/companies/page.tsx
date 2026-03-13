@@ -16,6 +16,7 @@ import { getCompanies, getCompany, createCompany, updateCompany, deleteCompany }
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities, createActivity } from '@/lib/actions/activities'
 import { getContacts, createContact } from '@/lib/actions/contacts'
+import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 export default function CompaniesPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
@@ -73,32 +74,29 @@ export default function CompaniesPage() {
   })
   const [creatingContact, setCreatingContact] = useState(false)
 
-  // Real data state
-  const [companies, setCompanies] = useState<any[]>([])
-  const [allDeals, setAllDeals] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  // Cached data - loads instantly if cached
+  const { data: companies, loading: companiesLoading, refetch: refetchCompanies } = useCachedData<any[]>(
+    `companies-${workspaceId}`,
+    () => getCompanies(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
+
+  const { data: allDeals } = useCachedData<any[]>(
+    `deals-${workspaceId}`,
+    () => getDeals(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
+
+  // Overall loading - only block if no cached data
+  const loading = wsLoading || (companiesLoading && !companies)
 
   // Detail modal data
   const [detailContacts, setDetailContacts] = useState<any[]>([])
   const [detailDeals, setDetailDeals] = useState<any[]>([])
   const [detailActivities, setDetailActivities] = useState<any[]>([])
   const [detailLoading, setDetailLoading] = useState(false)
-
-  // Load companies and deals
-  useEffect(() => {
-    if (!workspaceId) return
-    const loadData = async () => {
-      setLoading(true)
-      const [companiesRes, dealsRes] = await Promise.all([
-        getCompanies(workspaceId),
-        getDeals(workspaceId),
-      ])
-      if (companiesRes.data) setCompanies(companiesRes.data)
-      if (dealsRes.data) setAllDeals(dealsRes.data)
-      setLoading(false)
-    }
-    loadData()
-  }, [workspaceId])
 
   // Load detail data when a company is selected
   useEffect(() => {
@@ -114,13 +112,13 @@ export default function CompaniesPage() {
       if (activitiesRes.data) setDetailActivities(activitiesRes.data)
       else setDetailActivities([])
       // Filter deals by company_id
-      setDetailDeals(allDeals.filter((d: any) => d.company_id === selectedCompany.id))
+      setDetailDeals((allDeals || []).filter((d: any) => d.company_id === selectedCompany.id))
       setDetailLoading(false)
     }
     loadDetail()
   }, [selectedCompany, workspaceId, allDeals])
 
-  const filteredCompanies = companies.filter(company => {
+  const filteredCompanies = (companies || []).filter(company => {
     const query = searchQuery.toLowerCase()
     return (
       company.name?.toLowerCase().includes(query) ||
@@ -226,8 +224,7 @@ export default function CompaniesPage() {
       }
     }
     // Reload companies
-    const companiesRes = await getCompanies(workspaceId)
-    if (companiesRes.data) setCompanies(companiesRes.data)
+    refetchCompanies()
     setShowNewCompanyModal(false)
     resetNewCompanyForm()
   }
@@ -282,8 +279,7 @@ export default function CompaniesPage() {
       return
     }
     setEditingCompany(null)
-    const companiesRes = await getCompanies(workspaceId)
-    if (companiesRes.data) setCompanies(companiesRes.data)
+    refetchCompanies()
   }
 
   const handleDeleteCompany = async (id: string) => {
@@ -293,8 +289,7 @@ export default function CompaniesPage() {
     if (!result.error) {
       setDeletingCompanyId(null)
       setSelectedCompany(null)
-      const companiesRes = await getCompanies(workspaceId)
-      if (companiesRes.data) setCompanies(companiesRes.data)
+      refetchCompanies()
     }
   }
 

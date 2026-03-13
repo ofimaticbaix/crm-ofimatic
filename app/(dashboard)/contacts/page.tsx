@@ -12,16 +12,13 @@ import { getContacts, createContact, updateContact, deleteContact } from '@/lib/
 import { getCompanies } from '@/lib/actions/companies'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
+import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 export default function ContactsPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewContactModal, setShowNewContactModal] = useState(false)
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
-  const [contacts, setContacts] = useState<any[]>([])
-  const [allDeals, setAllDeals] = useState<any[]>([])
-  const [allActivities, setAllActivities] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [editingContact, setEditingContact] = useState<any>(null)
   const [deletingContactId, setDeletingContactId] = useState<string | null>(null)
@@ -49,29 +46,37 @@ export default function ContactsPage() {
     notes: '',
   })
 
+  // Cached data - loads instantly if cached
+  const { data: contacts, loading: contactsLoading, refetch: refetchContacts } = useCachedData<any[]>(
+    `contacts-${workspaceId}`,
+    () => getContacts(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
+
+  const { data: allDeals } = useCachedData<any[]>(
+    `deals-${workspaceId}`,
+    () => getDeals(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
+
+  const { data: allActivities } = useCachedData<any[]>(
+    `activities-${workspaceId}`,
+    () => getActivities(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
+
   // Companies for dropdown
   const [allCompanies, setAllCompanies] = useState<any[]>([])
   const [companySearchQuery, setCompanySearchQuery] = useState('')
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false)
 
-  useEffect(() => {
-    if (!workspaceId) return
-    async function loadData() {
-      setLoading(true)
-      const [contactsRes, dealsRes, activitiesRes] = await Promise.all([
-        getContacts(workspaceId),
-        getDeals(workspaceId),
-        getActivities(workspaceId),
-      ])
-      if (contactsRes.data) setContacts(contactsRes.data)
-      if (dealsRes.data) setAllDeals(dealsRes.data)
-      if (activitiesRes.data) setAllActivities(activitiesRes.data)
-      setLoading(false)
-    }
-    loadData()
-  }, [workspaceId])
+  // Overall loading - only block if no cached data
+  const loading = wsLoading || (contactsLoading && !contacts)
 
-  const filteredContacts = contacts.filter(contact => {
+  const filteredContacts = (contacts || []).filter(contact => {
     const query = searchQuery.toLowerCase()
     return (
       contact.first_name?.toLowerCase().includes(query) ||
@@ -81,7 +86,7 @@ export default function ContactsPage() {
     )
   })
 
-  const selectedContact = selectedContactId ? contacts.find(c => c.id === selectedContactId) : null
+  const selectedContact = selectedContactId ? (contacts || []).find(c => c.id === selectedContactId) : null
 
   const getLifecycleColor = (lifecycle: string) => {
     switch (lifecycle) {
@@ -153,9 +158,7 @@ export default function ContactsPage() {
     if (!result.error) {
       setShowNewContactModal(false)
       resetNewContactForm()
-      // Refresh contacts
-      const res = await getContacts(workspaceId)
-      if (res.data) setContacts(res.data)
+      refetchContacts()
     } else {
       alert(`Error: ${result.error}`)
     }
@@ -174,8 +177,7 @@ export default function ContactsPage() {
     setUpdating(false)
     if (!result.error) {
       setEditingContact(null)
-      const res = await getContacts(workspaceId)
-      if (res.data) setContacts(res.data)
+      refetchContacts()
     }
   }
 
@@ -186,14 +188,13 @@ export default function ContactsPage() {
     if (!result.error) {
       setDeletingContactId(null)
       setSelectedContactId(null)
-      const res = await getContacts(workspaceId)
-      if (res.data) setContacts(res.data)
+      refetchContacts()
     }
   }
 
   // Get activities and deals for a specific contact
-  const getContactActivities = (contactId: string) => allActivities.filter(a => a.contact_id === contactId)
-  const getContactDeals = (contactId: string) => allDeals.filter(d =>
+  const getContactActivities = (contactId: string) => (allActivities || []).filter(a => a.contact_id === contactId)
+  const getContactDeals = (contactId: string) => (allDeals || []).filter(d =>
     d.deal_contacts?.some((dc: any) => dc.contact_id === contactId)
   )
 

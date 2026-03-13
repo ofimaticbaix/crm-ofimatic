@@ -11,6 +11,7 @@ import { WebhooksSection } from '@/components/settings/webhooks-section'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { updateWorkspaceName } from '@/lib/actions/workspace'
 import { getPlans, getWorkspaceUsage } from '@/lib/actions/plans'
+import { useCachedData, invalidateCache } from '@/lib/hooks/use-cached-data'
 
 import type { Plan } from '@/lib/actions/plans'
 import { getWorkspaceMembers, getWorkspaceInvitations, inviteUser, revokeInvitation, removeMember } from '@/lib/actions/invitations'
@@ -18,16 +19,40 @@ import type { Member, Invitation } from '@/lib/actions/invitations'
 
 export default function SettingsPage() {
   const { workspaceId, workspaceName, userName, userEmail, userId, role, planId, plan, loading: wsLoading } = useWorkspace()
-  const [plans, setPlans] = useState<Plan[]>([])
-  const [usage, setUsage] = useState<any>(null)
   const [companyName, setCompanyName] = useState('')
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
 
-  // Team state
-  const [members, setMembers] = useState<Member[]>([])
-  const [invitations, setInvitations] = useState<Invitation[]>([])
+  // Cached data - loads instantly if cached, fetches in background
+  const { data: plans, loading: plansLoading } = useCachedData<Plan[]>(
+    'settings-plans',
+    () => getPlans(),
+    [],
+    { staleTime: 60000 } // Plans rarely change, cache for 1 min
+  )
+
+  const { data: usage, loading: usageLoading } = useCachedData(
+    `settings-usage-${workspaceId}`,
+    () => getWorkspaceUsage(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
+
+  const { data: members, loading: membersLoading, refetch: refetchMembers } = useCachedData<Member[]>(
+    `settings-members-${workspaceId}`,
+    () => getWorkspaceMembers(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
+
+  const { data: invitations, loading: invitationsLoading, refetch: refetchInvitations } = useCachedData<Invitation[]>(
+    `settings-invitations-${workspaceId}`,
+    () => getWorkspaceInvitations(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
+
+  // Team modal state
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member')
@@ -36,25 +61,14 @@ export default function SettingsPage() {
   const [inviteSuccess, setInviteSuccess] = useState<{ token: string; email: string } | null>(null)
   const [copiedToken, setCopiedToken] = useState(false)
 
-  useEffect(() => {
-    if (wsLoading || !workspaceId) return
-    setCompanyName(workspaceName)
+  // Overall loading state - only block if NO cached data
+  const loading = wsLoading || (plansLoading && !plans) || (membersLoading && !members)
 
-    async function loadData() {
-      const [plansRes, usageRes, membersRes, invitationsRes] = await Promise.all([
-        getPlans(),
-        getWorkspaceUsage(workspaceId),
-        getWorkspaceMembers(workspaceId),
-        getWorkspaceInvitations(workspaceId),
-      ])
-      if (plansRes.data) setPlans(plansRes.data)
-      if (usageRes.data) setUsage(usageRes.data)
-      if (membersRes.data) setMembers(membersRes.data)
-      if (invitationsRes.data) setInvitations(invitationsRes.data)
-      setLoading(false)
+  useEffect(() => {
+    if (!wsLoading && workspaceName) {
+      setCompanyName(workspaceName)
     }
-    loadData()
-  }, [workspaceId, wsLoading, workspaceName])
+  }, [wsLoading, workspaceName])
 
   const handleSaveWorkspace = async () => {
     if (!workspaceId || !companyName.trim()) return
@@ -140,7 +154,7 @@ export default function SettingsPage() {
           </CardTitle>
           <CardDescription className="text-gray-500 dark:text-gray-400">
             Gestiona usuarios y permisos
-            {plan?.max_users && (
+            {plan?.max_users && members && (
               <span className="ml-2 text-xs">({members.length} de {plan.max_users} usuarios)</span>
             )}
           </CardDescription>
@@ -148,7 +162,7 @@ export default function SettingsPage() {
         <CardContent>
           <div className="space-y-3">
             {/* Members list */}
-            {members.map((member) => {
+            {(members || []).map((member) => {
               const isOwner = member.role === 'owner'
               const isCurrentUser = member.userId === userId
               const canRemove = ['owner', 'admin'].includes(role) && !isOwner && !isCurrentUser
@@ -189,7 +203,7 @@ export default function SettingsPage() {
                           if (result.error) {
                             alert(result.error)
                           } else {
-                            setMembers(prev => prev.filter(m => m.userId !== member.userId))
+                            refetchMembers()
                           }
                         }}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
@@ -204,7 +218,7 @@ export default function SettingsPage() {
             })}
 
             {/* Pending invitations */}
-            {invitations.length > 0 && (
+            {invitations && invitations.length > 0 && (
               <>
                 <div className="pt-2">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
@@ -237,7 +251,7 @@ export default function SettingsPage() {
                             if (result.error) {
                               alert(result.error)
                             } else {
-                              setInvitations(prev => prev.filter(i => i.id !== inv.id))
+                              refetchInvitations()
                             }
                           }}
                           className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
@@ -258,7 +272,7 @@ export default function SettingsPage() {
                 variant="outline"
                 className="w-full rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
                 onClick={() => {
-                  if (plan?.max_users && members.length >= plan.max_users) {
+                  if (plan?.max_users && (members?.length || 0) >= plan.max_users) {
                     alert(`Has alcanzado el limite de ${plan.max_users} usuarios en tu plan. Mejora tu plan para invitar mas usuarios.`)
                   } else {
                     setInviteEmail('')
@@ -406,8 +420,7 @@ export default function SettingsPage() {
                       } else if (result.data) {
                         setInviteSuccess({ token: result.data.token, email: result.data.email })
                         // Refresh invitations list
-                        const invRes = await getWorkspaceInvitations(workspaceId)
-                        if (invRes.data) setInvitations(invRes.data)
+                        refetchInvitations()
                       }
                     }}
                   >
