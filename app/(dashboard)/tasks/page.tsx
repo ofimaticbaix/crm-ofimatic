@@ -11,7 +11,7 @@ import { getTasks, createTask, updateTask, deleteTask, toggleTaskComplete } from
 import { getCompanies } from '@/lib/actions/companies'
 import { getContacts } from '@/lib/actions/contacts'
 import { getDeals } from '@/lib/actions/deals'
-import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { useCachedData, invalidateCache } from '@/lib/hooks/use-cached-data'
 
 // Type for a task (activity) from Supabase with relations
 interface Task {
@@ -116,13 +116,13 @@ export default function TasksPage() {
         subject: newTask.title,
         type: newTask.type as any,
         due_date: newTask.dueDate,
-        scheduled_at: newTask.dueTime ? `${newTask.dueDate}T${newTask.dueTime}:00` : undefined,
+        scheduled_at: newTask.dueTime ? `${newTask.dueDate}T${newTask.dueTime}:00` : null,
         contact_id: newTask.contactId || null,
         company_id: newTask.companyId || null,
         deal_id: newTask.dealId || null,
         metadata: {
           priority: newTask.priority,
-          dueTime: newTask.dueTime || undefined,
+          dueTime: newTask.dueTime || null,
         },
       })
       if (result.error) {
@@ -131,6 +131,8 @@ export default function TasksPage() {
         setShowNewTaskModal(false)
         setNewTask({ title: '', dueDate: '', dueTime: '', priority: 'medium', dealId: '', companyId: '', contactId: '', type: 'task' })
         refetchTasks()
+        // Invalidate clients cache since task activities affect client status
+        invalidateCache('clients-status')
       }
     } catch (err) {
       console.error('Error creating task:', err)
@@ -144,6 +146,8 @@ export default function TasksPage() {
       const result = await toggleTaskComplete(taskId)
       if (!result.error) {
         refetchTasks()
+        // Invalidate clients cache since task activities affect client status
+        invalidateCache('clients-status')
       }
     } catch (err) {
       console.error('Error toggling task:', err)
@@ -173,13 +177,13 @@ export default function TasksPage() {
         subject: editForm.title,
         type: editForm.type as any,
         due_date: editForm.dueDate,
-        scheduled_at: editForm.dueTime ? `${editForm.dueDate}T${editForm.dueTime}:00` : undefined,
+        scheduled_at: editForm.dueTime ? `${editForm.dueDate}T${editForm.dueTime}:00` : null,
         contact_id: editForm.contactId || null,
         company_id: editForm.companyId || null,
         deal_id: editForm.dealId || null,
         metadata: {
           priority: editForm.priority,
-          dueTime: editForm.dueTime || undefined,
+          dueTime: editForm.dueTime || null,
         },
       })
       if (result.error) {
@@ -187,6 +191,8 @@ export default function TasksPage() {
       } else {
         setEditingTask(null)
         refetchTasks()
+        // Invalidate clients cache since task activities affect client status
+        invalidateCache('clients-status')
       }
     } catch (err) {
       console.error('Error updating task:', err)
@@ -205,6 +211,8 @@ export default function TasksPage() {
       } else {
         setEditingTask(null)
         refetchTasks()
+        // Invalidate clients cache since task activities affect client status
+        invalidateCache('clients-status')
       }
     } catch (err) {
       console.error('Error deleting task:', err)

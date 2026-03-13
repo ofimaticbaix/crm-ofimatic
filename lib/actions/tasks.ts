@@ -10,12 +10,12 @@ export interface TaskInput {
   subject: string
   type?: 'call' | 'meeting' | 'email' | 'note' | 'task'
   due_date?: string
-  scheduled_at?: string
+  scheduled_at?: string | null
   contact_id?: string | null
   company_id?: string | null
   deal_id?: string | null
   assigned_to_id?: string
-  metadata?: Record<string, any> // priority, dueTime stored here
+  metadata?: Record<string, any> | null // priority, dueTime stored here
 }
 
 // Get tasks (activities) for a workspace
