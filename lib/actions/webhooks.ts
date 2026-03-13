@@ -1,15 +1,15 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { randomBytes, createHmac } from 'node:crypto'
+import crypto from 'crypto'
 
 // Node.js crypto functions (Server Actions run in Node.js runtime)
 function generateSecret(): string {
-  return randomBytes(32).toString('hex')
+  return crypto.randomBytes(32).toString('hex')
 }
 
 function createHmacSignature(secret: string, payload: string): string {
-  return createHmac('sha256', secret).update(payload).digest('hex')
+  return crypto.createHmac('sha256', secret).update(payload).digest('hex')
 }
 
 // Available webhook events
