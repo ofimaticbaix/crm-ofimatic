@@ -1,7 +1,30 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import crypto from 'crypto'
+
+// Web Crypto API compatible functions (works in Edge runtime)
+function generateSecret(): string {
+  const array = new Uint8Array(32)
+  globalThis.crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function createHmacSignature(secret: string, payload: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const keyData = encoder.encode(secret)
+  const data = encoder.encode(payload)
+
+  const key = await globalThis.crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+
+  const signature = await globalThis.crypto.subtle.sign('HMAC', key, data)
+  return Array.from(new Uint8Array(signature), byte => byte.toString(16).padStart(2, '0')).join('')
+}
 
 // Available webhook events
 export const WEBHOOK_EVENTS = {
@@ -65,7 +88,7 @@ export async function createWebhook(workspaceId: string, input: WebhookInput) {
   }
 
   // Generate secret if not provided
-  const secret = input.secret || crypto.randomBytes(32).toString('hex')
+  const secret = input.secret || generateSecret()
 
   const { data, error } = await supabase
     .from('webhooks')
@@ -187,7 +210,7 @@ async function sendWebhook(
     // Create signature
     const payloadString = JSON.stringify(payload)
     const signature = webhook.secret
-      ? crypto.createHmac('sha256', webhook.secret).update(payloadString).digest('hex')
+      ? await createHmacSignature(webhook.secret, payloadString)
       : undefined
 
     // Send request
