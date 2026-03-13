@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { geocodeCompany } from './geocoding'
-import { triggerWebhooks } from './webhooks'
+// import { triggerWebhooks } from './webhooks'
 
 export interface CompanyInput {
   name: string
@@ -106,17 +106,7 @@ export async function createCompany(workspaceId: string, input: CompanyInput) {
     geocodeCompany(data.id).catch(console.error)
   }
 
-  // Trigger webhooks
-  if (data) {
-    triggerWebhooks(workspaceId, 'company.created', {
-      id: data.id,
-      name: data.name,
-      industry: data.industry,
-      account_type: data.account_type,
-      email: data.email,
-      phone: data.phone,
-    })
-  }
+  // Webhooks disabled temporarily
 
   return { data, error: null }
 }
@@ -140,16 +130,7 @@ export async function updateCompany(id: string, input: Partial<CompanyInput>) {
     geocodeCompany(id).catch(console.error)
   }
 
-  // Trigger webhooks
-  if (data) {
-    triggerWebhooks(data.workspace_id, 'company.updated', {
-      id: data.id,
-      name: data.name,
-      industry: data.industry,
-      account_type: data.account_type,
-      changes: Object.keys(input),
-    })
-  }
+  // Webhooks disabled temporarily
 
   return { data, error: null }
 }
@@ -172,13 +153,7 @@ export async function deleteCompany(id: string) {
 
   if (error) return { error: error.message }
 
-  // Trigger webhooks
-  if (company) {
-    triggerWebhooks(company.workspace_id, 'company.deleted', {
-      id: company.id,
-      name: company.name,
-    })
-  }
+  // Webhooks disabled temporarily
 
   return { error: null }
 }

@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { triggerWebhooks } from './webhooks'
+// import { triggerWebhooks } from './webhooks'
 
 export interface ActivityInput {
   type: 'call' | 'meeting' | 'email' | 'note' | 'task'
@@ -71,17 +71,7 @@ export async function createActivity(workspaceId: string, input: ActivityInput) 
 
   if (error) return { data: null, error: error.message }
 
-  // Trigger webhooks
-  if (data) {
-    triggerWebhooks(workspaceId, 'activity.created', {
-      id: data.id,
-      type: data.type,
-      subject: data.subject,
-      contact_id: data.contact_id,
-      company_id: data.company_id,
-      deal_id: data.deal_id,
-    })
-  }
+  // Webhooks disabled temporarily
 
   return { data, error: null }
 }
