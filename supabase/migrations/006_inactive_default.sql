@@ -14,9 +14,9 @@ BEGIN
     split_part(NEW.email, '@', 1)
   );
 
-  -- 1. Create user profile
-  INSERT INTO public.users (id, full_name)
-  VALUES (NEW.id, user_name)
+  -- 1. Create user profile (email column is NOT NULL)
+  INSERT INTO public.users (id, email, full_name)
+  VALUES (NEW.id, NEW.email, user_name)
   ON CONFLICT (id) DO NOTHING;
 
   -- 2. Create workspace as INACTIVE (admin must activate)

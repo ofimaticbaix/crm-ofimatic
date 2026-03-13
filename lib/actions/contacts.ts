@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { triggerWebhooks } from './webhooks'
+// import { triggerWebhooks } from './webhooks' // Temporarily disabled
 
 export interface ContactInput {
   first_name?: string
@@ -102,17 +102,10 @@ export async function createContact(workspaceId: string, input: ContactInput) {
     return { data: null, error: `Error creando contacto: ${error.message} (code: ${error.code})` }
   }
 
-  // Trigger webhooks
-  if (data) {
-    triggerWebhooks(workspaceId, 'contact.created', {
-      id: data.id,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      email: data.email,
-      company_id: data.company_id,
-      lifecycle_stage: data.lifecycle_stage,
-    })
-  }
+  // Trigger webhooks - temporarily disabled
+  // if (data) {
+  //   triggerWebhooks(workspaceId, 'contact.created', { ... })
+  // }
 
   return { data, error: null }
 }
@@ -131,16 +124,10 @@ export async function updateContact(id: string, input: Partial<ContactInput>) {
 
   if (error) return { data: null, error: error.message }
 
-  // Trigger webhooks
-  if (data) {
-    triggerWebhooks(data.workspace_id, 'contact.updated', {
-      id: data.id,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      email: data.email,
-      changes: Object.keys(input),
-    })
-  }
+  // Trigger webhooks - temporarily disabled
+  // if (data) {
+  //   triggerWebhooks(data.workspace_id, 'contact.updated', { ... })
+  // }
 
   return { data, error: null }
 }
@@ -163,15 +150,10 @@ export async function deleteContact(id: string) {
 
   if (error) return { error: error.message }
 
-  // Trigger webhooks
-  if (contact) {
-    triggerWebhooks(contact.workspace_id, 'contact.deleted', {
-      id: contact.id,
-      first_name: contact.first_name,
-      last_name: contact.last_name,
-      email: contact.email,
-    })
-  }
+  // Trigger webhooks - temporarily disabled
+  // if (contact) {
+  //   triggerWebhooks(contact.workspace_id, 'contact.deleted', { ... })
+  // }
 
   return { error: null }
 }
