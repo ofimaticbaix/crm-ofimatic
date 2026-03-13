@@ -10,6 +10,9 @@ interface CacheEntry<T> {
 // Global cache that persists between navigations
 const cache = new Map<string, CacheEntry<unknown>>()
 
+// Pending prefetch requests to avoid duplicates
+const pendingPrefetch = new Set<string>()
+
 // Stale time in ms (30 seconds)
 const STALE_TIME = 30 * 1000
 
@@ -124,4 +127,46 @@ export function invalidateCache(keyPattern: string) {
 // Utility to clear all cache
 export function clearAllCache() {
   cache.clear()
+}
+
+// Prefetch data in background - won't block UI, silent errors
+export async function prefetchData<T>(
+  key: string,
+  fetcher: () => Promise<{ data: T | null; error: string | null }>,
+  staleTime: number = STALE_TIME
+): Promise<void> {
+  // Skip if already cached and fresh
+  const cached = cache.get(key) as CacheEntry<T> | undefined
+  if (cached && Date.now() - cached.timestamp < staleTime) {
+    return
+  }
+
+  // Skip if already prefetching
+  if (pendingPrefetch.has(key)) {
+    return
+  }
+
+  pendingPrefetch.add(key)
+
+  try {
+    const result = await fetcher()
+    if (result.data !== null) {
+      cache.set(key, { data: result.data, timestamp: Date.now() })
+    }
+  } catch {
+    // Silent fail - prefetch is best effort
+  } finally {
+    pendingPrefetch.delete(key)
+  }
+}
+
+// Check if data is cached
+export function isCached(key: string): boolean {
+  return cache.has(key)
+}
+
+// Get cached data directly (for SSR hydration or sync access)
+export function getCachedData<T>(key: string): T | null {
+  const cached = cache.get(key) as CacheEntry<T> | undefined
+  return cached?.data ?? null
 }

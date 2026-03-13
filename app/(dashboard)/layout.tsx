@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { WorkspaceProvider, useWorkspace } from '@/lib/context/workspace-context'
 import { createClient } from '@/lib/supabase/client'
 import { isAdminEmail } from '@/lib/admin'
+import { usePrefetch } from '@/lib/hooks/use-prefetch'
 
 const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
@@ -37,7 +38,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [clientsOpen, setClientsOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
-  const { userName, userEmail, userInitials, workspaceName, subscriptionStatus, trialDaysLeft, planId, plan, loading } = useWorkspace()
+  const { userName, userEmail, userInitials, workspaceName, workspaceId, subscriptionStatus, trialDaysLeft, planId, plan, loading } = useWorkspace()
+  const { prefetch } = usePrefetch(workspaceId)
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -131,6 +133,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                       <Link
                         href="/clients"
                         onClick={() => setSidebarOpen(false)}
+                        onMouseEnter={() => prefetch('/clients')}
                         className={cn(
                           "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all",
                           pathname === '/clients'
@@ -149,6 +152,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                             key={sub.name}
                             href={sub.href}
                             onClick={() => setSidebarOpen(false)}
+                            onMouseEnter={() => prefetch(sub.href)}
                             className={cn(
                               "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all",
                               isSubActive
@@ -168,6 +172,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   <Link
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
+                    onMouseEnter={() => prefetch(item.href)}
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative group mt-1",
                       isActive
@@ -193,6 +198,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 key={item.name}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
+                onMouseEnter={() => prefetch(item.href)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative group",
                   isActive
