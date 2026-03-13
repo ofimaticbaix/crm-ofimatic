@@ -338,7 +338,7 @@ export default function ContactsPage() {
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-3 md:p-6">
             <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              {contacts.filter(c => c.lifecycle_stage === 'customer').length}
+              {(contacts || []).filter(c => c.lifecycle_stage === 'customer').length}
             </div>
             <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Clientes</p>
           </CardContent>
@@ -346,7 +346,7 @@ export default function ContactsPage() {
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-3 md:p-6">
             <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              {contacts.filter(c => c.lifecycle_stage === 'prospect').length}
+              {(contacts || []).filter(c => c.lifecycle_stage === 'prospect').length}
             </div>
             <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Prospectos</p>
           </CardContent>
@@ -354,7 +354,7 @@ export default function ContactsPage() {
         <Card className="hover:shadow-xl transition-shadow">
           <CardContent className="p-3 md:p-6">
             <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              {contacts.filter(c => c.lifecycle_stage === 'lead' || !c.lifecycle_stage).length}
+              {(contacts || []).filter(c => c.lifecycle_stage === 'lead' || !c.lifecycle_stage).length}
             </div>
             <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Leads</p>
           </CardContent>
