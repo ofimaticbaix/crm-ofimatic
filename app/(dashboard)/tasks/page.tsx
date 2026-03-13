@@ -267,6 +267,11 @@ export default function TasksPage() {
   }
 
   // Calendar helpers
+  // Format date as YYYY-MM-DD without timezone conversion
+  const formatDateLocal = (year: number, month: number, day: number) => {
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  }
+
   const calendarDays = useMemo(() => {
     const { year, month } = currentMonth
     const firstDay = new Date(year, month, 1)
@@ -277,18 +282,18 @@ export default function TasksPage() {
     // Previous month days
     for (let i = startOffset - 1; i >= 0; i--) {
       const d = new Date(year, month, -i)
-      days.push({ date: d.toISOString().split('T')[0], day: d.getDate(), isCurrentMonth: false })
+      days.push({ date: formatDateLocal(d.getFullYear(), d.getMonth(), d.getDate()), day: d.getDate(), isCurrentMonth: false })
     }
     // Current month
     for (let d = 1; d <= lastDay.getDate(); d++) {
-      const date = new Date(year, month, d)
-      days.push({ date: date.toISOString().split('T')[0], day: d, isCurrentMonth: true })
+      days.push({ date: formatDateLocal(year, month, d), day: d, isCurrentMonth: true })
     }
     // Next month fill
     const remaining = 42 - days.length
     for (let d = 1; d <= remaining; d++) {
-      const date = new Date(year, month + 1, d)
-      days.push({ date: date.toISOString().split('T')[0], day: d, isCurrentMonth: false })
+      const nextMonth = month + 1 > 11 ? 0 : month + 1
+      const nextYear = month + 1 > 11 ? year + 1 : year
+      days.push({ date: formatDateLocal(nextYear, nextMonth, d), day: d, isCurrentMonth: false })
     }
     return days
   }, [currentMonth])
