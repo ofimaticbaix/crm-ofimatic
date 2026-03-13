@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -10,6 +9,7 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getFullMetrics, type FullMetrics } from '@/lib/actions/metrics'
+import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 const emptyMetrics: FullMetrics = {
   pipeline: { totalValue: 0, weightedValue: 0, avgDealSize: 0, conversionRate: 0, dealsByStage: [] },
@@ -21,25 +21,19 @@ const emptyMetrics: FullMetrics = {
 
 export default function MetricsPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
-  const [metrics, setMetrics] = useState<FullMetrics>(emptyMetrics)
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!workspaceId) return
-    async function loadMetrics() {
-      setLoading(true)
-      try {
-        const res = await getFullMetrics(workspaceId)
-        if (res.data) setMetrics(res.data)
-      } catch (err) {
-        console.error('Metrics load error:', err)
-      }
-      setLoading(false)
-    }
-    loadMetrics()
-  }, [workspaceId])
+  // Cached data - loads instantly if cached
+  const { data: metrics, loading: metricsLoading } = useCachedData<FullMetrics>(
+    `metrics-${workspaceId}`,
+    () => getFullMetrics(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 30000 }
+  )
 
-  if (wsLoading || loading) {
+  // Overall loading - only block if no cached data
+  const loading = wsLoading || (metricsLoading && !metrics)
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -47,7 +41,7 @@ export default function MetricsPage() {
     )
   }
 
-  const { pipeline, contacts, companies, activities, tasks } = metrics
+  const { pipeline, contacts, companies, activities, tasks } = metrics || emptyMetrics
 
   return (
     <div className="space-y-6">

@@ -11,6 +11,7 @@ import { getTasks, createTask, toggleTaskComplete } from '@/lib/actions/tasks'
 import { getCompanies } from '@/lib/actions/companies'
 import { getContacts } from '@/lib/actions/contacts'
 import { getDeals } from '@/lib/actions/deals'
+import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 // Type for a task (activity) from Supabase with relations
 interface Task {
@@ -50,52 +51,49 @@ export default function TasksPage() {
     contactId: '',
     type: 'task'
   })
-
-  // Data state
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [companies, setCompanies] = useState<any[]>([])
-  const [contacts, setContacts] = useState<any[]>([])
-  const [deals, setDeals] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
 
-  // Load data from Supabase
-  const loadData = useCallback(async () => {
-    if (!workspaceId) return
-    setLoading(true)
-    try {
-      const [tasksRes, companiesRes, contactsRes, dealsRes] = await Promise.all([
-        getTasks(workspaceId),
-        getCompanies(workspaceId),
-        getContacts(workspaceId),
-        getDeals(workspaceId),
-      ])
-      if (tasksRes.data) setTasks(tasksRes.data as Task[])
-      if (companiesRes.data) setCompanies(companiesRes.data)
-      if (contactsRes.data) setContacts(contactsRes.data)
-      if (dealsRes.data) setDeals(dealsRes.data)
-    } catch (err) {
-      console.error('Error loading tasks data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [workspaceId])
+  // Cached data - loads instantly if cached
+  const { data: tasks, loading: tasksLoading, refetch: refetchTasks } = useCachedData<Task[]>(
+    `tasks-${workspaceId}`,
+    () => getTasks(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
 
-  useEffect(() => {
-    if (!wsLoading && workspaceId) {
-      loadData()
-    }
-  }, [wsLoading, workspaceId, loadData])
+  const { data: companies } = useCachedData<any[]>(
+    `companies-${workspaceId}`,
+    () => getCompanies(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
 
-  const allTasks = tasks
+  const { data: contacts } = useCachedData<any[]>(
+    `contacts-${workspaceId}`,
+    () => getContacts(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
+
+  const { data: deals } = useCachedData<any[]>(
+    `deals-${workspaceId}`,
+    () => getDeals(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
+
+  // Overall loading - only block if no cached data
+  const loading = wsLoading || (tasksLoading && !tasks)
+
+  const allTasks = tasks || []
   const pendingTasks = allTasks.filter(t => !t.is_completed)
   const overdueTasks = pendingTasks.filter(t => t.due_date && new Date(t.due_date) < new Date(new Date().toISOString().split('T')[0]))
   const todayStr = new Date().toISOString().split('T')[0]
   const todayTasks = pendingTasks.filter(t => t.due_date === todayStr)
 
   const filteredContactsForNewTask = newTask.companyId
-    ? contacts.filter(c => c.company_id === newTask.companyId)
-    : contacts
+    ? (contacts || []).filter(c => c.company_id === newTask.companyId)
+    : (contacts || [])
 
   const handleCreateTask = async () => {
     if (!workspaceId || !newTask.title || !newTask.dueDate) return
@@ -119,7 +117,7 @@ export default function TasksPage() {
       } else {
         setShowNewTaskModal(false)
         setNewTask({ title: '', dueDate: '', dueTime: '', priority: 'medium', dealId: '', companyId: '', contactId: '', type: 'task' })
-        await loadData()
+        refetchTasks()
       }
     } catch (err) {
       console.error('Error creating task:', err)
@@ -132,7 +130,7 @@ export default function TasksPage() {
     try {
       const result = await toggleTaskComplete(taskId)
       if (!result.error) {
-        await loadData()
+        refetchTasks()
       }
     } catch (err) {
       console.error('Error toggling task:', err)
@@ -602,7 +600,7 @@ export default function TasksPage() {
                     onChange={(e) => setNewTask({...newTask, companyId: e.target.value, contactId: ''})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin empresa</option>
-                    {companies.map(c => (
+                    {(companies || []).map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -623,7 +621,7 @@ export default function TasksPage() {
                   <select value={newTask.dealId} onChange={(e) => setNewTask({...newTask, dealId: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin oportunidad asociada</option>
-                    {deals.map((deal) => (
+                    {(deals || []).map((deal) => (
                       <option key={deal.id} value={deal.id}>{deal.name}</option>
                     ))}
                   </select>

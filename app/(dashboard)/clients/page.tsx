@@ -1,32 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Users, DollarSign, Calendar, Lock, AlertTriangle, Clock, Loader2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompaniesWithStatus, type CompaniesGrouped, type CompanyWithStatus } from '@/lib/actions/clients'
+import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 export default function ClientsPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
-  const [data, setData] = useState<CompaniesGrouped | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (wsLoading || !workspaceId) return
-    setLoading(true)
-    getCompaniesWithStatus(workspaceId)
-      .then(res => {
-        if (res.error) setError(res.error)
-        else setData(res.data)
-      })
-      .catch(err => setError(String(err)))
-      .finally(() => setLoading(false))
-  }, [workspaceId, wsLoading])
+  // Cached data - loads instantly if cached
+  const { data, loading: dataLoading, error } = useCachedData<CompaniesGrouped>(
+    `clients-status-${workspaceId}`,
+    () => getCompaniesWithStatus(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
 
-  if (wsLoading || loading) {
+  // Overall loading - only block if no cached data
+  const loading = wsLoading || (dataLoading && !data)
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />

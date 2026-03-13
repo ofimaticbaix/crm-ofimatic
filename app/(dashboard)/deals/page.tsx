@@ -11,15 +11,12 @@ import { useWorkspace } from '@/lib/context/workspace-context'
 import { getDeals, createDeal, updateDeal, deleteDeal } from '@/lib/actions/deals'
 import { getPipeline } from '@/lib/actions/pipeline'
 import { getCompanies } from '@/lib/actions/companies'
+import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 export default function DealsPage() {
   const { workspaceId, loading: workspaceLoading } = useWorkspace()
   const [showNewDealModal, setShowNewDealModal] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
-  const [pipeline, setPipeline] = useState<any>(null)
-  const [deals, setDeals] = useState<any[]>([])
-  const [companies, setCompanies] = useState<any[]>([])
   const [editingDeal, setEditingDeal] = useState<any>(null)
   const [deletingDealId, setDeletingDealId] = useState<string | null>(null)
   const [updatingDeal, setUpdatingDeal] = useState(false)
@@ -32,33 +29,37 @@ export default function DealsPage() {
     expectedCloseDate: ''
   })
 
-  // Load pipeline, deals, and companies from Supabase
+  // Cached data - loads instantly if cached
+  const { data: pipeline } = useCachedData(
+    `pipeline-${workspaceId}`,
+    () => getPipeline(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 120000 } // Pipeline rarely changes
+  )
+
+  const { data: deals, loading: dealsLoading, refetch: refetchDeals } = useCachedData<any[]>(
+    `deals-${workspaceId}`,
+    () => getDeals(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
+
+  const { data: companies } = useCachedData<any[]>(
+    `companies-${workspaceId}`,
+    () => getCompanies(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
+
+  // Set default stage when pipeline loads
   useEffect(() => {
-    if (workspaceLoading || !workspaceId) return
-
-    async function loadData() {
-      setLoading(true)
-      const [pipelineRes, dealsRes, companiesRes] = await Promise.all([
-        getPipeline(workspaceId),
-        getDeals(workspaceId),
-        getCompanies(workspaceId),
-      ])
-
-      if (pipelineRes.data) {
-        setPipeline(pipelineRes.data)
-        // Default new deal stage to first stage
-        if (pipelineRes.data.stages?.length > 0) {
-          setNewDeal(prev => ({ ...prev, stageId: pipelineRes.data!.stages[0].id }))
-        }
-      }
-      if (dealsRes.data) setDeals(dealsRes.data)
-      if (companiesRes.data) setCompanies(companiesRes.data)
-
-      setLoading(false)
+    if (pipeline?.stages?.length > 0 && !newDeal.stageId) {
+      setNewDeal(prev => ({ ...prev, stageId: pipeline.stages[0].id }))
     }
+  }, [pipeline, newDeal.stageId])
 
-    loadData()
-  }, [workspaceId, workspaceLoading])
+  // Overall loading - only block if no cached data
+  const loading = workspaceLoading || (dealsLoading && !deals)
 
   const stages = pipeline?.stages || []
 
@@ -82,8 +83,7 @@ export default function DealsPage() {
     }
 
     // Reload deals
-    const dealsRes = await getDeals(workspaceId)
-    if (dealsRes.data) setDeals(dealsRes.data)
+    refetchDeals()
 
     setShowNewDealModal(false)
     setNewDeal({
@@ -109,8 +109,7 @@ export default function DealsPage() {
     setUpdatingDeal(false)
     if (!result.error) {
       setEditingDeal(null)
-      const dealsRes = await getDeals(workspaceId)
-      if (dealsRes.data) setDeals(dealsRes.data)
+      refetchDeals()
     }
   }
 
@@ -120,8 +119,7 @@ export default function DealsPage() {
     setDeletingDeal(false)
     if (!result.error) {
       setDeletingDealId(null)
-      const dealsRes = await getDeals(workspaceId)
-      if (dealsRes.data) setDeals(dealsRes.data)
+      refetchDeals()
     }
   }
 
@@ -149,7 +147,7 @@ export default function DealsPage() {
     }
   }
 
-  const totalValue = deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
+  const totalValue = (deals || []).reduce((sum, deal) => sum + (deal.value || 0), 0)
 
   if (workspaceLoading || loading) {
     return (
@@ -166,7 +164,7 @@ export default function DealsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Embudo de Ventas</h1>
           <p className="text-xs md:text-sm text-gray-300 mt-1">
-            {deals.length} oportunidades • {formatCurrency(totalValue)}
+            {(deals || []).length} oportunidades • {formatCurrency(totalValue)}
           </p>
         </div>
         <Button
@@ -181,7 +179,7 @@ export default function DealsPage() {
       {/* Pipeline Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         {stages.map((stage: any) => {
-          const stageDeals = deals.filter(d => d.stage_id === stage.id)
+          const stageDeals = (deals || []).filter(d => d.stage_id === stage.id)
           const stageValue = stageDeals.reduce((sum: number, deal: any) => sum + (deal.value || 0), 0)
 
           return (
@@ -205,7 +203,7 @@ export default function DealsPage() {
       {/* Kanban Board */}
       <div className="flex gap-3 md:gap-6 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory">
         {stages.map((stage: any) => {
-          const stageDeals = deals.filter(d => d.stage_id === stage.id)
+          const stageDeals = (deals || []).filter(d => d.stage_id === stage.id)
           const stageValue = stageDeals.reduce((sum: number, deal: any) => sum + (deal.value || 0), 0)
 
           return (

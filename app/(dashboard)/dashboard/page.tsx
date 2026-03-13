@@ -11,48 +11,54 @@ import { useWorkspace } from '@/lib/context/workspace-context'
 import { getTasks, getDashboardMetrics, createTask } from '@/lib/actions/tasks'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
+import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 export default function DashboardPage() {
   const { workspaceId, userName, loading: wsLoading } = useWorkspace()
-  const [metrics, setMetrics] = useState({ totalValue: 0, weightedValue: 0, conversionRate: 0, totalDeals: 0, wonDeals: 0, contactCount: 0, companyCount: 0 })
-  const [tasks, setTasks] = useState<any[]>([])
-  const [deals, setDeals] = useState<any[]>([])
-  const [activities, setActivities] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!workspaceId) return
-    async function loadData() {
-      setLoading(true)
-      try {
-        const [metricsRes, tasksRes, dealsRes, activitiesRes] = await Promise.all([
-          getDashboardMetrics(workspaceId).catch(e => ({ data: null, error: String(e) })),
-          getTasks(workspaceId, { onlyPending: true }).catch(e => ({ data: null, error: String(e) })),
-          getDeals(workspaceId).catch(e => ({ data: null, error: String(e) })),
-          getActivities(workspaceId).catch(e => ({ data: null, error: String(e) })),
-        ])
-        if (metricsRes.data) setMetrics(metricsRes.data)
-        if (tasksRes.data) setTasks(tasksRes.data)
-        if (dealsRes.data) setDeals(dealsRes.data)
-        if (activitiesRes.data) setActivities(activitiesRes.data)
-      } catch (err) {
-        console.error('Dashboard load error:', err)
-      }
-      setLoading(false)
-    }
-    loadData()
-  }, [workspaceId])
+  // Cached data - loads instantly if cached
+  const { data: metrics } = useCachedData(
+    `dashboard-metrics-${workspaceId}`,
+    () => getDashboardMetrics(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 30000 }
+  )
 
-  const upcomingTasks = tasks.filter(t => !t.is_completed).slice(0, 5)
-  const recentActivity = activities.slice(0, 5)
-  const closingThisWeek = deals.filter(d => {
+  const { data: tasks, loading: tasksLoading, refetch: refetchTasks } = useCachedData<any[]>(
+    `dashboard-tasks-${workspaceId}`,
+    () => getTasks(workspaceId, { onlyPending: true }),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
+
+  const { data: deals } = useCachedData<any[]>(
+    `deals-${workspaceId}`,
+    () => getDeals(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
+
+  const { data: activities } = useCachedData<any[]>(
+    `activities-${workspaceId}`,
+    () => getActivities(workspaceId),
+    [workspaceId],
+    { enabled: !!workspaceId, staleTime: 60000 }
+  )
+
+  // Overall loading - only block if no cached data
+  const loading = wsLoading || (tasksLoading && !tasks)
+
+  const safeMetrics = metrics || { totalValue: 0, weightedValue: 0, conversionRate: 0, totalDeals: 0, wonDeals: 0, contactCount: 0, companyCount: 0 }
+  const upcomingTasks = (tasks || []).filter(t => !t.is_completed).slice(0, 5)
+  const recentActivity = (activities || []).slice(0, 5)
+  const closingThisWeek = (deals || []).filter(d => {
     if (!d.expected_close_date) return false
     const closeDate = new Date(d.expected_close_date)
     const today = new Date()
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
     return closeDate >= today && closeDate <= nextWeek && !d.stages?.is_closed_won && !d.stages?.is_closed_lost
   })
-  const overdueTasks = tasks.filter(t => !t.is_completed && t.due_date && new Date(t.due_date) < new Date())
+  const overdueTasks = (tasks || []).filter(t => !t.is_completed && t.due_date && new Date(t.due_date) < new Date())
 
   const firstName = userName?.split(' ')[0] || 'Usuario'
 
@@ -87,7 +93,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Ventas</p>
-            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(metrics.totalValue)}</div>
+            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(safeMetrics.totalValue)}</div>
           </CardContent>
         </Card>
 
@@ -98,11 +104,11 @@ export default function DashboardPage() {
                 <Target className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
               <span className="text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                {metrics.totalDeals}
+                {safeMetrics.totalDeals}
               </span>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Previsión</p>
-            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(metrics.weightedValue)}</div>
+            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(safeMetrics.weightedValue)}</div>
           </CardContent>
         </Card>
 
@@ -114,7 +120,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Éxito</p>
-            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white">{metrics.conversionRate}%</div>
+            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white">{safeMetrics.conversionRate}%</div>
           </CardContent>
         </Card>
 
@@ -242,11 +248,8 @@ export default function DashboardPage() {
         {/* Sidebar */}
         <div className="space-y-4 md:space-y-6">
           {/* Mini Calendar */}
-          <MiniCalendar tasks={tasks} workspaceId={workspaceId} onTaskCreated={() => {
-            // Refresh tasks
-            getTasks(workspaceId, { onlyPending: true }).then(res => {
-              if (res.data) setTasks(res.data)
-            })
+          <MiniCalendar tasks={tasks || []} workspaceId={workspaceId} onTaskCreated={() => {
+            refetchTasks()
           }} />
 
           {/* Recent Activity */}
