@@ -106,6 +106,8 @@ export async function updateTask(id: string, input: Partial<TaskInput>) {
   if (input.deal_id !== undefined) updateData.deal_id = input.deal_id
   if (input.metadata !== undefined) updateData.metadata = input.metadata
 
+  console.log('updateTask - id:', id, 'updateData:', JSON.stringify(updateData))
+
   const { data, error } = await supabase
     .from('activities')
     .update(updateData)
@@ -118,6 +120,7 @@ export async function updateTask(id: string, input: Partial<TaskInput>) {
     return { data: null, error: `Error actualizando tarea: ${error.message}` }
   }
 
+  console.log('updateTask - result due_date:', data?.due_date, 'scheduled_at:', data?.scheduled_at)
   return { data, error: null }
 }
 

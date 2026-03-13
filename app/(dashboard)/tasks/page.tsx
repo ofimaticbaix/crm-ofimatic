@@ -172,6 +172,7 @@ export default function TasksPage() {
   const handleUpdateTask = async () => {
     if (!editingTask || !editForm.title || !editForm.dueDate) return
     setUpdating(true)
+    console.log('handleUpdateTask - editForm:', editForm)
     try {
       const result = await updateTask(editingTask.id, {
         subject: editForm.title,
