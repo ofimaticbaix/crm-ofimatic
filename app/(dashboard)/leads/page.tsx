@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search, Globe, X, Building2, Target,
   Mail, Phone, MapPin, User, Calendar, Loader2, Trash2,
-  ChevronDown, Tag
+  ChevronDown, Tag, Pencil, Save
 } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompanies, getCompany, deleteCompany, updateCompany } from '@/lib/actions/companies'
@@ -22,6 +22,21 @@ const TAG_CONFIG: Record<string, { label: string; bg: string; text: string; dot:
   cliente: { label: 'Cliente', bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400', rowBg: 'bg-yellow-500/15 hover:bg-yellow-500/25', rowBorder: 'border-l-4 border-l-yellow-400' },
 }
 
+interface EditForm {
+  name: string
+  street: string
+  city: string
+  vat_number: string
+  phone: string
+  telefono_2: string
+  email: string
+  email_2: string
+  website: string
+  contacto: string
+  fecha_actualizacion: string
+  description: string
+}
+
 export default function LeadsPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
   const [searchQuery, setSearchQuery] = useState('')
@@ -31,6 +46,9 @@ export default function LeadsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [tagDropdownId, setTagDropdownId] = useState<string | null>(null)
   const [filterTag, setFilterTag] = useState<string>('todos')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState<EditForm | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const { data: allCompanies, loading: dataLoading, refetch } = useCachedData<any[]>(
     `companies-${workspaceId}`,
@@ -65,7 +83,7 @@ export default function LeadsPage() {
 
   // Load detail when selecting
   useEffect(() => {
-    if (!selectedLead) { setDetailData(null); return }
+    if (!selectedLead) { setDetailData(null); setIsEditing(false); setEditForm(null); return }
     async function loadDetail() {
       setDetailLoading(true)
       const { data } = await getCompany(selectedLead.id)
@@ -85,7 +103,6 @@ export default function LeadsPage() {
   }
 
   const handleSetTag = async (leadId: string, tag: LeadTag) => {
-    // Get current company data
     const company = leads.find((c: any) => c.id === leadId)
     if (!company) return
 
@@ -96,6 +113,68 @@ export default function LeadsPage() {
     await updateCompany(leadId, { custom_fields: newCf })
     setTagDropdownId(null)
     refetch()
+  }
+
+  const startEditing = (data: any) => {
+    const cf = data.custom_fields || {}
+    setEditForm({
+      name: data.name || '',
+      street: data.billing_address?.street || '',
+      city: data.billing_address?.city || '',
+      vat_number: data.vat_number || '',
+      phone: data.phone || '',
+      telefono_2: cf.telefono_2 || '',
+      email: data.email || '',
+      email_2: cf.email_2 || '',
+      website: data.website || '',
+      contacto: cf.contacto || '',
+      fecha_actualizacion: cf.fecha_actualizacion || '',
+      description: data.description || '',
+    })
+    setIsEditing(true)
+  }
+
+  const handleSave = async () => {
+    if (!editForm || !detailData) return
+    setSaving(true)
+
+    const cf = { ...(detailData.custom_fields || {}) }
+    cf.telefono_2 = editForm.telefono_2 || undefined
+    cf.email_2 = editForm.email_2 || undefined
+    cf.contacto = editForm.contacto || undefined
+    cf.fecha_actualizacion = editForm.fecha_actualizacion || undefined
+
+    // Clean undefined keys
+    for (const k of Object.keys(cf)) {
+      if (cf[k] === undefined) delete cf[k]
+    }
+
+    await updateCompany(detailData.id, {
+      name: editForm.name,
+      vat_number: editForm.vat_number || undefined,
+      phone: editForm.phone || undefined,
+      email: editForm.email || undefined,
+      website: editForm.website || undefined,
+      description: editForm.description || undefined,
+      billing_address: {
+        street: editForm.street || undefined,
+        city: editForm.city || undefined,
+      },
+      custom_fields: cf,
+    })
+
+    // Reload detail
+    const { data } = await getCompany(detailData.id)
+    setDetailData(data)
+    setIsEditing(false)
+    setEditForm(null)
+    setSaving(false)
+    refetch()
+  }
+
+  const updateField = (field: keyof EditForm, value: string) => {
+    if (!editForm) return
+    setEditForm({ ...editForm, [field]: value })
   }
 
   if (loading) {
@@ -302,14 +381,20 @@ export default function LeadsPage() {
         const tag = cf.lead_tag as string | undefined
         const tagInfo = tag ? TAG_CONFIG[tag] : null
 
-        const InfoField = ({ icon: Icon, iconColor, label, value, href, external }: {
-          icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean
+        const InfoField = ({ icon: Icon, iconColor, label, value, href, external, field }: {
+          icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean; field?: keyof EditForm
         }) => (
           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
             <Icon className={`h-5 w-5 ${iconColor} mt-0.5 flex-shrink-0`} />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-              {value ? (
+              {isEditing && field && editForm ? (
+                <Input
+                  value={editForm[field]}
+                  onChange={(e) => updateField(field, e.target.value)}
+                  className="mt-1 h-8 text-sm bg-white/10 border-gray-600 text-white"
+                />
+              ) : value ? (
                 href ? (
                   <a href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                     className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">
@@ -352,7 +437,7 @@ export default function LeadsPage() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedLead(null)} className="rounded-xl">
+                  <Button variant="ghost" size="sm" onClick={() => { setSelectedLead(null); setIsEditing(false); setEditForm(null) }} className="rounded-xl">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -364,7 +449,6 @@ export default function LeadsPage() {
                       key={key}
                       onClick={() => {
                         handleSetTag(lead.id, tag === key ? null : key as LeadTag)
-                        // Update local state too
                         if (detailData) {
                           const newCf = { ...detailData.custom_fields, lead_tag: tag === key ? undefined : key }
                           if (tag === key) delete newCf.lead_tag
@@ -392,42 +476,84 @@ export default function LeadsPage() {
                 ) : (
                   <>
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                        Informacion
-                      </h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Informacion
+                        </h3>
+                        {!isEditing && (
+                          <Button variant="ghost" size="sm" onClick={() => startEditing(lead)}
+                            className="text-xs text-gray-400 hover:text-white">
+                            <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+                          </Button>
+                        )}
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <InfoField icon={Building2} iconColor="text-orange-500" label="Empresa" value={lead.name} />
-                        <InfoField icon={MapPin} iconColor="text-red-500" label="Direccion" value={lead.billing_address?.street} />
-                        <InfoField icon={MapPin} iconColor="text-orange-400" label="Poblacion" value={lead.billing_address?.city} />
-                        <InfoField icon={Building2} iconColor="text-purple-500" label="NIF" value={lead.vat_number} />
-                        <InfoField icon={Phone} iconColor="text-green-500" label="Telefono" value={lead.phone} href={lead.phone ? `tel:${lead.phone}` : undefined} />
-                        <InfoField icon={Phone} iconColor="text-green-400" label="Telefono 2" value={cf.telefono_2} href={cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} />
-                        <InfoField icon={Mail} iconColor="text-blue-500" label="Mail Compras" value={lead.email} href={lead.email ? `mailto:${lead.email}` : undefined} />
-                        <InfoField icon={Mail} iconColor="text-blue-400" label="Mail Empresa" value={cf.email_2} href={cf.email_2 ? `mailto:${cf.email_2}` : undefined} />
-                        <InfoField icon={Globe} iconColor="text-indigo-500" label="Web" value={lead.website}
-                          href={lead.website ? (lead.website.startsWith('http') ? lead.website : `https://${lead.website}`) : undefined} external />
-                        <InfoField icon={User} iconColor="text-cyan-500" label="Contacto" value={cf.contacto} />
-                        <InfoField icon={Calendar} iconColor="text-amber-500" label="Fecha Actualizacion" value={cf.fecha_actualizacion} />
+                        <InfoField icon={Building2} iconColor="text-orange-500" label="Empresa" value={lead.name} field="name" />
+                        <InfoField icon={MapPin} iconColor="text-red-500" label="Direccion" value={lead.billing_address?.street} field="street" />
+                        <InfoField icon={MapPin} iconColor="text-orange-400" label="Poblacion" value={lead.billing_address?.city} field="city" />
+                        <InfoField icon={Building2} iconColor="text-purple-500" label="NIF" value={lead.vat_number} field="vat_number" />
+                        <InfoField icon={Phone} iconColor="text-green-500" label="Telefono" value={lead.phone} field="phone"
+                          href={!isEditing && lead.phone ? `tel:${lead.phone}` : undefined} />
+                        <InfoField icon={Phone} iconColor="text-green-400" label="Telefono 2" value={cf.telefono_2} field="telefono_2"
+                          href={!isEditing && cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} />
+                        <InfoField icon={Mail} iconColor="text-blue-500" label="Mail Compras" value={lead.email} field="email"
+                          href={!isEditing && lead.email ? `mailto:${lead.email}` : undefined} />
+                        <InfoField icon={Mail} iconColor="text-blue-400" label="Mail Empresa" value={cf.email_2} field="email_2"
+                          href={!isEditing && cf.email_2 ? `mailto:${cf.email_2}` : undefined} />
+                        <InfoField icon={Globe} iconColor="text-indigo-500" label="Web" value={lead.website} field="website"
+                          href={!isEditing && lead.website ? (lead.website.startsWith('http') ? lead.website : `https://${lead.website}`) : undefined} external />
+                        <InfoField icon={User} iconColor="text-cyan-500" label="Contacto" value={cf.contacto} field="contacto" />
+                        <InfoField icon={Calendar} iconColor="text-amber-500" label="Fecha Actualizacion" value={cf.fecha_actualizacion} field="fecha_actualizacion" />
                       </div>
                     </div>
 
-                    {lead.description && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Notas</h3>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">{lead.description}</p>
-                      </div>
-                    )}
+                    {/* Notes - editable */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Notas</h3>
+                      {isEditing && editForm ? (
+                        <textarea
+                          value={editForm.description}
+                          onChange={(e) => updateField('description', e.target.value)}
+                          rows={3}
+                          className="w-full text-sm rounded-xl p-3 bg-white/10 border border-gray-600 text-white resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
+                          {lead.description || 'Sin notas'}
+                        </p>
+                      )}
+                    </div>
 
                     <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <Button variant="outline" onClick={() => handleDelete(lead.id)} disabled={deletingId === lead.id}
-                        className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
-                        {deletingId === lead.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                        Eliminar
-                      </Button>
-                      <Button variant="outline" onClick={() => setSelectedLead(null)}
-                        className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
-                        Cerrar
-                      </Button>
+                      {isEditing ? (
+                        <>
+                          <Button onClick={handleSave} disabled={saving}
+                            className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white">
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                            Guardar
+                          </Button>
+                          <Button variant="outline" onClick={() => { setIsEditing(false); setEditForm(null) }}
+                            className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                            Cancelar
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button variant="outline" onClick={() => startEditing(lead)}
+                            className="rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20">
+                            <Pencil className="h-4 w-4 mr-2" /> Editar
+                          </Button>
+                          <Button variant="outline" onClick={() => handleDelete(lead.id)} disabled={deletingId === lead.id}
+                            className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                            {deletingId === lead.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                            Eliminar
+                          </Button>
+                          <Button variant="outline" onClick={() => setSelectedLead(null)}
+                            className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                            Cerrar
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search, X, Building2, UserCheck,
   Mail, Phone, MapPin, User, Calendar, Loader2, Trash2,
-  ChevronDown, Tag, CreditCard, Hash, Globe, FileText
+  ChevronDown, Tag, CreditCard, Hash, Pencil, Save
 } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompanies, getCompany, deleteCompany, updateCompany } from '@/lib/actions/companies'
@@ -22,6 +22,27 @@ const TAG_CONFIG: Record<string, { label: string; bg: string; text: string; dot:
   vip: { label: 'VIP', bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400', rowBg: 'bg-yellow-500/15 hover:bg-yellow-500/25', rowBorder: 'border-l-4 border-l-yellow-400' },
 }
 
+interface EditForm {
+  name: string
+  codigo_cliente: string
+  street: string
+  city: string
+  postal_code: string
+  province: string
+  vat_number: string
+  contacto: string
+  phone: string
+  telefono_2: string
+  ultima_compra: string
+  forma_pago: string
+  email: string
+  email_2: string
+  email_3: string
+  email_4: string
+  email_5: string
+  description: string
+}
+
 export default function ClientesActivosPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
   const [searchQuery, setSearchQuery] = useState('')
@@ -32,6 +53,9 @@ export default function ClientesActivosPage() {
   const [tagDropdownId, setTagDropdownId] = useState<string | null>(null)
   const [filterTag, setFilterTag] = useState<string>('todos')
   const [filterPago, setFilterPago] = useState<string>('todos')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState<EditForm | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const { data: allCompanies, loading: dataLoading, refetch } = useCachedData<any[]>(
     `companies-${workspaceId}`,
@@ -51,18 +75,15 @@ export default function ClientesActivosPage() {
   )].sort() as string[]
 
   const filtered = customers.filter((c: any) => {
-    // Tag filter
     if (filterTag !== 'todos') {
       const tag = c.custom_fields?.client_tag || null
       if (filterTag === 'sin_tag' && tag) return false
       if (filterTag !== 'sin_tag' && tag !== filterTag) return false
     }
-    // Payment method filter
     if (filterPago !== 'todos') {
       const pago = c.custom_fields?.forma_pago || ''
       if (pago !== filterPago) return false
     }
-    // Search
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     const cf = c.custom_fields || {}
@@ -74,16 +95,14 @@ export default function ClientesActivosPage() {
     ].some(v => v?.toLowerCase().includes(q))
   })
 
-  // Tag counts
   const tagCounts = {
     al_dia: customers.filter((c: any) => c.custom_fields?.client_tag === 'al_dia').length,
     revisar: customers.filter((c: any) => c.custom_fields?.client_tag === 'revisar').length,
     vip: customers.filter((c: any) => c.custom_fields?.client_tag === 'vip').length,
   }
 
-  // Load detail
   useEffect(() => {
-    if (!selectedClient) { setDetailData(null); return }
+    if (!selectedClient) { setDetailData(null); setIsEditing(false); setEditForm(null); return }
     async function loadDetail() {
       setDetailLoading(true)
       const { data } = await getCompany(selectedClient.id)
@@ -113,6 +132,78 @@ export default function ClientesActivosPage() {
     await updateCompany(clientId, { custom_fields: newCf })
     setTagDropdownId(null)
     refetch()
+  }
+
+  const startEditing = (data: any) => {
+    const cf = data.custom_fields || {}
+    setEditForm({
+      name: data.name || '',
+      codigo_cliente: cf.codigo_cliente || '',
+      street: data.billing_address?.street || '',
+      city: data.billing_address?.city || '',
+      postal_code: data.billing_address?.postal_code || '',
+      province: data.billing_address?.state || '',
+      vat_number: data.vat_number || '',
+      contacto: cf.contacto || '',
+      phone: data.phone || '',
+      telefono_2: cf.telefono_2 || '',
+      ultima_compra: cf.ultima_compra || '',
+      forma_pago: cf.forma_pago || '',
+      email: data.email || '',
+      email_2: cf.email_2 || '',
+      email_3: cf.email_3 || '',
+      email_4: cf.email_4 || '',
+      email_5: cf.email_5 || '',
+      description: data.description || '',
+    })
+    setIsEditing(true)
+  }
+
+  const handleSave = async () => {
+    if (!editForm || !detailData) return
+    setSaving(true)
+
+    const cf = { ...(detailData.custom_fields || {}) }
+    cf.codigo_cliente = editForm.codigo_cliente || undefined
+    cf.contacto = editForm.contacto || undefined
+    cf.telefono_2 = editForm.telefono_2 || undefined
+    cf.ultima_compra = editForm.ultima_compra || undefined
+    cf.forma_pago = editForm.forma_pago || undefined
+    cf.email_2 = editForm.email_2 || undefined
+    cf.email_3 = editForm.email_3 || undefined
+    cf.email_4 = editForm.email_4 || undefined
+    cf.email_5 = editForm.email_5 || undefined
+
+    for (const k of Object.keys(cf)) {
+      if (cf[k] === undefined) delete cf[k]
+    }
+
+    await updateCompany(detailData.id, {
+      name: editForm.name,
+      vat_number: editForm.vat_number || undefined,
+      phone: editForm.phone || undefined,
+      email: editForm.email || undefined,
+      description: editForm.description || undefined,
+      billing_address: {
+        street: editForm.street || undefined,
+        city: editForm.city || undefined,
+        postal_code: editForm.postal_code || undefined,
+        state: editForm.province || undefined,
+      },
+      custom_fields: cf,
+    })
+
+    const { data } = await getCompany(detailData.id)
+    setDetailData(data)
+    setIsEditing(false)
+    setEditForm(null)
+    setSaving(false)
+    refetch()
+  }
+
+  const updateField = (field: keyof EditForm, value: string) => {
+    if (!editForm) return
+    setEditForm({ ...editForm, [field]: value })
   }
 
   if (loading) {
@@ -261,7 +352,6 @@ export default function ClientesActivosPage() {
                       )}
                     </button>
 
-                    {/* Tag dropdown */}
                     {tagDropdownId === client.id && (
                       <div className="absolute top-full left-0 mt-1 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-xl py-1 min-w-[140px]">
                         {Object.entries(TAG_CONFIG).map(([key, config]) => (
@@ -340,7 +430,6 @@ export default function ClientesActivosPage() {
         </p>
       )}
 
-      {/* Click outside to close tag dropdown */}
       {tagDropdownId && (
         <div className="fixed inset-0 z-40" onClick={() => setTagDropdownId(null)} />
       )}
@@ -352,14 +441,20 @@ export default function ClientesActivosPage() {
         const tag = cf.client_tag as string | undefined
         const tagInfo = tag ? TAG_CONFIG[tag] : null
 
-        const InfoField = ({ icon: Icon, iconColor, label, value, href, external }: {
-          icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean
+        const InfoField = ({ icon: Icon, iconColor, label, value, href, external, field }: {
+          icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean; field?: keyof EditForm
         }) => (
           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
             <Icon className={`h-5 w-5 ${iconColor} mt-0.5 flex-shrink-0`} />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-              {value ? (
+              {isEditing && field && editForm ? (
+                <Input
+                  value={editForm[field]}
+                  onChange={(e) => updateField(field, e.target.value)}
+                  className="mt-1 h-8 text-sm bg-white/10 border-gray-600 text-white"
+                />
+              ) : value ? (
                 href ? (
                   <a href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                     className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">
@@ -405,7 +500,7 @@ export default function ClientesActivosPage() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedClient(null)} className="rounded-xl">
+                  <Button variant="ghost" size="sm" onClick={() => { setSelectedClient(null); setIsEditing(false); setEditForm(null) }} className="rounded-xl">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -444,47 +539,92 @@ export default function ClientesActivosPage() {
                 ) : (
                   <>
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                        Información
-                      </h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Información
+                        </h3>
+                        {!isEditing && (
+                          <Button variant="ghost" size="sm" onClick={() => startEditing(client)}
+                            className="text-xs text-gray-400 hover:text-white">
+                            <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+                          </Button>
+                        )}
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <InfoField icon={Building2} iconColor="text-green-500" label="Empresa" value={client.name} />
-                        <InfoField icon={Hash} iconColor="text-gray-500" label="Código Cliente" value={cf.codigo_cliente} />
-                        <InfoField icon={MapPin} iconColor="text-red-500" label="Dirección" value={client.billing_address?.street} />
-                        <InfoField icon={MapPin} iconColor="text-orange-400" label="Población" value={client.billing_address?.city} />
-                        <InfoField icon={MapPin} iconColor="text-blue-400" label="C.P." value={client.billing_address?.postal_code} />
-                        <InfoField icon={MapPin} iconColor="text-indigo-400" label="Provincia" value={client.billing_address?.state} />
-                        <InfoField icon={Building2} iconColor="text-purple-500" label="NIF/CIF" value={client.vat_number} />
-                        <InfoField icon={User} iconColor="text-cyan-500" label="Persona Contacto" value={cf.contacto} />
-                        <InfoField icon={Phone} iconColor="text-green-500" label="Teléfono" value={client.phone} href={client.phone ? `tel:${client.phone}` : undefined} />
-                        <InfoField icon={Phone} iconColor="text-green-400" label="Móvil" value={cf.telefono_2} href={cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} />
-                        <InfoField icon={Calendar} iconColor="text-amber-500" label="Última Compra" value={cf.ultima_compra} />
-                        <InfoField icon={CreditCard} iconColor="text-indigo-500" label="Forma de Pago" value={cf.forma_pago} />
-                        <InfoField icon={Mail} iconColor="text-blue-500" label="Email" value={client.email} href={client.email ? `mailto:${client.email}` : undefined} />
-                        <InfoField icon={Mail} iconColor="text-blue-400" label="Email 2" value={cf.email_2} href={cf.email_2 ? `mailto:${cf.email_2}` : undefined} />
-                        {cf.email_3 && <InfoField icon={Mail} iconColor="text-blue-300" label="Email 3" value={cf.email_3} href={`mailto:${cf.email_3}`} />}
-                        {cf.email_4 && <InfoField icon={Mail} iconColor="text-blue-300" label="Email 4" value={cf.email_4} href={`mailto:${cf.email_4}`} />}
-                        {cf.email_5 && <InfoField icon={Mail} iconColor="text-blue-200" label="Email 5" value={cf.email_5} href={`mailto:${cf.email_5}`} />}
+                        <InfoField icon={Building2} iconColor="text-green-500" label="Empresa" value={client.name} field="name" />
+                        <InfoField icon={Hash} iconColor="text-gray-500" label="Código Cliente" value={cf.codigo_cliente} field="codigo_cliente" />
+                        <InfoField icon={MapPin} iconColor="text-red-500" label="Dirección" value={client.billing_address?.street} field="street" />
+                        <InfoField icon={MapPin} iconColor="text-orange-400" label="Población" value={client.billing_address?.city} field="city" />
+                        <InfoField icon={MapPin} iconColor="text-blue-400" label="C.P." value={client.billing_address?.postal_code} field="postal_code" />
+                        <InfoField icon={MapPin} iconColor="text-indigo-400" label="Provincia" value={client.billing_address?.state} field="province" />
+                        <InfoField icon={Building2} iconColor="text-purple-500" label="NIF/CIF" value={client.vat_number} field="vat_number" />
+                        <InfoField icon={User} iconColor="text-cyan-500" label="Persona Contacto" value={cf.contacto} field="contacto" />
+                        <InfoField icon={Phone} iconColor="text-green-500" label="Teléfono" value={client.phone} field="phone"
+                          href={!isEditing && client.phone ? `tel:${client.phone}` : undefined} />
+                        <InfoField icon={Phone} iconColor="text-green-400" label="Móvil" value={cf.telefono_2} field="telefono_2"
+                          href={!isEditing && cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} />
+                        <InfoField icon={Calendar} iconColor="text-amber-500" label="Última Compra" value={cf.ultima_compra} field="ultima_compra" />
+                        <InfoField icon={CreditCard} iconColor="text-indigo-500" label="Forma de Pago" value={cf.forma_pago} field="forma_pago" />
+                        <InfoField icon={Mail} iconColor="text-blue-500" label="Email" value={client.email} field="email"
+                          href={!isEditing && client.email ? `mailto:${client.email}` : undefined} />
+                        <InfoField icon={Mail} iconColor="text-blue-400" label="Email 2" value={cf.email_2} field="email_2"
+                          href={!isEditing && cf.email_2 ? `mailto:${cf.email_2}` : undefined} />
+                        <InfoField icon={Mail} iconColor="text-blue-300" label="Email 3" value={cf.email_3} field="email_3"
+                          href={!isEditing && cf.email_3 ? `mailto:${cf.email_3}` : undefined} />
+                        <InfoField icon={Mail} iconColor="text-blue-300" label="Email 4" value={cf.email_4} field="email_4"
+                          href={!isEditing && cf.email_4 ? `mailto:${cf.email_4}` : undefined} />
+                        <InfoField icon={Mail} iconColor="text-blue-200" label="Email 5" value={cf.email_5} field="email_5"
+                          href={!isEditing && cf.email_5 ? `mailto:${cf.email_5}` : undefined} />
                       </div>
                     </div>
 
-                    {client.description && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Notas</h3>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">{client.description}</p>
-                      </div>
-                    )}
+                    {/* Notes - editable */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Notas</h3>
+                      {isEditing && editForm ? (
+                        <textarea
+                          value={editForm.description}
+                          onChange={(e) => updateField('description', e.target.value)}
+                          rows={3}
+                          className="w-full text-sm rounded-xl p-3 bg-white/10 border border-gray-600 text-white resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
+                          {client.description || 'Sin notas'}
+                        </p>
+                      )}
+                    </div>
 
                     <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <Button variant="outline" onClick={() => handleDelete(client.id)} disabled={deletingId === client.id}
-                        className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
-                        {deletingId === client.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                        Eliminar
-                      </Button>
-                      <Button variant="outline" onClick={() => setSelectedClient(null)}
-                        className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
-                        Cerrar
-                      </Button>
+                      {isEditing ? (
+                        <>
+                          <Button onClick={handleSave} disabled={saving}
+                            className="rounded-xl bg-green-600 hover:bg-green-700 text-white">
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                            Guardar
+                          </Button>
+                          <Button variant="outline" onClick={() => { setIsEditing(false); setEditForm(null) }}
+                            className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                            Cancelar
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button variant="outline" onClick={() => startEditing(client)}
+                            className="rounded-xl border-green-200 text-green-600 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/20">
+                            <Pencil className="h-4 w-4 mr-2" /> Editar
+                          </Button>
+                          <Button variant="outline" onClick={() => handleDelete(client.id)} disabled={deletingId === client.id}
+                            className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                            {deletingId === client.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                            Eliminar
+                          </Button>
+                          <Button variant="outline" onClick={() => setSelectedClient(null)}
+                            className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                            Cerrar
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
