@@ -160,16 +160,58 @@ export default function ImportPage() {
       const reader = new FileReader()
       reader.onload = (e) => {
         const data = new Uint8Array(e.target?.result as ArrayBuffer)
-        const workbook = XLSX.read(data, { type: 'array' })
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true })
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' }) as Record<string, string>[]
-        const stringRows = rows.map(row => {
-          const newRow: Record<string, string> = {}
-          for (const [key, value] of Object.entries(row)) {
-            newRow[key] = String(value ?? '')
+
+        // Smart header detection: find the row with the most non-empty cells
+        // This handles Excel files with title/legend rows before the actual headers
+        const rawRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as any[][]
+        let headerRowIdx = 0
+        let maxNonEmpty = 0
+
+        for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+          const row = rawRows[i] || []
+          const nonEmpty = row.filter((cell: any) => cell != null && String(cell).trim() !== '').length
+          if (nonEmpty > maxNonEmpty) {
+            maxNonEmpty = nonEmpty
+            headerRowIdx = i
           }
-          return newRow
+        }
+
+        // Use detected header row
+        const headers = (rawRows[headerRowIdx] || []).map((h: any, idx: number) => {
+          const val = String(h ?? '').trim()
+          return val || `Columna_${idx + 1}`
         })
+
+        // Handle duplicate header names (e.g., two "TELÉFONO" columns)
+        const headerCounts: Record<string, number> = {}
+        const uniqueHeaders = headers.map((h: string) => {
+          if (headerCounts[h] != null) {
+            headerCounts[h]++
+            return `${h} ${headerCounts[h]}`
+          }
+          headerCounts[h] = 1
+          return h
+        })
+
+        // Build data rows from after header
+        const dataRows = rawRows.slice(headerRowIdx + 1)
+        const stringRows: Record<string, string>[] = dataRows
+          .filter(row => row.some((cell: any) => cell != null && String(cell).trim() !== ''))
+          .map(row => {
+            const obj: Record<string, string> = {}
+            uniqueHeaders.forEach((header: string, idx: number) => {
+              let val = row[idx]
+              // Convert Date objects to locale string
+              if (val instanceof Date) {
+                val = val.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              }
+              obj[header] = String(val ?? '')
+            })
+            return obj
+          })
+
         processFileData(stringRows, uploadedFile.name)
       }
       reader.onerror = () => {
