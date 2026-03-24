@@ -256,9 +256,7 @@ export default function LeadsPage() {
 
                   {/* Company name */}
                   <div className="col-span-3 flex items-center gap-3 min-w-0" onClick={() => setSelectedLead(lead)}>
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 ${
-                      tagInfo ? tagInfo.bg : 'bg-gradient-to-br from-orange-500 to-red-600'
-                    }`}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 bg-gray-600">
                       {lead.name[0]}
                     </div>
                     <p className="text-sm font-medium text-white truncate group-hover:text-orange-400 transition-colors">{lead.name}</p>
@@ -333,9 +331,7 @@ export default function LeadsPage() {
               <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg ${
-                      tagInfo ? tagInfo.bg : 'bg-gradient-to-br from-orange-500 to-red-600'
-                    }`}>
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg bg-gray-600">
                       {lead.name[0]}
                     </div>
                     <div>
