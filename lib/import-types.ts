@@ -2,7 +2,30 @@
 
 export type ImportEntityType = 'contactos' | 'empresas' | 'facturas_pagadas' | 'facturas_pendientes'
 
-export type ImportStep = 'upload' | 'entity_type' | 'mapping' | 'preview' | 'complete'
+export type ImportStep = 'upload' | 'entity_type' | 'mapping' | 'config' | 'preview' | 'complete'
+
+// Estrategia de duplicados
+export type DuplicateStrategy = 'skip' | 'update' | 'import_anyway'
+export type DuplicateDetection = 'nif' | 'name' | 'email'
+export type DefaultAccountType = 'customer' | 'prospect' | 'lead'
+
+export interface ImportConfig {
+  duplicateStrategy: DuplicateStrategy
+  duplicateDetection: DuplicateDetection
+  defaultAccountType: DefaultAccountType
+}
+
+// Progreso de importación en tiempo real
+export interface ImportProgress {
+  current: number
+  total: number
+  inserted: number
+  updated: number
+  skipped: number
+  failed: number
+  isRunning: boolean
+  failedRows: { row: number; data: Record<string, string>; error: string }[]
+}
 
 export interface ColumnMapping {
   sourceColumn: string
@@ -48,10 +71,12 @@ export interface ValidationError {
 
 export interface ImportResult {
   totalRows: number
-  importedRows: number
+  insertedRows: number
+  updatedRows: number
   skippedRows: number
   failedRows: number
   errors: ValidationError[]
+  failedRowsData: { row: number; data: Record<string, string>; error: string }[]
 }
 
 // Entidades

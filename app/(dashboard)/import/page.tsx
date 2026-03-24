@@ -7,12 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import {
   Upload, FileSpreadsheet, Building2, Users, CheckCircle, AlertCircle,
   ChevronRight, ArrowLeft, Save, FolderOpen, Trash2, Database,
-  FileText, Receipt, ReceiptText, X, Info
+  FileText, Receipt, ReceiptText, X, Info, Settings, Download, Loader2
 } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 import type {
-  ImportStep, ImportEntityType, ColumnMapping, ValidationError, ImportResult
+  ImportStep, ImportEntityType, ColumnMapping, ValidationError, ImportResult,
+  ImportConfig, ImportProgress, DuplicateStrategy, DuplicateDetection, DefaultAccountType
 } from '@/lib/import-types'
 import { getFieldsForEntityType, getEntityTypeLabel } from '@/lib/import-fields'
 import { autoMapColumns, getUnmappedRequiredFields } from '@/lib/import-matcher'
@@ -22,6 +23,9 @@ import {
   applyProfile, incrementProfileUsage
 } from '@/lib/import-profiles'
 import type { ImportProfile } from '@/lib/import-types'
+import { cleanRow } from '@/lib/import-cleaners'
+import { importCompaniesBatch, importContactsBatch, countDuplicates } from '@/lib/actions/import'
+import { useWorkspace } from '@/lib/context/workspace-context'
 
 // ==========================================
 // Componentes del Wizard
@@ -59,6 +63,8 @@ function StepIndicator({ currentStep, steps }: { currentStep: ImportStep, steps:
 // ==========================================
 
 export default function ImportPage() {
+  const { workspaceId } = useWorkspace()
+
   // Estado del wizard
   const [step, setStep] = useState<ImportStep>('upload')
   const [file, setFile] = useState<File | null>(null)
@@ -72,6 +78,21 @@ export default function ImportPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Config de importación
+  const [importConfig, setImportConfig] = useState<ImportConfig>({
+    duplicateStrategy: 'skip',
+    duplicateDetection: 'nif',
+    defaultAccountType: 'customer',
+  })
+  const [duplicateCount, setDuplicateCount] = useState<number | null>(null)
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false)
+
+  // Progreso de importación
+  const [importProgress, setImportProgress] = useState<ImportProgress>({
+    current: 0, total: 0, inserted: 0, updated: 0, skipped: 0, failed: 0,
+    isRunning: false, failedRows: []
+  })
 
   // Perfiles
   const [matchingProfiles, setMatchingProfiles] = useState<ImportProfile[]>([])
@@ -91,6 +112,7 @@ export default function ImportPage() {
     { key: 'upload', label: 'Subir archivo' },
     { key: 'entity_type', label: 'Tipo de datos' },
     { key: 'mapping', label: 'Mapeo de columnas' },
+    { key: 'config', label: 'Configuración' },
     { key: 'preview', label: 'Vista previa' },
     { key: 'complete', label: 'Resultado' },
   ]
@@ -112,7 +134,6 @@ export default function ImportPage() {
     setStep('entity_type')
     setIsProcessing(false)
 
-    // Buscar perfiles que coincidan
     const profiles = findMatchingProfiles(columns)
     setMatchingProfiles(profiles)
   }, [])
@@ -142,7 +163,6 @@ export default function ImportPage() {
         const workbook = XLSX.read(data, { type: 'array' })
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' }) as Record<string, string>[]
-        // Convertir todos los valores a string
         const stringRows = rows.map(row => {
           const newRow: Record<string, string> = {}
           for (const [key, value] of Object.entries(row)) {
@@ -181,7 +201,6 @@ export default function ImportPage() {
             })
             processFileData(stringRows, uploadedFile.name)
           } else {
-            // Múltiples tablas: dejar elegir
             setAccessTables(tables)
             setFile(uploadedFile)
             setFileName(uploadedFile.name)
@@ -258,14 +277,19 @@ export default function ImportPage() {
 
   const handleEntityTypeSelect = useCallback((type: ImportEntityType) => {
     setEntityType(type)
-    // Auto-mapeo
     const autoMappings = autoMapColumns(sourceColumns, rawData, type)
     setMappings(autoMappings)
     setStep('mapping')
 
-    // Buscar perfiles coincidentes para este tipo
     const profiles = findMatchingProfiles(sourceColumns, type)
     setMatchingProfiles(profiles)
+
+    // Configurar detección de duplicados por defecto según tipo
+    if (type === 'empresas') {
+      setImportConfig(prev => ({ ...prev, duplicateDetection: 'nif' }))
+    } else if (type === 'contactos') {
+      setImportConfig(prev => ({ ...prev, duplicateDetection: 'email' }))
+    }
   }, [sourceColumns, rawData])
 
   // ==========================================
@@ -303,6 +327,57 @@ export default function ImportPage() {
   }, [])
 
   // ==========================================
+  // Ir a configuración
+  // ==========================================
+
+  const handleGoToConfig = useCallback(() => {
+    setStep('config')
+    setDuplicateCount(null)
+  }, [])
+
+  // ==========================================
+  // Comprobar duplicados
+  // ==========================================
+
+  const handleCheckDuplicates = useCallback(async () => {
+    if (!entityType || !workspaceId) return
+    setIsCheckingDuplicates(true)
+
+    try {
+      // Extraer valores para detección
+      const detection = importConfig.duplicateDetection
+      let fieldKey = ''
+      if (entityType === 'empresas') {
+        fieldKey = detection === 'nif' ? 'vat_number' : detection === 'email' ? 'email' : 'name'
+      } else {
+        fieldKey = detection === 'email' ? 'email' : 'first_name'
+      }
+
+      const mapping = mappings.find(m => m.targetField === fieldKey)
+      if (!mapping) {
+        setDuplicateCount(0)
+        setIsCheckingDuplicates(false)
+        return
+      }
+
+      const values = rawData
+        .map(row => row[mapping.sourceColumn]?.trim())
+        .filter(Boolean)
+
+      const count = await countDuplicates(
+        workspaceId,
+        entityType as 'contactos' | 'empresas',
+        detection,
+        values as string[]
+      )
+      setDuplicateCount(count)
+    } catch {
+      setDuplicateCount(0)
+    }
+    setIsCheckingDuplicates(false)
+  }, [entityType, workspaceId, importConfig.duplicateDetection, mappings, rawData])
+
+  // ==========================================
   // Validación y preview
   // ==========================================
 
@@ -314,60 +389,128 @@ export default function ImportPage() {
   }, [rawData, mappings, entityType])
 
   // ==========================================
-  // Importación
+  // Importación REAL con batches
   // ==========================================
 
-  const handleImport = useCallback(() => {
-    const activeMappings = mappings.filter(m => m.targetField && m.targetField !== '__custom__')
-    const customMappings = mappings.filter(m => m.targetField === '__custom__')
-    const errorRows = new Set(validationErrors.filter(e => e.row >= 0 && e.severity === 'error').map(e => e.row))
+  const handleImport = useCallback(async () => {
+    if (!entityType || !workspaceId) return
 
-    let imported = 0
-    let skipped = 0
-    let failed = 0
+    const activeMappings = mappings.filter(m => m.targetField && m.targetField !== '__custom__')
+    const errorRows = new Set(validationErrors.filter(e => e.row >= 0 && e.severity === 'error').map(e => e.row))
+    const fields = getFieldsForEntityType(entityType)
+
+    // Preparar filas limpias
+    const cleanedRows: { index: number; data: any; rawData: Record<string, string> }[] = []
 
     for (let i = 0; i < rawData.length; i++) {
-      if (errorRows.has(i)) {
-        failed++
+      if (errorRows.has(i)) continue
+      const { data, customFields } = cleanRow(rawData[i], mappings, fields)
+
+      // Verificar que al menos el campo principal tiene valor
+      const hasData = Object.values(data).some(v => v != null && v !== '')
+      if (!hasData) continue
+
+      if (Object.keys(customFields).length > 0) {
+        data.custom_fields = customFields
+      }
+
+      cleanedRows.push({ index: i, data, rawData: rawData[i] })
+    }
+
+    // Iniciar progreso
+    const BATCH_SIZE = 50
+    const totalBatches = Math.ceil(cleanedRows.length / BATCH_SIZE)
+
+    setImportProgress({
+      current: 0,
+      total: cleanedRows.length,
+      inserted: 0, updated: 0, skipped: 0, failed: 0,
+      isRunning: true, failedRows: []
+    })
+    setStep('complete')
+
+    let totalInserted = 0, totalUpdated = 0, totalSkipped = 0, totalFailed = 0
+    const allFailedRows: { row: number; data: Record<string, string>; error: string }[] = []
+
+    // Procesar en batches
+    for (let batch = 0; batch < totalBatches; batch++) {
+      const start = batch * BATCH_SIZE
+      const end = Math.min(start + BATCH_SIZE, cleanedRows.length)
+      const batchRows = cleanedRows.slice(start, end)
+
+      let batchResult
+
+      if (entityType === 'empresas') {
+        batchResult = await importCompaniesBatch(workspaceId, batchRows, importConfig)
+      } else if (entityType === 'contactos') {
+        batchResult = await importContactsBatch(workspaceId, batchRows, importConfig)
+      } else {
+        // facturas - por ahora skip
         continue
       }
 
-      const row = rawData[i]
-      const mappedRow: Record<string, string> = {}
-
-      for (const mapping of activeMappings) {
-        if (mapping.targetField) {
-          mappedRow[mapping.targetField] = row[mapping.sourceColumn] || ''
-        }
+      if (batchResult) {
+        totalInserted += batchResult.inserted
+        totalUpdated += batchResult.updated
+        totalSkipped += batchResult.skipped
+        totalFailed += batchResult.failed
+        allFailedRows.push(...batchResult.failedRows)
       }
 
-      // Campos personalizados
-      if (customMappings.length > 0) {
-        const customFields: Record<string, string> = {}
-        for (const mapping of customMappings) {
-          customFields[mapping.sourceColumn] = row[mapping.sourceColumn] || ''
-        }
-        mappedRow['custom_fields'] = JSON.stringify(customFields)
-      }
-
-      // Verificar que al menos un campo tiene valor
-      const hasData = Object.values(mappedRow).some(v => v && v.trim() && v !== '{}')
-      if (hasData) {
-        imported++
-      } else {
-        skipped++
-      }
+      setImportProgress({
+        current: end,
+        total: cleanedRows.length,
+        inserted: totalInserted,
+        updated: totalUpdated,
+        skipped: totalSkipped,
+        failed: totalFailed,
+        isRunning: batch < totalBatches - 1,
+        failedRows: allFailedRows,
+      })
     }
 
+    // Resultado final
     setImportResult({
       totalRows: rawData.length,
-      importedRows: imported,
-      skippedRows: skipped,
-      failedRows: failed,
+      insertedRows: totalInserted,
+      updatedRows: totalUpdated,
+      skippedRows: totalSkipped + errorRows.size,
+      failedRows: totalFailed,
       errors: validationErrors.filter(e => e.severity === 'error'),
+      failedRowsData: allFailedRows,
     })
-    setStep('complete')
-  }, [mappings, rawData, validationErrors])
+
+    setImportProgress(prev => ({ ...prev, isRunning: false }))
+  }, [entityType, workspaceId, mappings, rawData, validationErrors, importConfig])
+
+  // ==========================================
+  // Descargar CSV de errores
+  // ==========================================
+
+  const handleDownloadErrors = useCallback(() => {
+    if (!importResult?.failedRowsData?.length) return
+
+    const headers = Object.keys(importResult.failedRowsData[0].data)
+    const csvRows = [
+      [...headers, 'ERROR'].join(','),
+      ...importResult.failedRowsData.map(fr => {
+        const values = headers.map(h => {
+          const val = fr.data[h] || ''
+          // Escapar comillas y valores con comas
+          return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val
+        })
+        return [...values, `"${fr.error.replace(/"/g, '""')}"`].join(',')
+      })
+    ]
+
+    const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `errores-importacion-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }, [importResult])
 
   // ==========================================
   // Reset
@@ -388,6 +531,9 @@ export default function ImportPage() {
     setMatchingProfiles([])
     setShowSaveProfile(false)
     setProfileName('')
+    setImportProgress({ current: 0, total: 0, inserted: 0, updated: 0, skipped: 0, failed: 0, isRunning: false, failedRows: [] })
+    setDuplicateCount(null)
+    setImportConfig({ duplicateStrategy: 'skip', duplicateDetection: 'nif', defaultAccountType: 'customer' })
   }, [])
 
   // ==========================================
@@ -423,7 +569,6 @@ export default function ImportPage() {
           </CardHeader>
           <CardContent>
             {accessTables.length > 0 ? (
-              // Selector de tabla Access
               <div className="space-y-4">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   El archivo Access contiene {accessTables.length} tablas. Selecciona cuál importar:
@@ -447,7 +592,6 @@ export default function ImportPage() {
                 </Button>
               </div>
             ) : (
-              // Zona de drag & drop
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -487,7 +631,7 @@ export default function ImportPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">
-                ¿Qué tipo de datos contiene "{fileName}"?
+                ¿Qué tipo de datos contiene &quot;{fileName}&quot;?
               </CardTitle>
               <CardDescription className="text-gray-500 dark:text-gray-400">
                 {rawData.length} filas detectadas con {sourceColumns.length} columnas
@@ -574,7 +718,6 @@ export default function ImportPage() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  {/* Cargar perfil */}
                   {savedProfiles.filter(p => p.entityType === entityType).length > 0 && (
                     <div className="relative group">
                       <Button variant="outline" size="sm" className="rounded-lg dark:border-gray-700 dark:text-gray-300">
@@ -601,7 +744,6 @@ export default function ImportPage() {
                       </div>
                     </div>
                   )}
-                  {/* Guardar perfil */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -615,7 +757,6 @@ export default function ImportPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {/* Guardar perfil inline */}
               {showSaveProfile && (
                 <div className="flex gap-2 mb-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
                   <input
@@ -635,7 +776,6 @@ export default function ImportPage() {
                 </div>
               )}
 
-              {/* Campos obligatorios sin mapear */}
               {unmappedRequired.length > 0 && (
                 <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
                   <p className="text-sm text-red-300 font-medium">
@@ -644,7 +784,6 @@ export default function ImportPage() {
                 </div>
               )}
 
-              {/* Tabla de mapeo */}
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-800/50">
@@ -683,7 +822,7 @@ export default function ImportPage() {
                                 'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
                               }`}
                             >
-                              <option value="">— Omitir —</option>
+                              <option value="">— No importar —</option>
                               {fields.map(field => (
                                 <option key={field.key} value={field.key}>
                                   {field.label} {field.required ? '*' : ''}
@@ -717,11 +856,11 @@ export default function ImportPage() {
 
               <div className="flex gap-3 mt-6">
                 <Button
-                  onClick={handleGoToPreview}
+                  onClick={handleGoToConfig}
                   className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
                   disabled={unmappedRequired.length > 0}
                 >
-                  Continuar a Vista Previa
+                  Continuar a Configuración
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
                 <Button variant="outline" onClick={() => setStep('entity_type')} className="rounded-xl dark:border-gray-700 dark:text-gray-300">
@@ -735,12 +874,177 @@ export default function ImportPage() {
       )}
 
       {/* ==========================================
-          PASO 4: VISTA PREVIA Y VALIDACIÓN
+          PASO 4: CONFIGURACIÓN
+          ========================================== */}
+      {step === 'config' && entityType && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Configuración de Importación
+              </CardTitle>
+              <CardDescription className="text-gray-500 dark:text-gray-400">
+                Configura cómo manejar duplicados y valores por defecto
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Detección de duplicados */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  Detección de duplicados
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  ¿Cómo detectar si un registro ya existe en el CRM?
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(entityType === 'empresas' ? [
+                    { value: 'nif' as const, label: 'Por NIF/CIF', desc: 'Recomendado si tienes NIF' },
+                    { value: 'name' as const, label: 'Por Razón Social', desc: 'Si no tienes NIF' },
+                    { value: 'email' as const, label: 'Por Email', desc: 'Si tienes email de empresa' },
+                  ] : [
+                    { value: 'email' as const, label: 'Por Email', desc: 'Recomendado' },
+                    { value: 'name' as const, label: 'Por Nombre', desc: 'Nombre + Apellido' },
+                  ]).map(opt => {
+                    // Check if the relevant field is mapped
+                    const isMapped = opt.value === 'nif'
+                      ? mappings.some(m => m.targetField === 'vat_number')
+                      : opt.value === 'email'
+                      ? mappings.some(m => m.targetField === 'email')
+                      : true
+
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setImportConfig(prev => ({ ...prev, duplicateDetection: opt.value }))
+                          setDuplicateCount(null)
+                        }}
+                        disabled={!isMapped}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          importConfig.duplicateDetection === opt.value
+                            ? 'border-blue-500 bg-blue-500/10'
+                            : !isMapped
+                            ? 'border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-500/50'
+                        }`}
+                      >
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{opt.label}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{opt.desc}</div>
+                        {!isMapped && (
+                          <div className="text-xs text-red-400 mt-1">Campo no mapeado</div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Comprobar duplicados */}
+                <div className="mt-3 flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg dark:border-gray-700 dark:text-gray-300"
+                    onClick={handleCheckDuplicates}
+                    disabled={isCheckingDuplicates}
+                  >
+                    {isCheckingDuplicates ? (
+                      <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Comprobando...</>
+                    ) : (
+                      'Comprobar duplicados'
+                    )}
+                  </Button>
+                  {duplicateCount !== null && (
+                    <span className={`text-sm ${duplicateCount > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                      {duplicateCount === 0 ? 'No se encontraron duplicados' : `${duplicateCount} posibles duplicados encontrados`}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Estrategia de duplicados */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  ¿Qué hacer con los duplicados?
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {([
+                    { value: 'skip' as const, label: 'Saltar duplicados', desc: 'No modificar los que ya existen', color: 'yellow' },
+                    { value: 'update' as const, label: 'Actualizar datos', desc: 'Sobreescribir con los nuevos datos', color: 'blue' },
+                    { value: 'import_anyway' as const, label: 'Importar igualmente', desc: 'Crear nuevos registros siempre', color: 'red' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setImportConfig(prev => ({ ...prev, duplicateStrategy: opt.value }))}
+                      className={`p-4 rounded-xl border text-left transition-all ${
+                        importConfig.duplicateStrategy === opt.value
+                          ? `border-${opt.color}-500 bg-${opt.color}-500/10`
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'
+                      }`}
+                    >
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{opt.label}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tipo por defecto (solo empresas) */}
+              {entityType === 'empresas' && !mappings.some(m => m.targetField === 'account_type') && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Tipo por defecto
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    No has mapeado la columna &quot;Tipo&quot;. ¿Qué tipo asignar a todos los registros?
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {([
+                      { value: 'customer' as const, label: 'Cliente' },
+                      { value: 'prospect' as const, label: 'Potencial' },
+                      { value: 'lead' as const, label: 'Lead' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setImportConfig(prev => ({ ...prev, defaultAccountType: opt.value }))}
+                        className={`p-3 rounded-xl border text-center transition-all ${
+                          importConfig.defaultAccountType === opt.value
+                            ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        <div className="text-sm font-medium">{opt.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleGoToPreview}
+                  className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                >
+                  Continuar a Vista Previa
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+                <Button variant="outline" onClick={() => setStep('mapping')} className="rounded-xl dark:border-gray-700 dark:text-gray-300">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Volver
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* ==========================================
+          PASO 5: VISTA PREVIA Y VALIDACIÓN
           ========================================== */}
       {step === 'preview' && entityType && (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-3">
@@ -755,10 +1059,21 @@ export default function ImportPage() {
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center gap-3">
+                  <CheckCircle className="h-8 w-8 text-green-500" />
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{rawData.length - summary.rowsWithErrors}</div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Válidos</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
                   <AlertCircle className="h-8 w-8 text-red-500" />
                   <div>
                     <div className="text-2xl font-bold text-gray-900 dark:text-white">{summary.rowsWithErrors}</div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Filas con errores</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Con errores</p>
                   </div>
                 </div>
               </CardContent>
@@ -776,17 +1091,42 @@ export default function ImportPage() {
             </Card>
           </div>
 
+          {/* Config summary */}
+          <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300 flex-wrap">
+              <span>
+                <strong>Duplicados:</strong>{' '}
+                {importConfig.duplicateStrategy === 'skip' ? 'Saltar' :
+                 importConfig.duplicateStrategy === 'update' ? 'Actualizar' : 'Importar igualmente'}
+                {' '}(por {importConfig.duplicateDetection === 'nif' ? 'NIF/CIF' :
+                importConfig.duplicateDetection === 'email' ? 'Email' : 'Nombre'})
+              </span>
+              {entityType === 'empresas' && !mappings.some(m => m.targetField === 'account_type') && (
+                <span>
+                  <strong>Tipo:</strong>{' '}
+                  {importConfig.defaultAccountType === 'customer' ? 'Cliente' :
+                   importConfig.defaultAccountType === 'prospect' ? 'Potencial' : 'Lead'}
+                </span>
+              )}
+              {duplicateCount !== null && duplicateCount > 0 && (
+                <Badge className="bg-yellow-500/20 text-yellow-300 rounded-full">
+                  {duplicateCount} duplicados
+                </Badge>
+              )}
+            </div>
+          </div>
+
           {/* Errores globales */}
           {summary.globalErrors.length > 0 && (
             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
               <p className="text-sm text-red-300 font-medium mb-2">Errores de configuración:</p>
               {summary.globalErrors.map((error, i) => (
-                <p key={i} className="text-sm text-red-300/80 ml-4">• {error.message}</p>
+                <p key={i} className="text-sm text-red-300/80 ml-4">- {error.message}</p>
               ))}
             </div>
           )}
 
-          {/* Errores por fila (resumen) */}
+          {/* Errores por fila */}
           {summary.totalErrors > 0 && (
             <Card>
               <CardHeader>
@@ -798,7 +1138,7 @@ export default function ImportPage() {
                     <div key={i} className={`text-xs px-3 py-1.5 rounded ${
                       error.severity === 'error' ? 'bg-red-500/10 text-red-300' : 'bg-yellow-500/10 text-yellow-300'
                     }`}>
-                      Fila {error.row + 1} → {error.message}
+                      Fila {error.row + 1} &rarr; {error.message}
                     </div>
                   ))}
                   {validationErrors.filter(e => e.row >= 0).length > 20 && (
@@ -811,12 +1151,12 @@ export default function ImportPage() {
             </Card>
           )}
 
-          {/* Tabla de preview con datos mapeados */}
+          {/* Tabla de preview */}
           <Card>
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">Vista Previa de Datos Mapeados</CardTitle>
               <CardDescription className="text-gray-500 dark:text-gray-400">
-                Mostrando las primeras {Math.min(rawData.length, 15)} filas con los campos mapeados
+                Mostrando las primeras {Math.min(rawData.length, 10)} filas con los campos mapeados
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -836,7 +1176,7 @@ export default function ImportPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
-                    {rawData.slice(0, 15).map((row, rowIdx) => {
+                    {rawData.slice(0, 10).map((row, rowIdx) => {
                       const rowErrors = validationErrors.filter(e => e.row === rowIdx)
                       const hasError = rowErrors.some(e => e.severity === 'error')
                       const hasWarning = rowErrors.some(e => e.severity === 'warning')
@@ -875,9 +1215,9 @@ export default function ImportPage() {
                     })}
                   </tbody>
                 </table>
-                {rawData.length > 15 && (
+                {rawData.length > 10 && (
                   <div className="mt-3 text-center text-xs text-gray-500">
-                    Mostrando 15 de {rawData.length} filas
+                    Mostrando 10 de {rawData.length} filas
                   </div>
                 )}
               </div>
@@ -886,14 +1226,14 @@ export default function ImportPage() {
                 <Button
                   onClick={handleImport}
                   className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
-                  disabled={summary.hasBlockingErrors}
+                  disabled={summary.hasBlockingErrors || rawData.length - summary.rowsWithErrors === 0}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Importar {rawData.length - summary.rowsWithErrors} registros
+                  Confirmar e importar {rawData.length - summary.rowsWithErrors} registros
                 </Button>
-                <Button variant="outline" onClick={() => setStep('mapping')} className="rounded-xl dark:border-gray-700 dark:text-gray-300">
+                <Button variant="outline" onClick={() => setStep('config')} className="rounded-xl dark:border-gray-700 dark:text-gray-300">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Ajustar Mapeo
+                  Ajustar Configuración
                 </Button>
               </div>
 
@@ -910,58 +1250,111 @@ export default function ImportPage() {
       )}
 
       {/* ==========================================
-          PASO 5: RESULTADO
+          PASO 6: RESULTADO
           ========================================== */}
-      {step === 'complete' && importResult && entityType && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Importación Completada</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              {getEntityTypeLabel(entityType)} procesados desde "{fileName}"
-            </p>
+      {step === 'complete' && entityType && (
+        <>
+          {/* Barra de progreso durante importación */}
+          {importProgress.isRunning && (
+            <Card>
+              <CardContent className="p-8">
+                <div className="text-center mb-4">
+                  <Loader2 className="h-10 w-10 text-blue-500 mx-auto animate-spin mb-3" />
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Importando datos...</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Procesando {importProgress.current} de {importProgress.total} registros
+                  </p>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto mb-8">
-              <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30">
-                <div className="text-2xl font-bold text-green-400">{importResult.importedRows}</div>
-                <div className="text-xs text-green-300/70">Importados</div>
-              </div>
-              <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
-                <div className="text-2xl font-bold text-yellow-400">{importResult.skippedRows}</div>
-                <div className="text-xs text-yellow-300/70">Omitidos</div>
-              </div>
-              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-                <div className="text-2xl font-bold text-red-400">{importResult.failedRows}</div>
-                <div className="text-xs text-red-300/70">Fallidos</div>
-              </div>
-            </div>
+                {/* Progress bar */}
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-4">
+                  <div
+                    className="bg-blue-500 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%` }}
+                  />
+                </div>
 
-            <div className="flex gap-3 justify-center flex-wrap">
-              {(entityType === 'contactos') && (
-                <Button onClick={() => window.location.href = '/contacts'} className="rounded-xl">
-                  Ver Contactos
-                </Button>
-              )}
-              {(entityType === 'empresas') && (
-                <Button onClick={() => window.location.href = '/companies'} className="rounded-xl">
-                  Ver Empresas
-                </Button>
-              )}
-              {(entityType === 'facturas_pagadas' || entityType === 'facturas_pendientes') && (
-                <Button onClick={() => window.location.href = '/dashboard'} className="rounded-xl">
-                  Ver Dashboard
-                </Button>
-              )}
-              <Button onClick={resetWizard} variant="outline" className="rounded-xl dark:border-gray-700 dark:text-gray-300">
-                Importar Más
-              </Button>
-            </div>
+                <div className="grid grid-cols-4 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-bold text-green-400">{importProgress.inserted}</div>
+                    <div className="text-xs text-gray-500">Insertados</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-blue-400">{importProgress.updated}</div>
+                    <div className="text-xs text-gray-500">Actualizados</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-yellow-400">{importProgress.skipped}</div>
+                    <div className="text-xs text-gray-500">Saltados</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-red-400">{importProgress.failed}</div>
+                    <div className="text-xs text-gray-500">Fallidos</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-            <p className="text-xs text-gray-500 mt-6">
-              (Demo: los datos se procesaron localmente. Conecta Supabase para persistencia real.)
-            </p>
-          </CardContent>
-        </Card>
+          {/* Resultado final */}
+          {importResult && !importProgress.isRunning && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Importación Completada</h2>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">
+                  {getEntityTypeLabel(entityType)} procesados desde &quot;{fileName}&quot;
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
+                  <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30">
+                    <div className="text-2xl font-bold text-green-400">{importResult.insertedRows}</div>
+                    <div className="text-xs text-green-300/70">Insertados</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                    <div className="text-2xl font-bold text-blue-400">{importResult.updatedRows}</div>
+                    <div className="text-xs text-blue-300/70">Actualizados</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                    <div className="text-2xl font-bold text-yellow-400">{importResult.skippedRows}</div>
+                    <div className="text-xs text-yellow-300/70">Omitidos</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                    <div className="text-2xl font-bold text-red-400">{importResult.failedRows}</div>
+                    <div className="text-xs text-red-300/70">Fallidos</div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 justify-center flex-wrap">
+                  {entityType === 'contactos' && (
+                    <Button onClick={() => window.location.href = '/contacts'} className="rounded-xl">
+                      Ver Contactos
+                    </Button>
+                  )}
+                  {entityType === 'empresas' && (
+                    <Button onClick={() => window.location.href = '/companies'} className="rounded-xl">
+                      Ver Empresas
+                    </Button>
+                  )}
+                  {(entityType === 'facturas_pagadas' || entityType === 'facturas_pendientes') && (
+                    <Button onClick={() => window.location.href = '/dashboard'} className="rounded-xl">
+                      Ver Dashboard
+                    </Button>
+                  )}
+                  {importResult.failedRowsData.length > 0 && (
+                    <Button variant="outline" onClick={handleDownloadErrors} className="rounded-xl dark:border-gray-700 dark:text-gray-300">
+                      <Download className="h-4 w-4 mr-2" />
+                      Descargar errores ({importResult.failedRowsData.length})
+                    </Button>
+                  )}
+                  <Button onClick={resetWizard} variant="outline" className="rounded-xl dark:border-gray-700 dark:text-gray-300">
+                    Importar Más
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   )

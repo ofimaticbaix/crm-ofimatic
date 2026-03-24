@@ -13,22 +13,62 @@ function normalize(text: string): string {
     .trim()
 }
 
+// Quitar sufijos numéricos: "Teléfono 1" → "telefono", "Email 2" → "email"
+function stripNumericSuffix(text: string): string {
+  return text.replace(/\s+\d+$/, '').trim()
+}
+
+// Quitar prefijos/sufijos comunes: "Últ. Compra" → "compra", etc.
+function stripCommonPrefixes(text: string): string {
+  return text
+    .replace(/^(ult|ultimo|ultima|f|fecha)\s+/i, '')
+    .trim()
+}
+
 // ==========================================
 // CAPA 1: Match exacto por aliases (95%)
 // ==========================================
 function exactMatch(normalizedColumn: string, fields: FieldDefinition[]): { field: FieldDefinition, confidence: number } | null {
+  // Intentar match directo primero
   for (const field of fields) {
-    // Match directo con el key
     if (normalizedColumn === normalize(field.key)) {
       return { field, confidence: 95 }
     }
-    // Match directo con aliases
     for (const alias of field.aliases) {
       if (normalizedColumn === normalize(alias)) {
         return { field, confidence: 95 }
       }
     }
   }
+
+  // Intentar sin sufijo numérico: "Teléfono 1" → "telefono"
+  const withoutNumber = stripNumericSuffix(normalizedColumn)
+  if (withoutNumber !== normalizedColumn) {
+    for (const field of fields) {
+      if (withoutNumber === normalize(field.key)) {
+        return { field, confidence: 90 }
+      }
+      for (const alias of field.aliases) {
+        if (withoutNumber === normalize(alias)) {
+          return { field, confidence: 90 }
+        }
+      }
+    }
+  }
+
+  // Intentar compactado (sin espacios): "c p" → "cp", "nif cif" → "nifcif"
+  const compacted = normalizedColumn.replace(/\s/g, '')
+  if (compacted !== normalizedColumn) {
+    for (const field of fields) {
+      for (const alias of field.aliases) {
+        const compactedAlias = normalize(alias).replace(/\s/g, '')
+        if (compacted === compactedAlias && compacted.length >= 2) {
+          return { field, confidence: 90 }
+        }
+      }
+    }
+  }
+
   return null
 }
 
@@ -38,25 +78,32 @@ function exactMatch(normalizedColumn: string, fields: FieldDefinition[]): { fiel
 function substringMatch(normalizedColumn: string, fields: FieldDefinition[]): { field: FieldDefinition, confidence: number } | null {
   let bestMatch: { field: FieldDefinition, confidence: number } | null = null
 
-  for (const field of fields) {
-    for (const alias of field.aliases) {
-      const normalizedAlias = normalize(alias)
+  // También probar sin sufijo numérico
+  const variants = [normalizedColumn]
+  const withoutNumber = stripNumericSuffix(normalizedColumn)
+  if (withoutNumber !== normalizedColumn) variants.push(withoutNumber)
 
-      // El alias está contenido en la columna
-      if (normalizedColumn.includes(normalizedAlias) && normalizedAlias.length >= 3) {
-        const ratio = normalizedAlias.length / normalizedColumn.length
-        const confidence = Math.round(70 + (ratio * 15)) // 70-85
-        if (!bestMatch || confidence > bestMatch.confidence) {
-          bestMatch = { field, confidence }
+  for (const variant of variants) {
+    for (const field of fields) {
+      for (const alias of field.aliases) {
+        const normalizedAlias = normalize(alias)
+
+        // El alias está contenido en la columna
+        if (variant.includes(normalizedAlias) && normalizedAlias.length >= 3) {
+          const ratio = normalizedAlias.length / variant.length
+          const confidence = Math.round(70 + (ratio * 15)) // 70-85
+          if (!bestMatch || confidence > bestMatch.confidence) {
+            bestMatch = { field, confidence }
+          }
         }
-      }
 
-      // La columna está contenida en el alias
-      if (normalizedAlias.includes(normalizedColumn) && normalizedColumn.length >= 3) {
-        const ratio = normalizedColumn.length / normalizedAlias.length
-        const confidence = Math.round(70 + (ratio * 15))
-        if (!bestMatch || confidence > bestMatch.confidence) {
-          bestMatch = { field, confidence }
+        // La columna está contenida en el alias
+        if (normalizedAlias.includes(variant) && variant.length >= 3) {
+          const ratio = variant.length / normalizedAlias.length
+          const confidence = Math.round(70 + (ratio * 15))
+          if (!bestMatch || confidence > bestMatch.confidence) {
+            bestMatch = { field, confidence }
+          }
         }
       }
     }
