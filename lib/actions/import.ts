@@ -79,7 +79,23 @@ function buildCompanyDbData(companyData: ImportCompanyRow): {
   if (companyData.company_size) dbData.company_size = companyData.company_size
   if (companyData.phone) dbData.phone = companyData.phone
   if (companyData.email) dbData.email = companyData.email
-  if (companyData.account_type) dbData.account_type = companyData.account_type
+  if (companyData.account_type) {
+    // Map Spanish account types to valid English DB values
+    const accountTypeMap: Record<string, string> = {
+      'cliente': 'customer',
+      'prospecto': 'prospect',
+      'lead': 'lead',
+      'socio': 'partner',
+      'proveedor': 'supplier',
+      // Already valid English values pass through
+      'customer': 'customer',
+      'prospect': 'prospect',
+      'partner': 'partner',
+      'supplier': 'supplier',
+    }
+    const mapped = accountTypeMap[companyData.account_type.toLowerCase().trim()]
+    dbData.account_type = mapped || 'customer'
+  }
   if (companyData.description) dbData.description = companyData.description
 
   // Construir billing_address
