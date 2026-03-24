@@ -262,3 +262,121 @@ export async function getClientsList(workspaceId: string): Promise<{ data: Clien
     return { data: null, error: String(err) }
   }
 }
+
+// Auto-asignar contactos sin empresa a empresas del workspace
+// Busca por: custom_fields.contacto en empresas que coincida con nombre del contacto,
+// o por nombre similar, o asigna todos los contactos huerfanos a la unica empresa si solo hay una
+export async function autoLinkContactsToCompanies(workspaceId: string): Promise<{ linked: number; error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { linked: 0, error: 'No autenticado' }
+
+    // Get all contacts without company
+    const { data: orphanContacts, error: cErr } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, email, phone, custom_fields')
+      .eq('workspace_id', workspaceId)
+      .is('company_id', null)
+      .is('deleted_at', null)
+
+    if (cErr) return { linked: 0, error: cErr.message }
+    if (!orphanContacts || orphanContacts.length === 0) return { linked: 0, error: null }
+
+    // Get all companies
+    const { data: companies, error: compErr } = await supabase
+      .from('companies')
+      .select('id, name, email, phone, custom_fields')
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
+
+    if (compErr) return { linked: 0, error: compErr.message }
+    if (!companies || companies.length === 0) return { linked: 0, error: null }
+
+    let linked = 0
+
+    // Strategy 1: If there's only one company, assign all orphan contacts to it
+    if (companies.length === 1) {
+      const companyId = companies[0].id
+      for (const contact of orphanContacts) {
+        const { error } = await supabase
+          .from('contacts')
+          .update({ company_id: companyId, updated_by_id: user.id })
+          .eq('id', contact.id)
+        if (!error) linked++
+      }
+      return { linked, error: null }
+    }
+
+    // Strategy 2: Match by custom_fields.contacto in company matching contact name
+    // Build company lookup: contacto name -> company id
+    const contactNameToCompany = new Map<string, string>()
+    const emailToCompany = new Map<string, string>()
+    const phoneToCompany = new Map<string, string>()
+
+    for (const company of companies) {
+      const cf = company.custom_fields as Record<string, string> | null
+      if (cf?.contacto) {
+        contactNameToCompany.set(cf.contacto.toLowerCase().trim(), company.id)
+      }
+      if (company.email) {
+        emailToCompany.set(company.email.toLowerCase().trim(), company.id)
+      }
+      if (company.phone) {
+        const cleanPhone = company.phone.replace(/[\s\-\(\)]/g, '')
+        if (cleanPhone.length >= 6) phoneToCompany.set(cleanPhone, company.id)
+      }
+    }
+
+    for (const contact of orphanContacts) {
+      let matchedCompanyId: string | null = null
+
+      // Try matching by contact full name against company's contacto field
+      const fullName = `${contact.first_name || ''} ${contact.last_name || ''}`.toLowerCase().trim()
+      if (fullName && contactNameToCompany.has(fullName)) {
+        matchedCompanyId = contactNameToCompany.get(fullName)!
+      }
+
+      // Try matching by email domain
+      if (!matchedCompanyId && contact.email) {
+        const contactEmail = contact.email.toLowerCase().trim()
+        // Exact email match
+        if (emailToCompany.has(contactEmail)) {
+          matchedCompanyId = emailToCompany.get(contactEmail)!
+        } else {
+          // Domain match
+          const domain = contactEmail.split('@')[1]
+          if (domain && !['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'].includes(domain)) {
+            for (const company of companies) {
+              if (company.email && company.email.toLowerCase().includes(domain)) {
+                matchedCompanyId = company.id
+                break
+              }
+            }
+          }
+        }
+      }
+
+      // Try matching by phone
+      if (!matchedCompanyId && contact.phone) {
+        const cleanPhone = contact.phone.replace(/[\s\-\(\)]/g, '')
+        if (cleanPhone.length >= 6 && phoneToCompany.has(cleanPhone)) {
+          matchedCompanyId = phoneToCompany.get(cleanPhone)!
+        }
+      }
+
+      if (matchedCompanyId) {
+        const { error } = await supabase
+          .from('contacts')
+          .update({ company_id: matchedCompanyId, updated_by_id: user.id })
+          .eq('id', contact.id)
+        if (!error) linked++
+      }
+    }
+
+    return { linked, error: null }
+  } catch (err) {
+    console.error('autoLinkContactsToCompanies error:', err)
+    return { linked: 0, error: String(err) }
+  }
+}

@@ -26,6 +26,9 @@ const navigation = [
 ]
 
 const clientSubItems = [
+  { name: 'Activos', href: '/clients/activos', icon: UserPlus },
+  { name: 'Inactivos', href: '/clients/inactivos', icon: UserMinus },
+  { name: 'Cerrados', href: '/clients/cerrados', icon: Lock },
   { name: 'Contactos', href: '/contacts', icon: Users },
   { name: 'Empresas', href: '/companies', icon: Building2 },
 ]

@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Mail, Phone, Building2, X, Briefcase, Calendar, PhoneCall, MapPin, Loader2, Pencil, Trash2, User, Globe, Linkedin, CheckCircle } from 'lucide-react'
+import { Search, Plus, Mail, Phone, Building2, X, Briefcase, Calendar, PhoneCall, MapPin, Loader2, Pencil, Trash2, User, Globe, Linkedin, CheckCircle, Link2 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getContacts, createContact, updateContact, deleteContact } from '@/lib/actions/contacts'
 import { getCompanies } from '@/lib/actions/companies'
+import { autoLinkContactsToCompanies } from '@/lib/actions/client-detail'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
@@ -24,6 +25,8 @@ export default function ContactsPage() {
   const [deletingContactId, setDeletingContactId] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [linking, setLinking] = useState(false)
+  const [linkResult, setLinkResult] = useState<string | null>(null)
   const [newContact, setNewContact] = useState({
     // Personal data
     firstName: '',
@@ -207,6 +210,25 @@ export default function ContactsPage() {
     d.deal_contacts?.some((dc: any) => dc.contact_id === contactId)
   )
 
+  const handleAutoLink = async () => {
+    setLinking(true)
+    setLinkResult(null)
+    const { linked, error } = await autoLinkContactsToCompanies(workspaceId)
+    if (error) {
+      setLinkResult(`Error: ${error}`)
+    } else if (linked === 0) {
+      setLinkResult('No se encontraron contactos para vincular')
+    } else {
+      setLinkResult(`${linked} contacto${linked > 1 ? 's' : ''} vinculado${linked > 1 ? 's' : ''} a empresas`)
+      // Refresh data
+      window.location.reload()
+    }
+    setLinking(false)
+  }
+
+  // Count orphan contacts (no company)
+  const orphanCount = (contacts || []).filter((c: any) => !c.company_id).length
+
   if (wsLoading || loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -223,11 +245,35 @@ export default function ContactsPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-white">Contactos</h1>
           <p className="text-xs md:text-sm text-gray-300 mt-1">{filteredContacts.length} contactos totales</p>
         </div>
-        <Button onClick={() => setShowNewContactModal(true)} className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto">
-          <Plus className="h-4 w-4" />
-          <span className="md:inline">Nuevo Contacto</span>
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {orphanCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoLink}
+              disabled={linking}
+              className="gap-1.5 rounded-xl text-xs"
+              title={`${orphanCount} contactos sin empresa asignada`}
+            >
+              {linking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+              Vincular a empresas ({orphanCount})
+            </Button>
+          )}
+          <Button onClick={() => setShowNewContactModal(true)} className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all flex-1 sm:flex-initial">
+            <Plus className="h-4 w-4" />
+            <span className="md:inline">Nuevo Contacto</span>
+          </Button>
+        </div>
       </div>
+
+      {/* Link result notification */}
+      {linkResult && (
+        <div className={`flex items-center gap-2 p-3 rounded-xl text-sm ${linkResult.startsWith('Error') ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
+          {linkResult.startsWith('Error') ? <X className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+          {linkResult}
+          <button onClick={() => setLinkResult(null)} className="ml-auto text-gray-400 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+        </div>
+      )}
 
       {/* Search */}
       <Card>
