@@ -272,16 +272,19 @@ export async function autoLinkContactsToCompanies(workspaceId: string): Promise<
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { linked: 0, error: 'No autenticado' }
 
-    // Get all contacts without company
-    const { data: orphanContacts, error: cErr } = await supabase
+    // Get ALL contacts in workspace to find orphans
+    // company_id can be null, empty string, or missing - check all cases
+    const { data: allContacts, error: cErr } = await supabase
       .from('contacts')
-      .select('id, first_name, last_name, email, phone, custom_fields')
+      .select('id, first_name, last_name, email, phone, company_id, custom_fields')
       .eq('workspace_id', workspaceId)
-      .is('company_id', null)
       .is('deleted_at', null)
 
     if (cErr) return { linked: 0, error: cErr.message }
-    if (!orphanContacts || orphanContacts.length === 0) return { linked: 0, error: null }
+
+    // Filter orphans: no company_id or empty/invalid company_id
+    const orphanContacts = (allContacts || []).filter(c => !c.company_id || c.company_id === '')
+    if (orphanContacts.length === 0) return { linked: 0, error: null }
 
     // Get all companies
     const { data: companies, error: compErr } = await supabase
