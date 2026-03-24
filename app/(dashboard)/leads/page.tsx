@@ -16,10 +16,10 @@ import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 type LeadTag = 'visitar' | 'no_interesa' | 'cliente' | null
 
-const TAG_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  visitar: { label: 'Visitar', bg: 'bg-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-400' },
-  no_interesa: { label: 'No Interesa', bg: 'bg-green-500/20', text: 'text-green-400', dot: 'bg-green-400' },
-  cliente: { label: 'Cliente', bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400' },
+const TAG_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string; rowBg: string; rowBorder: string }> = {
+  visitar: { label: 'Visitar', bg: 'bg-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-400', rowBg: 'bg-orange-500/15 hover:bg-orange-500/25', rowBorder: 'border-l-4 border-l-orange-400' },
+  no_interesa: { label: 'No Interesa', bg: 'bg-green-500/20', text: 'text-green-400', dot: 'bg-green-400', rowBg: 'bg-green-500/15 hover:bg-green-500/25', rowBorder: 'border-l-4 border-l-green-400' },
+  cliente: { label: 'Cliente', bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400', rowBg: 'bg-yellow-500/15 hover:bg-yellow-500/25', rowBorder: 'border-l-4 border-l-yellow-400' },
 }
 
 export default function LeadsPage() {
@@ -187,7 +187,9 @@ export default function LeadsPage() {
               return (
                 <div
                   key={lead.id}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-2 px-4 py-2.5 hover:bg-white/5 cursor-pointer transition-colors group"
+                  className={`grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-2 px-4 py-2.5 cursor-pointer transition-colors group ${
+                    tagInfo ? `${tagInfo.rowBg} ${tagInfo.rowBorder}` : 'hover:bg-white/5'
+                  }`}
                 >
                   {/* Tag column */}
                   <div className="col-span-1 flex items-center relative">
