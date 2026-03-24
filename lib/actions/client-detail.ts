@@ -410,6 +410,72 @@ export async function recreateContactsFromCompanies(workspaceId: string): Promis
   }
 }
 
+// Obtener contactos del workspace para selector (sin empresa o de otra empresa)
+export async function getWorkspaceContactsForLinking(workspaceId: string, companyId: string): Promise<{ data: { id: string; name: string; email: string | null }[] | null; error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, email, company_id')
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
+      .order('first_name', { ascending: true })
+
+    if (error) return { data: null, error: error.message }
+
+    // Filter: contacts not already linked to this company
+    const available = (data || [])
+      .filter((c: any) => c.company_id !== companyId)
+      .map((c: any) => ({
+        id: c.id,
+        name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Sin nombre',
+        email: c.email,
+      }))
+
+    return { data: available, error: null }
+  } catch (err) {
+    return { data: null, error: String(err) }
+  }
+}
+
+// Vincular un contacto existente a una empresa
+export async function linkContactToCompany(contactId: string, companyId: string): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'No autenticado' }
+
+    const { error } = await supabase
+      .from('contacts')
+      .update({ company_id: companyId, updated_by_id: user.id })
+      .eq('id', contactId)
+
+    if (error) return { error: error.message }
+    return { error: null }
+  } catch (err) {
+    return { error: String(err) }
+  }
+}
+
+// Desvincular un contacto de una empresa
+export async function unlinkContactFromCompany(contactId: string): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'No autenticado' }
+
+    const { error } = await supabase
+      .from('contacts')
+      .update({ company_id: null, updated_by_id: user.id })
+      .eq('id', contactId)
+
+    if (error) return { error: error.message }
+    return { error: null }
+  } catch (err) {
+    return { error: String(err) }
+  }
+}
+
 // Vincular contactos a empresas del workspace
 // Detecta contactos sin empresa valida (null, vacio, o FK rota) y los vincula por email/telefono/nombre
 export async function autoLinkContactsToCompanies(workspaceId: string): Promise<{ linked: number; error: string | null }> {
