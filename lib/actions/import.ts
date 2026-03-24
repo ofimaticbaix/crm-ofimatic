@@ -112,6 +112,9 @@ function buildCompanyDbData(companyData: ImportCompanyRow): {
   if (companyData.contact_name) extraCustomFields.contacto = companyData.contact_name
   if (companyData.phone_2) extraCustomFields.telefono_2 = companyData.phone_2
   if (companyData.email_2) extraCustomFields.email_2 = companyData.email_2
+  if ((companyData as any).email_3) extraCustomFields.email_3 = (companyData as any).email_3
+  if ((companyData as any).email_4) extraCustomFields.email_4 = (companyData as any).email_4
+  if ((companyData as any).email_5) extraCustomFields.email_5 = (companyData as any).email_5
   if (companyData.payment_method) extraCustomFields.forma_pago = companyData.payment_method
   if (companyData.code) extraCustomFields.codigo_cliente = companyData.code
   if (companyData.last_purchase_date) extraCustomFields.ultima_compra = companyData.last_purchase_date

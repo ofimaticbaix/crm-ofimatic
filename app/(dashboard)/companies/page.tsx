@@ -865,132 +865,74 @@ export default function CompaniesPage() {
                       <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                         Informacion de Contacto
                       </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                          <Mail className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
-                            {selectedCompany.email ? (
-                              <a href={`mailto:${selectedCompany.email}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                {selectedCompany.email}
-                              </a>
-                            ) : (
-                              <p className="text-sm text-gray-500">—</p>
+                      {(() => {
+                        const cf = selectedCompany.custom_fields || {}
+                        const InfoField = ({ icon: Icon, iconColor, label, value, href, external }: { icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean }) => (
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                            <Icon className={`h-5 w-5 ${iconColor} mt-0.5 flex-shrink-0`} />
+                            <div className="min-w-0">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+                              {value ? (
+                                href ? (
+                                  <a href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                    className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">
+                                    {value}
+                                  </a>
+                                ) : (
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">{value}</p>
+                                )
+                              ) : (
+                                <p className="text-sm text-gray-400">—</p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                        return (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* Razon Social */}
+                            <InfoField icon={Building2} iconColor="text-blue-500" label="Razon Social" value={selectedCompany.name} />
+                            {/* Direccion */}
+                            <InfoField icon={MapPin} iconColor="text-red-500" label="Direccion" value={selectedCompany.billing_address?.street} />
+                            {/* C.P. */}
+                            <InfoField icon={MapPin} iconColor="text-red-400" label="C.P." value={selectedCompany.billing_address?.postal_code} />
+                            {/* Poblacion */}
+                            <InfoField icon={MapPin} iconColor="text-orange-500" label="Poblacion" value={selectedCompany.billing_address?.city} />
+                            {/* Provincia */}
+                            <InfoField icon={MapPin} iconColor="text-amber-500" label="Provincia" value={selectedCompany.billing_address?.state} />
+                            {/* CIF/NIF */}
+                            <InfoField icon={Building2} iconColor="text-purple-500" label="CIF/NIF" value={selectedCompany.vat_number} />
+                            {/* Persona de Contacto */}
+                            <InfoField icon={User} iconColor="text-cyan-500" label="Persona de Contacto" value={cf.contacto} />
+                            {/* Telefono */}
+                            <InfoField icon={Phone} iconColor="text-green-500" label="Telefono" value={selectedCompany.phone} href={selectedCompany.phone ? `tel:${selectedCompany.phone}` : undefined} />
+                            {/* Movil (Telefono 2) */}
+                            <InfoField icon={Phone} iconColor="text-green-400" label="Movil" value={cf.telefono_2} href={cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} />
+                            {/* F. Ultima Compra */}
+                            <InfoField icon={Calendar} iconColor="text-amber-500" label="F. Ultima Compra" value={cf.ultima_compra} />
+                            {/* Forma de Pago */}
+                            <InfoField icon={DollarSign} iconColor="text-green-500" label="Forma de Pago" value={cf.forma_pago} />
+                            {/* Email */}
+                            <InfoField icon={Mail} iconColor="text-blue-500" label="Email" value={selectedCompany.email} href={selectedCompany.email ? `mailto:${selectedCompany.email}` : undefined} />
+                            {/* Email 2 */}
+                            <InfoField icon={Mail} iconColor="text-blue-400" label="Email 2" value={cf.email_2} href={cf.email_2 ? `mailto:${cf.email_2}` : undefined} />
+                            {/* Email 3 */}
+                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 3" value={cf.email_3} href={cf.email_3 ? `mailto:${cf.email_3}` : undefined} />
+                            {/* Email 4 */}
+                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 4" value={cf.email_4} href={cf.email_4 ? `mailto:${cf.email_4}` : undefined} />
+                            {/* Email 5 */}
+                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 5" value={cf.email_5} href={cf.email_5 ? `mailto:${cf.email_5}` : undefined} />
+                            {/* Web */}
+                            {selectedCompany.website && (
+                              <InfoField icon={Globe} iconColor="text-indigo-500" label="Sitio Web" value={selectedCompany.website}
+                                href={selectedCompany.website.startsWith('http') ? selectedCompany.website : `https://${selectedCompany.website}`} external />
+                            )}
+                            {/* Canal */}
+                            {getCustomField(selectedCompany, 'canal') && (
+                              <InfoField icon={TrendingUp} iconColor="text-orange-500" label="Canal de Adquisicion" value={getCanalLabel(getCustomField(selectedCompany, 'canal'))} />
                             )}
                           </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                          <Phone className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Telefono</p>
-                            {selectedCompany.phone ? (
-                              <a href={`tel:${selectedCompany.phone}`} className="text-sm font-medium text-gray-900 dark:text-white hover:underline">
-                                {selectedCompany.phone}
-                              </a>
-                            ) : (
-                              <p className="text-sm text-gray-500">—</p>
-                            )}
-                          </div>
-                        </div>
-                        {(selectedCompany.custom_fields?.telefono_2) && (
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <Phone className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Telefono 2</p>
-                              <a href={`tel:${selectedCompany.custom_fields.telefono_2}`} className="text-sm font-medium text-gray-900 dark:text-white hover:underline">
-                                {selectedCompany.custom_fields.telefono_2}
-                              </a>
-                            </div>
-                          </div>
-                        )}
-                        {(selectedCompany.custom_fields?.email_2) && (
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <Mail className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Email 2</p>
-                              <a href={`mailto:${selectedCompany.custom_fields.email_2}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                {selectedCompany.custom_fields.email_2}
-                              </a>
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                          <MapPin className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Direccion</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.billing_address?.street || '—'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                          <MapPin className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Poblacion</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.billing_address?.city || '—'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                          <MapPin className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Provincia</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.billing_address?.state || '—'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                          <Building2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">CIF/NIF</p>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.vat_number || '—'}</p>
-                          </div>
-                        </div>
-                        {selectedCompany.website && (
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <Globe className="h-5 w-5 text-indigo-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Sitio Web</p>
-                              <a href={selectedCompany.website.startsWith('http') ? selectedCompany.website : `https://${selectedCompany.website}`} target="_blank" rel="noopener noreferrer"
-                                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                                {selectedCompany.website}
-                              </a>
-                            </div>
-                          </div>
-                        )}
-                        {selectedCompany.custom_fields?.contacto && (
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <User className="h-5 w-5 text-cyan-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Persona de Contacto</p>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.custom_fields.contacto}</p>
-                            </div>
-                          </div>
-                        )}
-                        {selectedCompany.custom_fields?.forma_pago && (
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <DollarSign className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Forma de Pago</p>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.custom_fields.forma_pago}</p>
-                            </div>
-                          </div>
-                        )}
-                        {selectedCompany.custom_fields?.ultima_compra && (
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <Calendar className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Ultima Compra</p>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.custom_fields.ultima_compra}</p>
-                            </div>
-                          </div>
-                        )}
-                        {getCustomField(selectedCompany, 'canal') && (
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <TrendingUp className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Canal de Adquisicion</p>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">{getCanalLabel(getCustomField(selectedCompany, 'canal'))}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        )
+                      })()}
                     </div>
 
                     {/* Personas de Contacto */}

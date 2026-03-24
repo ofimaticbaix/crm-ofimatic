@@ -178,6 +178,33 @@ export const companyFields: FieldDefinition[] = [
     ]
   },
   {
+    key: 'email_3',
+    label: 'Email 3',
+    required: false,
+    type: 'email',
+    aliases: [
+      'email 3', 'mail 3', 'correo 3', 'tercer email', 'email 3'
+    ]
+  },
+  {
+    key: 'email_4',
+    label: 'Email 4',
+    required: false,
+    type: 'email',
+    aliases: [
+      'email 4', 'mail 4', 'correo 4', 'cuarto email'
+    ]
+  },
+  {
+    key: 'email_5',
+    label: 'Email 5',
+    required: false,
+    type: 'email',
+    aliases: [
+      'email 5', 'mail 5', 'correo 5', 'quinto email'
+    ]
+  },
+  {
     key: 'website',
     label: 'Web',
     required: false,
