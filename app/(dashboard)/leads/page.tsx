@@ -412,8 +412,9 @@ export default function LeadsPage() {
         )
 
         return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && undefined}>
-            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div onClick={(e) => e.stopPropagation()}>
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
               <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
@@ -560,6 +561,7 @@ export default function LeadsPage() {
                 )}
               </CardContent>
             </Card>
+            </div>
           </div>
         )
       })()}
