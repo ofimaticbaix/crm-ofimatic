@@ -236,7 +236,14 @@ export function autoMapColumns(
       continue
     }
 
-    // Sin match
+    // Sin match con campo CRM → auto-crear como campo personalizado
+    // Toda columna con datos se importa, nunca se queda sin mapear
+    const hasValues = sampleValues.length > 0
+    if (hasValues) {
+      mapping.targetField = '__custom__'
+      mapping.confidence = 100
+      mapping.isCustomField = true
+    }
     mappings.push(mapping)
   }
 

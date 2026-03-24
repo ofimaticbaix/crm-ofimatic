@@ -395,7 +395,6 @@ export default function ImportPage() {
   const handleImport = useCallback(async () => {
     if (!entityType || !workspaceId) return
 
-    const activeMappings = mappings.filter(m => m.targetField && m.targetField !== '__custom__')
     const errorRows = new Set(validationErrors.filter(e => e.row >= 0 && e.severity === 'error').map(e => e.row))
     const fields = getFieldsForEntityType(entityType)
 
@@ -784,6 +783,19 @@ export default function ImportPage() {
                 </div>
               )}
 
+              {/* Resumen de mapeo */}
+              <div className="mb-4 flex flex-wrap gap-3 text-xs">
+                <span className="px-2.5 py-1 rounded-full bg-green-500/10 text-green-300 border border-green-500/20">
+                  {mappings.filter(m => m.targetField && m.targetField !== '__custom__' && !m.isCustomField).length} campos CRM
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                  {mappings.filter(m => m.targetField === '__custom__' || m.isCustomField).length} campos extra
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                  {mappings.filter(m => !m.targetField).length} omitidos
+                </span>
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-800/50">
@@ -798,6 +810,7 @@ export default function ImportPage() {
                     {mappings.map((mapping) => {
                       const isRequired = fields.find(f => f.key === mapping.targetField)?.required
                       const isMapped = mapping.targetField !== null
+                      const isCustom = mapping.targetField === '__custom__' || mapping.isCustomField
                       return (
                         <tr key={mapping.sourceColumn} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
                           <td className="px-4 py-3">
@@ -819,6 +832,7 @@ export default function ImportPage() {
                               className={`text-sm rounded-lg bg-white dark:bg-gray-800 border px-3 py-1.5 w-full max-w-[220px] focus:outline-none focus:border-blue-500 ${
                                 !isMapped ? 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400' :
                                 isRequired ? 'border-green-500/50 text-green-700 dark:text-green-300' :
+                                isCustom ? 'border-purple-500/50 text-purple-700 dark:text-purple-300' :
                                 'border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
                               }`}
                             >
@@ -828,11 +842,11 @@ export default function ImportPage() {
                                   {field.label} {field.required ? '*' : ''}
                                 </option>
                               ))}
-                              <option value="__custom__">+ Campo personalizado</option>
+                              <option value="__custom__">Personalizado: {mapping.sourceColumn}</option>
                             </select>
                           </td>
                           <td className="px-4 py-3">
-                            {isMapped && (
+                            {isMapped && !isCustom && (
                               <Badge className={`rounded-full text-xs ${
                                 mapping.confidence >= 80 ? 'bg-green-500/20 text-green-300' :
                                 mapping.confidence >= 50 ? 'bg-yellow-500/20 text-yellow-300' :
@@ -841,9 +855,14 @@ export default function ImportPage() {
                                 {mapping.confidence}%
                               </Badge>
                             )}
+                            {isCustom && (
+                              <Badge className="rounded-full text-xs bg-purple-500/20 text-purple-300">
+                                Extra
+                              </Badge>
+                            )}
                             {!isMapped && (
-                              <Badge className="rounded-full text-xs bg-red-500/20 text-red-300">
-                                Sin mapear
+                              <Badge className="rounded-full text-xs bg-gray-500/20 text-gray-400">
+                                Omitido
                               </Badge>
                             )}
                           </td>
