@@ -28,6 +28,27 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
   try {
     const supabase = await createClient()
 
+    // Helper: batch .in() queries to avoid Supabase URL length limit
+    async function batchIn<T>(
+      table: string,
+      selectFields: string,
+      filterCol: string,
+      ids: string[],
+      extraFilters?: (q: any) => any
+    ): Promise<T[]> {
+      if (ids.length === 0) return []
+      const BATCH = 200
+      const results: T[] = []
+      for (let i = 0; i < ids.length; i += BATCH) {
+        const batch = ids.slice(i, i + BATCH)
+        let q = supabase.from(table).select(selectFields).in(filterCol, batch)
+        if (extraFilters) q = extraFilters(q)
+        const { data } = await q
+        if (data) results.push(...data as T[])
+      }
+      return results
+    }
+
     // Query 1: Get companies with contact count and contacts list
     const { data: companies, error: compError } = await supabase
       .from('companies')
@@ -35,6 +56,7 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
       .eq('workspace_id', workspaceId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
+      .range(0, 1999)
 
     if (compError) return { data: null, error: compError.message }
     if (!companies || companies.length === 0) {
@@ -44,23 +66,21 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
     const companyIds = companies.map(c => c.id)
 
     // Query 2: Get deals grouped by company (value, status, stage info)
-    const { data: deals, error: dealsError } = await supabase
-      .from('deals')
-      .select('id, company_id, value, status, stages(is_closed_won, is_closed_lost)')
-      .in('company_id', companyIds)
-      .is('deleted_at', null)
-
-    if (dealsError) return { data: null, error: dealsError.message }
+    const deals = await batchIn<any>(
+      'deals',
+      'id, company_id, value, status, stages(is_closed_won, is_closed_lost)',
+      'company_id',
+      companyIds,
+      (q: any) => q.is('deleted_at', null)
+    )
 
     // Query 3: Get activities per company (direct company_id)
-    // Include completed_at and is_completed to track real contact dates
-    const { data: directActivities, error: actError } = await supabase
-      .from('activities')
-      .select('company_id, created_at, scheduled_at, due_date, completed_at, is_completed')
-      .in('company_id', companyIds)
-      .order('completed_at', { ascending: false, nullsFirst: false })
-
-    if (actError) return { data: null, error: actError.message }
+    const directActivities = await batchIn<any>(
+      'activities',
+      'company_id, created_at, scheduled_at, due_date, completed_at, is_completed',
+      'company_id',
+      companyIds
+    )
 
     // Query 4: Get activities via contacts (for companies without direct activities)
     const allContactIds = companies.flatMap(c =>
@@ -78,33 +98,21 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
       is_completed: boolean
     }
 
-    let contactActivities: ActivityWithCompletion[] = []
-    if (allContactIds.length > 0) {
-      const { data: contactActs, error: contactActError } = await supabase
-        .from('activities')
-        .select('contact_id, created_at, scheduled_at, due_date, completed_at, is_completed')
-        .in('contact_id', allContactIds)
-        .order('completed_at', { ascending: false, nullsFirst: false })
-
-      if (!contactActError && contactActs) {
-        contactActivities = contactActs
-      }
-    }
+    const contactActivities = await batchIn<ActivityWithCompletion>(
+      'activities',
+      'contact_id, created_at, scheduled_at, due_date, completed_at, is_completed',
+      'contact_id',
+      allContactIds
+    )
 
     // Query 5: Get activities via deals (for tasks associated with deals)
-    const allDealIds = (deals || []).map(d => d.id)
-    let dealActivities: ActivityWithCompletion[] = []
-    if (allDealIds.length > 0) {
-      const { data: dealActs, error: dealActError } = await supabase
-        .from('activities')
-        .select('deal_id, created_at, scheduled_at, due_date, completed_at, is_completed')
-        .in('deal_id', allDealIds)
-        .order('completed_at', { ascending: false, nullsFirst: false })
-
-      if (!dealActError && dealActs) {
-        dealActivities = dealActs
-      }
-    }
+    const allDealIds = deals.map((d: any) => d.id)
+    const dealActivities = await batchIn<ActivityWithCompletion>(
+      'activities',
+      'deal_id, created_at, scheduled_at, due_date, completed_at, is_completed',
+      'deal_id',
+      allDealIds
+    )
 
     // Build contact-to-company mapping
     const contactToCompany = new Map<string, string>()
