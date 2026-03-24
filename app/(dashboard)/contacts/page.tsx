@@ -10,7 +10,7 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getContacts, createContact, updateContact, deleteContact } from '@/lib/actions/contacts'
 import { getCompanies } from '@/lib/actions/companies'
-import { autoLinkContactsToCompanies } from '@/lib/actions/client-detail'
+import { recreateContactsFromCompanies } from '@/lib/actions/client-detail'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
@@ -210,24 +210,21 @@ export default function ContactsPage() {
     d.deal_contacts?.some((dc: any) => dc.contact_id === contactId)
   )
 
-  const handleAutoLink = async () => {
+  const handleRecreateContacts = async () => {
     setLinking(true)
     setLinkResult(null)
-    const { linked, error } = await autoLinkContactsToCompanies(workspaceId)
+    const { created, deleted, error } = await recreateContactsFromCompanies(workspaceId)
     if (error) {
       setLinkResult(`Error: ${error}`)
-    } else if (linked === 0) {
-      setLinkResult('No se encontraron contactos para vincular')
     } else {
-      setLinkResult(`${linked} contacto${linked > 1 ? 's' : ''} vinculado${linked > 1 ? 's' : ''} a empresas`)
-      // Refresh data
+      setLinkResult(`${deleted} contactos eliminados, ${created} contactos creados desde empresas`)
       window.location.reload()
     }
     setLinking(false)
   }
 
   // Count orphan contacts (no company)
-  const orphanCount = (contacts || []).filter((c: any) => !c.company_id).length
+  const orphanCount = (contacts || []).filter((c: any) => !c.company_id || c.company_id === '').length
 
   if (wsLoading || loading) {
     return (
@@ -246,19 +243,17 @@ export default function ContactsPage() {
           <p className="text-xs md:text-sm text-gray-300 mt-1">{filteredContacts.length} contactos totales</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {orphanCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAutoLink}
-              disabled={linking}
-              className="gap-1.5 rounded-xl text-xs"
-              title={`${orphanCount} contactos sin empresa asignada`}
-            >
-              {linking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
-              Vincular a empresas ({orphanCount})
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRecreateContacts}
+            disabled={linking}
+            className="gap-1.5 rounded-xl text-xs"
+            title="Elimina contactos existentes y los recrea desde empresas"
+          >
+            {linking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+            Recrear contactos desde empresas
+          </Button>
           <Button onClick={() => setShowNewContactModal(true)} className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all flex-1 sm:flex-initial">
             <Plus className="h-4 w-4" />
             <span className="md:inline">Nuevo Contacto</span>
