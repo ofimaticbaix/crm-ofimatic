@@ -1,6 +1,6 @@
 // Tipos para el sistema de importación inteligente
 
-export type ImportEntityType = 'contactos' | 'empresas' | 'facturas_pagadas' | 'facturas_pendientes'
+export type ImportEntityType = 'contactos' | 'empresas' | 'leads' | 'facturas_pagadas' | 'facturas_pendientes'
 
 export type ImportStep = 'upload' | 'entity_type' | 'mapping' | 'config' | 'preview' | 'complete'
 

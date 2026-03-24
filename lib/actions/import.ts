@@ -460,3 +460,167 @@ export async function countDuplicates(
 
   return count
 }
+
+// ==========================================
+// Importar batch de clientes potenciales (leads)
+// Se guardan en tabla companies con account_type = 'lead'
+// ==========================================
+
+interface ImportLeadRow {
+  name?: string
+  address?: string
+  city?: string
+  phone?: string
+  phone_2?: string
+  email?: string
+  email_2?: string
+  vat_number?: string
+  website?: string
+  last_update?: string
+  contact_name?: string
+  [key: string]: any
+}
+
+export async function importLeadsBatch(
+  workspaceId: string,
+  rows: { index: number; data: ImportLeadRow; rawData: Record<string, string> }[],
+  config: {
+    duplicateStrategy: DuplicateStrategy
+    duplicateDetection: DuplicateDetection
+    defaultAccountType: DefaultAccountType
+  }
+): Promise<BatchResult> {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return {
+      inserted: 0, updated: 0, skipped: 0, failed: rows.length,
+      failedRows: rows.map(r => ({ row: r.index, data: r.rawData, error: 'No autenticado' }))
+    }
+  }
+
+  const result: BatchResult = { inserted: 0, updated: 0, skipped: 0, failed: 0, failedRows: [] }
+
+  for (const row of rows) {
+    try {
+      const data = row.data
+      if (!data.name?.trim()) {
+        result.skipped++
+        continue
+      }
+
+      // Build DB data
+      const dbData: Record<string, any> = {
+        name: data.name.trim(),
+        account_type: 'lead',
+      }
+      if (data.phone) dbData.phone = data.phone
+      if (data.email) dbData.email = data.email
+      if (data.vat_number) dbData.vat_number = data.vat_number
+      if (data.website) dbData.website = data.website
+
+      // Billing address
+      const billingAddress: Record<string, string> = {}
+      if (data.address) billingAddress.street = data.address
+      if (data.city) billingAddress.city = data.city
+      if (Object.keys(billingAddress).length > 0) {
+        dbData.billing_address = billingAddress
+      }
+
+      // Custom fields
+      const customFields: Record<string, string> = {}
+      if (data.phone_2) customFields.telefono_2 = data.phone_2
+      if (data.email_2) customFields.email_2 = data.email_2
+      if (data.contact_name) customFields.contacto = data.contact_name
+      if (data.last_update) customFields.fecha_actualizacion = data.last_update
+
+      // Extra unmapped fields
+      const knownKeys = new Set(['name', 'address', 'city', 'phone', 'phone_2', 'email', 'email_2', 'vat_number', 'website', 'last_update', 'contact_name'])
+      for (const [k, v] of Object.entries(data)) {
+        if (!knownKeys.has(k) && v && typeof v === 'string' && v.trim()) {
+          customFields[k] = v.trim()
+        }
+      }
+
+      if (Object.keys(customFields).length > 0) {
+        dbData.custom_fields = customFields
+      }
+
+      // Detect duplicate
+      let existingId: string | null = null
+
+      if (config.duplicateStrategy !== 'import_anyway') {
+        if (config.duplicateDetection === 'nif' && data.vat_number) {
+          const { data: existing } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('workspace_id', workspaceId)
+            .eq('vat_number', data.vat_number)
+            .is('deleted_at', null)
+            .limit(1)
+            .single()
+          if (existing) existingId = existing.id
+        } else if (config.duplicateDetection === 'name') {
+          const { data: existing } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('workspace_id', workspaceId)
+            .ilike('name', data.name.trim())
+            .is('deleted_at', null)
+            .limit(1)
+            .single()
+          if (existing) existingId = existing.id
+        } else if (config.duplicateDetection === 'email' && data.email) {
+          const { data: existing } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('workspace_id', workspaceId)
+            .eq('email', data.email)
+            .is('deleted_at', null)
+            .limit(1)
+            .single()
+          if (existing) existingId = existing.id
+        }
+      }
+
+      if (existingId) {
+        if (config.duplicateStrategy === 'skip') {
+          result.skipped++
+          continue
+        }
+        // Update
+        const { error } = await supabase
+          .from('companies')
+          .update({ ...dbData, updated_by_id: user.id })
+          .eq('id', existingId)
+        if (error) {
+          result.failed++
+          result.failedRows.push({ row: row.index, data: row.rawData, error: error.message })
+        } else {
+          result.updated++
+        }
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from('companies')
+          .insert({
+            workspace_id: workspaceId,
+            ...dbData,
+            created_by_id: user.id,
+          })
+        if (error) {
+          result.failed++
+          result.failedRows.push({ row: row.index, data: row.rawData, error: error.message })
+        } else {
+          result.inserted++
+        }
+      }
+    } catch (err) {
+      result.failed++
+      result.failedRows.push({ row: row.index, data: row.rawData, error: String(err) })
+    }
+  }
+
+  return result
+}

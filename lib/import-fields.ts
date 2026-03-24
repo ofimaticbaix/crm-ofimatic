@@ -494,10 +494,124 @@ export const invoicePendingFields: FieldDefinition[] = [
   },
 ]
 
+// Campos para Clientes Potenciales (leads)
+export const leadFields: FieldDefinition[] = [
+  {
+    key: 'name',
+    label: 'Empresa',
+    required: true,
+    type: 'text',
+    aliases: [
+      'empresa', 'razon social', 'nombre', 'nombre empresa', 'company',
+      'nombre comercial', 'sociedad', 'entidad', 'cliente'
+    ]
+  },
+  {
+    key: 'address',
+    label: 'Dirección',
+    required: false,
+    type: 'text',
+    aliases: [
+      'direccion', 'address', 'domicilio', 'calle', 'via',
+      'direccion fiscal', 'domicilio social', 'dir'
+    ]
+  },
+  {
+    key: 'city',
+    label: 'Población',
+    required: false,
+    type: 'text',
+    aliases: [
+      'poblacion', 'ciudad', 'city', 'localidad', 'municipio', 'town',
+      'poblacio', 'lloc'
+    ]
+  },
+  {
+    key: 'phone',
+    label: 'Teléfono',
+    required: false,
+    type: 'phone',
+    aliases: [
+      'telefono', 'tel', 'phone', 'tfno', 'tlf', 'telefono 1', 'tel 1',
+      'telefono fijo', 'fijo'
+    ]
+  },
+  {
+    key: 'phone_2',
+    label: 'Teléfono 2',
+    required: false,
+    type: 'phone',
+    aliases: [
+      'telefono 2', 'tel 2', 'phone 2', 'movil', 'mobile', 'celular',
+      'otro telefono', 'fax'
+    ]
+  },
+  {
+    key: 'email',
+    label: 'Mail Compras',
+    required: false,
+    type: 'email',
+    aliases: [
+      'mail compras', 'email compras', 'correo compras', 'email',
+      'mail 1', 'email 1', 'correo', 'e-mail'
+    ]
+  },
+  {
+    key: 'email_2',
+    label: 'Mail Empresa',
+    required: false,
+    type: 'email',
+    aliases: [
+      'mail empresa', 'email empresa', 'correo empresa', 'email 2',
+      'mail 2', 'otro email', 'email secundario'
+    ]
+  },
+  {
+    key: 'vat_number',
+    label: 'NIF',
+    required: false,
+    type: 'nif',
+    aliases: [
+      'nif', 'cif', 'nif/cif', 'cif/nif', 'dni', 'documento',
+      'numero identificacion', 'tax id', 'vat'
+    ]
+  },
+  {
+    key: 'website',
+    label: 'Web',
+    required: false,
+    type: 'url',
+    aliases: [
+      'web', 'website', 'pagina web', 'url', 'www', 'sitio web'
+    ]
+  },
+  {
+    key: 'last_update',
+    label: 'Fecha Actualización',
+    required: false,
+    type: 'date',
+    aliases: [
+      'fecha actualizacion', 'f. actualizacion', 'fecha', 'date',
+      'last update', 'actualizacion', 'fecha modificacion'
+    ]
+  },
+  {
+    key: 'contact_name',
+    label: 'Contacto',
+    required: false,
+    type: 'text',
+    aliases: [
+      'contacto', 'persona contacto', 'persona de contacto', 'contact',
+      'nombre contacto', 'interlocutor'
+    ]
+  },
+]
+
 export function getFieldsForEntityType(entityType: ImportEntityType): FieldDefinition[] {
   switch (entityType) {
     case 'contactos': return contactFields
     case 'empresas': return companyFields
+    case 'leads': return leadFields
     case 'facturas_pagadas': return invoicePaidFields
     case 'facturas_pendientes': return invoicePendingFields
   }
@@ -507,6 +621,7 @@ export function getEntityTypeLabel(entityType: ImportEntityType): string {
   switch (entityType) {
     case 'contactos': return 'Contactos'
     case 'empresas': return 'Empresas'
+    case 'leads': return 'Clientes Potenciales'
     case 'facturas_pagadas': return 'Facturas Pagadas'
     case 'facturas_pendientes': return 'Facturas Pendientes'
   }

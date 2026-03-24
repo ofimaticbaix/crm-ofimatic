@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Building2, TrendingUp, CheckSquare, Settings,
   Menu, X, LogOut, Upload, UserCheck, BarChart3, ChevronDown, ChevronRight,
-  UserPlus, UserMinus, Lock, Shield
+  UserPlus, UserMinus, Lock, Shield, Target
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -31,6 +31,7 @@ const clientSubItems = [
   { name: 'Cerrados', href: '/clients/cerrados', icon: Lock },
   { name: 'Contactos', href: '/contacts', icon: Users },
   { name: 'Empresas', href: '/companies', icon: Building2 },
+  { name: 'Clientes Potenciales', href: '/leads', icon: Target },
 ]
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
@@ -48,7 +49,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }
 
   // Auto-open clients submenu if on a clients page
-  const isOnClientsPage = pathname.startsWith('/clients') || pathname.startsWith('/contacts') || pathname.startsWith('/companies')
+  const isOnClientsPage = pathname.startsWith('/clients') || pathname.startsWith('/contacts') || pathname.startsWith('/companies') || pathname.startsWith('/leads')
   const isClientsExpanded = clientsOpen || isOnClientsPage
 
   const formatDate = () => {

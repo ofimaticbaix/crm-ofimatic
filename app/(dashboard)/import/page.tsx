@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Upload, FileSpreadsheet, Building2, Users, CheckCircle, AlertCircle,
   ChevronRight, ArrowLeft, Save, FolderOpen, Trash2, Database,
-  FileText, Receipt, ReceiptText, X, Info, Settings, Download, Loader2
+  FileText, Receipt, ReceiptText, X, Info, Settings, Download, Loader2, Target
 } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -24,7 +24,7 @@ import {
 } from '@/lib/import-profiles'
 import type { ImportProfile } from '@/lib/import-types'
 import { cleanRow } from '@/lib/import-cleaners'
-import { importCompaniesBatch, importContactsBatch, countDuplicates } from '@/lib/actions/import'
+import { importCompaniesBatch, importContactsBatch, importLeadsBatch, countDuplicates } from '@/lib/actions/import'
 import { useWorkspace } from '@/lib/context/workspace-context'
 
 // ==========================================
@@ -347,7 +347,7 @@ export default function ImportPage() {
       // Extraer valores para detección
       const detection = importConfig.duplicateDetection
       let fieldKey = ''
-      if (entityType === 'empresas') {
+      if (entityType === 'empresas' || entityType === 'leads') {
         fieldKey = detection === 'nif' ? 'vat_number' : detection === 'email' ? 'email' : 'name'
       } else {
         fieldKey = detection === 'email' ? 'email' : 'first_name'
@@ -366,7 +366,7 @@ export default function ImportPage() {
 
       const count = await countDuplicates(
         workspaceId,
-        entityType as 'contactos' | 'empresas',
+        (entityType === 'leads' ? 'empresas' : entityType) as 'contactos' | 'empresas',
         detection,
         values as string[]
       )
@@ -441,6 +441,8 @@ export default function ImportPage() {
 
       if (entityType === 'empresas') {
         batchResult = await importCompaniesBatch(workspaceId, batchRows, importConfig)
+      } else if (entityType === 'leads') {
+        batchResult = await importLeadsBatch(workspaceId, batchRows, importConfig)
       } else if (entityType === 'contactos') {
         batchResult = await importContactsBatch(workspaceId, batchRows, importConfig)
       } else {
@@ -641,6 +643,7 @@ export default function ImportPage() {
                 {([
                   { type: 'contactos' as const, icon: Users, color: 'purple', desc: 'Nombres, emails, teléfonos, cargos' },
                   { type: 'empresas' as const, icon: Building2, color: 'blue', desc: 'Razón social, NIF/CIF, sector, dirección' },
+                  { type: 'leads' as const, icon: Target, color: 'orange', desc: 'Clientes potenciales: empresa, dirección, teléfono, email' },
                   { type: 'facturas_pagadas' as const, icon: Receipt, color: 'green', desc: 'Facturas cobradas con fecha de pago' },
                   { type: 'facturas_pendientes' as const, icon: ReceiptText, color: 'orange', desc: 'Facturas por cobrar o vencidas' },
                 ]).map(({ type, icon: Icon, color, desc }) => (
@@ -917,7 +920,7 @@ export default function ImportPage() {
                   ¿Cómo detectar si un registro ya existe en el CRM?
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {(entityType === 'empresas' ? [
+                  {(entityType === 'empresas' || entityType === 'leads' ? [
                     { value: 'nif' as const, label: 'Por NIF/CIF', desc: 'Recomendado si tienes NIF' },
                     { value: 'name' as const, label: 'Por Razón Social', desc: 'Si no tienes NIF' },
                     { value: 'email' as const, label: 'Por Email', desc: 'Si tienes email de empresa' },
@@ -1353,6 +1356,11 @@ export default function ImportPage() {
                   {entityType === 'empresas' && (
                     <Button onClick={() => window.location.href = '/companies'} className="rounded-xl">
                       Ver Empresas
+                    </Button>
+                  )}
+                  {entityType === 'leads' && (
+                    <Button onClick={() => window.location.href = '/leads'} className="rounded-xl">
+                      Ver Clientes Potenciales
                     </Button>
                   )}
                   {(entityType === 'facturas_pagadas' || entityType === 'facturas_pendientes') && (
