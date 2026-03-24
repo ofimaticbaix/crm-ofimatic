@@ -376,89 +376,55 @@ export default function LeadsPage() {
       )}
 
       {/* Detail Modal */}
-      {selectedLead && (() => {
-        const lead = detailData || selectedLead
-        const cf = lead.custom_fields || {}
-        const tag = cf.lead_tag as string | undefined
-        const tagInfo = tag ? TAG_CONFIG[tag] : null
-
-        const InfoField = ({ icon: Icon, iconColor, label, value, href, external, field }: {
-          icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean; field?: keyof EditForm
-        }) => (
-          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-            <Icon className={`h-5 w-5 ${iconColor} mt-0.5 flex-shrink-0`} />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-              {isEditing && field && editForm ? (
-                <Input
-                  value={editForm[field]}
-                  onChange={(e) => updateField(field, e.target.value)}
-                  className="mt-1 h-8 text-sm bg-white/10 border-gray-600 text-white"
-                />
-              ) : value ? (
-                href ? (
-                  <a href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                    className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">
-                    {value}
-                  </a>
-                ) : (
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{value}</p>
-                )
-              ) : (
-                <p className="text-sm text-gray-400">—</p>
-              )}
-            </div>
-          </div>
-        )
-
-        return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div onClick={(e) => e.stopPropagation()}>
-            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-              <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg bg-gray-600">
-                      {lead.name[0]}
-                    </div>
-                    <div>
-                      <CardTitle className="text-gray-900 dark:text-white text-xl">{lead.name}</CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        {tagInfo ? (
-                          <Badge className={`${tagInfo.bg} ${tagInfo.text} rounded-full text-xs`}>
-                            {tagInfo.label}
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 rounded-full text-xs">
-                            Cliente Potencial
-                          </Badge>
-                        )}
-                        {lead.vat_number && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">NIF: {lead.vat_number}</span>
-                        )}
-                      </div>
+      {selectedLead && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg bg-gray-600">
+                    {(detailData || selectedLead).name?.[0] || '?'}
+                  </div>
+                  <div>
+                    <CardTitle className="text-gray-900 dark:text-white text-xl">{(detailData || selectedLead).name}</CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      {(detailData || selectedLead).custom_fields?.lead_tag && TAG_CONFIG[(detailData || selectedLead).custom_fields.lead_tag] ? (
+                        <Badge className={`${TAG_CONFIG[(detailData || selectedLead).custom_fields.lead_tag].bg} ${TAG_CONFIG[(detailData || selectedLead).custom_fields.lead_tag].text} rounded-full text-xs`}>
+                          {TAG_CONFIG[(detailData || selectedLead).custom_fields.lead_tag].label}
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 rounded-full text-xs">
+                          Cliente Potencial
+                        </Badge>
+                      )}
+                      {(detailData || selectedLead).vat_number && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">NIF: {(detailData || selectedLead).vat_number}</span>
+                      )}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => { setSelectedLead(null); setIsEditing(false); setEditForm(null) }} className="rounded-xl">
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedLead(null); setIsEditing(false); setEditForm(null) }} className="rounded-xl">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-                {/* Tag selector in modal */}
-                <div className="flex gap-2 mt-3">
-                  {Object.entries(TAG_CONFIG).map(([key, config]) => (
+              {/* Tag selector in modal */}
+              <div className="flex gap-2 mt-3">
+                {Object.entries(TAG_CONFIG).map(([key, config]) => {
+                  const currentTag = (detailData || selectedLead).custom_fields?.lead_tag
+                  return (
                     <button
                       key={key}
                       onClick={() => {
-                        handleSetTag(lead.id, tag === key ? null : key as LeadTag)
+                        handleSetTag((detailData || selectedLead).id, currentTag === key ? null : key as LeadTag)
                         if (detailData) {
-                          const newCf = { ...detailData.custom_fields, lead_tag: tag === key ? undefined : key }
-                          if (tag === key) delete newCf.lead_tag
+                          const newCf = { ...detailData.custom_fields, lead_tag: currentTag === key ? undefined : key }
+                          if (currentTag === key) delete newCf.lead_tag
                           setDetailData({ ...detailData, custom_fields: newCf })
                         }
                       }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-                        tag === key
+                        currentTag === key
                           ? `${config.bg} ${config.text} border-current`
                           : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-white/5'
                       }`}
@@ -466,105 +432,119 @@ export default function LeadsPage() {
                       <div className={`w-2 h-2 rounded-full ${config.dot}`} />
                       {config.label}
                     </button>
-                  ))}
+                  )
+                })}
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-6 space-y-6">
+              {detailLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
                 </div>
-              </CardHeader>
-
-              <CardContent className="pt-6 space-y-6">
-                {detailLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
+              ) : (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Informacion
+                      </h3>
+                      {!isEditing && (
+                        <Button variant="ghost" size="sm" onClick={() => startEditing(detailData || selectedLead)}
+                          className="text-xs text-gray-400 hover:text-white">
+                          <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[
+                        { icon: Building2, iconColor: 'text-orange-500', label: 'Empresa', value: (detailData || selectedLead).name, field: 'name' as keyof EditForm },
+                        { icon: MapPin, iconColor: 'text-red-500', label: 'Direccion', value: (detailData || selectedLead).billing_address?.street, field: 'street' as keyof EditForm },
+                        { icon: MapPin, iconColor: 'text-orange-400', label: 'Poblacion', value: (detailData || selectedLead).billing_address?.city, field: 'city' as keyof EditForm },
+                        { icon: Building2, iconColor: 'text-purple-500', label: 'NIF', value: (detailData || selectedLead).vat_number, field: 'vat_number' as keyof EditForm },
+                        { icon: Phone, iconColor: 'text-green-500', label: 'Telefono', value: (detailData || selectedLead).phone, field: 'phone' as keyof EditForm },
+                        { icon: Phone, iconColor: 'text-green-400', label: 'Telefono 2', value: (detailData || selectedLead).custom_fields?.telefono_2, field: 'telefono_2' as keyof EditForm },
+                        { icon: Mail, iconColor: 'text-blue-500', label: 'Mail Compras', value: (detailData || selectedLead).email, field: 'email' as keyof EditForm },
+                        { icon: Mail, iconColor: 'text-blue-400', label: 'Mail Empresa', value: (detailData || selectedLead).custom_fields?.email_2, field: 'email_2' as keyof EditForm },
+                        { icon: Globe, iconColor: 'text-indigo-500', label: 'Web', value: (detailData || selectedLead).website, field: 'website' as keyof EditForm },
+                        { icon: User, iconColor: 'text-cyan-500', label: 'Contacto', value: (detailData || selectedLead).custom_fields?.contacto, field: 'contacto' as keyof EditForm },
+                        { icon: Calendar, iconColor: 'text-amber-500', label: 'Fecha Actualizacion', value: (detailData || selectedLead).custom_fields?.fecha_actualizacion, field: 'fecha_actualizacion' as keyof EditForm },
+                      ].map((f) => (
+                        <div key={f.field} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                          <f.icon className={`h-5 w-5 ${f.iconColor} mt-0.5 flex-shrink-0`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{f.label}</p>
+                            {isEditing && editForm ? (
+                              <Input
+                                value={editForm[f.field]}
+                                onChange={(e) => updateField(f.field, e.target.value)}
+                                className="mt-1 h-8 text-sm bg-white/10 border-gray-600 text-white"
+                              />
+                            ) : f.value ? (
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">{f.value}</p>
+                            ) : (
+                              <p className="text-sm text-gray-400">—</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Informacion
-                        </h3>
-                        {!isEditing && (
-                          <Button variant="ghost" size="sm" onClick={() => startEditing(lead)}
-                            className="text-xs text-gray-400 hover:text-white">
-                            <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
-                          </Button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <InfoField icon={Building2} iconColor="text-orange-500" label="Empresa" value={lead.name} field="name" />
-                        <InfoField icon={MapPin} iconColor="text-red-500" label="Direccion" value={lead.billing_address?.street} field="street" />
-                        <InfoField icon={MapPin} iconColor="text-orange-400" label="Poblacion" value={lead.billing_address?.city} field="city" />
-                        <InfoField icon={Building2} iconColor="text-purple-500" label="NIF" value={lead.vat_number} field="vat_number" />
-                        <InfoField icon={Phone} iconColor="text-green-500" label="Telefono" value={lead.phone} field="phone"
-                          href={!isEditing && lead.phone ? `tel:${lead.phone}` : undefined} />
-                        <InfoField icon={Phone} iconColor="text-green-400" label="Telefono 2" value={cf.telefono_2} field="telefono_2"
-                          href={!isEditing && cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} />
-                        <InfoField icon={Mail} iconColor="text-blue-500" label="Mail Compras" value={lead.email} field="email"
-                          href={!isEditing && lead.email ? `mailto:${lead.email}` : undefined} />
-                        <InfoField icon={Mail} iconColor="text-blue-400" label="Mail Empresa" value={cf.email_2} field="email_2"
-                          href={!isEditing && cf.email_2 ? `mailto:${cf.email_2}` : undefined} />
-                        <InfoField icon={Globe} iconColor="text-indigo-500" label="Web" value={lead.website} field="website"
-                          href={!isEditing && lead.website ? (lead.website.startsWith('http') ? lead.website : `https://${lead.website}`) : undefined} external />
-                        <InfoField icon={User} iconColor="text-cyan-500" label="Contacto" value={cf.contacto} field="contacto" />
-                        <InfoField icon={Calendar} iconColor="text-amber-500" label="Fecha Actualizacion" value={cf.fecha_actualizacion} field="fecha_actualizacion" />
-                      </div>
-                    </div>
 
-                    {/* Notes - editable */}
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Notas</h3>
-                      {isEditing && editForm ? (
-                        <textarea
-                          value={editForm.description}
-                          onChange={(e) => updateField('description', e.target.value)}
-                          rows={3}
-                          className="w-full text-sm rounded-xl p-3 bg-white/10 border border-gray-600 text-white resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
-                      ) : (
-                        <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
-                          {lead.description || 'Sin notas'}
-                        </p>
-                      )}
-                    </div>
+                  {/* Notes */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Notas</h3>
+                    {isEditing && editForm ? (
+                      <textarea
+                        value={editForm.description}
+                        onChange={(e) => updateField('description', e.target.value)}
+                        rows={3}
+                        className="w-full text-sm rounded-xl p-3 bg-white/10 border border-gray-600 text-white resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
+                        {(detailData || selectedLead).description || 'Sin notas'}
+                      </p>
+                    )}
+                  </div>
 
-                    <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      {isEditing ? (
-                        <>
-                          <Button onClick={handleSave} disabled={saving}
-                            className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white">
-                            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                            Guardar
-                          </Button>
-                          <Button variant="outline" onClick={() => { setIsEditing(false); setEditForm(null) }}
-                            className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
-                            Cancelar
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button variant="outline" onClick={() => startEditing(lead)}
-                            className="rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20">
-                            <Pencil className="h-4 w-4 mr-2" /> Editar
-                          </Button>
-                          <Button variant="outline" onClick={() => handleDelete(lead.id)} disabled={deletingId === lead.id}
-                            className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
-                            {deletingId === lead.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                            Eliminar
-                          </Button>
-                          <Button variant="outline" onClick={() => setSelectedLead(null)}
-                            className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
-                            Cerrar
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-            </div>
-          </div>
-        )
-      })()}
+                  <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    {isEditing ? (
+                      <>
+                        <Button onClick={handleSave} disabled={saving}
+                          className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white">
+                          {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                          Guardar
+                        </Button>
+                        <Button variant="outline" onClick={() => { setIsEditing(false); setEditForm(null) }}
+                          className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                          Cancelar
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="outline" onClick={() => startEditing(detailData || selectedLead)}
+                          className="rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20">
+                          <Pencil className="h-4 w-4 mr-2" /> Editar
+                        </Button>
+                        <Button variant="outline" onClick={() => handleDelete((detailData || selectedLead).id)} disabled={deletingId === (detailData || selectedLead).id}
+                          className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                          {deletingId === (detailData || selectedLead).id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                          Eliminar
+                        </Button>
+                        <Button variant="outline" onClick={() => setSelectedLead(null)}
+                          className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                          Cerrar
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
