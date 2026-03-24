@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search, Plus, Globe, Users, X, Building2, TrendingUp,
   Mail, Phone, MapPin, User, Briefcase, DollarSign,
-  Calendar, ChevronRight, PhoneCall, PlusCircle, Loader2, Pencil, Trash2
+  Calendar, ChevronRight, PhoneCall, PlusCircle, Loader2, Pencil, Trash2,
+  Link2, Unlink
 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
@@ -17,6 +18,7 @@ import { getDeals } from '@/lib/actions/deals'
 import { getActivities, createActivity } from '@/lib/actions/activities'
 import { getContacts, createContact } from '@/lib/actions/contacts'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { linkContactToCompany, unlinkContactFromCompany } from '@/lib/actions/client-detail'
 
 export default function CompaniesPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
@@ -864,28 +866,82 @@ export default function CompaniesPage() {
                         Informacion de Contacto
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {selectedCompany.email && (
-                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <Mail className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                          <Mail className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
+                            {selectedCompany.email ? (
                               <a href={`mailto:${selectedCompany.email}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
                                 {selectedCompany.email}
                               </a>
-                            </div>
+                            ) : (
+                              <p className="text-sm text-gray-500">—</p>
+                            )}
                           </div>
-                        )}
-                        {selectedCompany.phone && (
+                        </div>
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                          <Phone className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Telefono</p>
+                            {selectedCompany.phone ? (
+                              <a href={`tel:${selectedCompany.phone}`} className="text-sm font-medium text-gray-900 dark:text-white hover:underline">
+                                {selectedCompany.phone}
+                              </a>
+                            ) : (
+                              <p className="text-sm text-gray-500">—</p>
+                            )}
+                          </div>
+                        </div>
+                        {(selectedCompany.custom_fields?.telefono_2) && (
                           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
                             <Phone className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                             <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Telefono</p>
-                              <a href={`tel:${selectedCompany.phone}`} className="text-sm font-medium text-gray-900 dark:text-white hover:underline">
-                                {selectedCompany.phone}
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Telefono 2</p>
+                              <a href={`tel:${selectedCompany.custom_fields.telefono_2}`} className="text-sm font-medium text-gray-900 dark:text-white hover:underline">
+                                {selectedCompany.custom_fields.telefono_2}
                               </a>
                             </div>
                           </div>
                         )}
+                        {(selectedCompany.custom_fields?.email_2) && (
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                            <Mail className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Email 2</p>
+                              <a href={`mailto:${selectedCompany.custom_fields.email_2}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                {selectedCompany.custom_fields.email_2}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                          <MapPin className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Direccion</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.billing_address?.street || '—'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                          <MapPin className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Poblacion</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.billing_address?.city || '—'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                          <MapPin className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Provincia</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.billing_address?.state || '—'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                          <Building2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">CIF/NIF</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.vat_number || '—'}</p>
+                          </div>
+                        </div>
                         {selectedCompany.website && (
                           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
                             <Globe className="h-5 w-5 text-indigo-500 mt-0.5 flex-shrink-0" />
@@ -898,12 +954,30 @@ export default function CompaniesPage() {
                             </div>
                           </div>
                         )}
-                        {selectedCompany.billing_address?.street && (
+                        {selectedCompany.custom_fields?.contacto && (
                           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <MapPin className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                            <User className="h-5 w-5 text-cyan-500 mt-0.5 flex-shrink-0" />
                             <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Direccion</p>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.billing_address.street}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Persona de Contacto</p>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.custom_fields.contacto}</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedCompany.custom_fields?.forma_pago && (
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                            <DollarSign className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Forma de Pago</p>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.custom_fields.forma_pago}</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedCompany.custom_fields?.ultima_compra && (
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                            <Calendar className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Ultima Compra</p>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedCompany.custom_fields.ultima_compra}</p>
                             </div>
                           </div>
                         )}
@@ -921,13 +995,82 @@ export default function CompaniesPage() {
 
                     {/* Personas de Contacto */}
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                        Personas de Contacto ({contacts.length})
-                      </h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Personas de Contacto ({contacts.length})
+                        </h3>
+                        <Button size="sm" variant="outline" className="rounded-xl gap-1.5 text-xs" onClick={async () => {
+                          if (!workspaceId) return
+                          const res = await getContacts(workspaceId)
+                          const available = (res.data || []).filter((c: any) => c.company_id !== selectedCompany.id)
+                          setAllContacts(available)
+                          setShowContactDropdown(!showContactDropdown)
+                        }}>
+                          <Plus className="h-3 w-3" /> Anadir Contacto
+                        </Button>
+                      </div>
+
+                      {/* Contact picker dropdown */}
+                      {showContactDropdown && (
+                        <div className="mb-3 border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800/90 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Seleccionar contacto existente</span>
+                            <button onClick={() => setShowContactDropdown(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <Input
+                            placeholder="Buscar por nombre o email..."
+                            value={contactSearchQuery}
+                            onChange={(e) => setContactSearchQuery(e.target.value)}
+                            className="rounded-xl text-sm dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                            autoFocus
+                          />
+                          <div className="max-h-40 overflow-y-auto space-y-1">
+                            {(() => {
+                              const filtered = allContacts.filter((c: any) =>
+                                !contactSearchQuery ||
+                                `${c.first_name} ${c.last_name}`.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
+                                c.email?.toLowerCase().includes(contactSearchQuery.toLowerCase())
+                              )
+                              return filtered.length === 0 ? (
+                                <p className="text-xs text-gray-500 py-2 text-center">
+                                  {allContacts.length === 0 ? 'No hay contactos disponibles' : 'Sin resultados'}
+                                </p>
+                              ) : filtered.slice(0, 10).map((c: any) => (
+                                <button
+                                  key={c.id}
+                                  onClick={async () => {
+                                    const { error } = await linkContactToCompany(c.id, selectedCompany.id)
+                                    if (!error) {
+                                      // Refresh detail
+                                      const compRes = await getCompany(selectedCompany.id)
+                                      if (compRes.data) setDetailContacts(compRes.data.contacts || [])
+                                      setAllContacts(prev => prev.filter(x => x.id !== c.id))
+                                      refetchCompanies()
+                                    }
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-left transition-colors"
+                                >
+                                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
+                                    {(c.first_name?.[0] || '')}{(c.last_name?.[0] || '')}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs text-gray-900 dark:text-white truncate">{c.first_name} {c.last_name}</p>
+                                    {c.email && <p className="text-[10px] text-gray-500 truncate">{c.email}</p>}
+                                  </div>
+                                  <Link2 className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                                </button>
+                              ))
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
                       {contacts.length > 0 ? (
                         <div className="space-y-2">
                           {contacts.map((contact: any) => (
-                            <div key={contact.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800/50 transition-colors">
+                            <div key={contact.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800/50 transition-colors group">
                               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
                                 {(contact.first_name?.[0] || '')}{(contact.last_name?.[0] || '')}
                               </div>
@@ -947,6 +1090,22 @@ export default function CompaniesPage() {
                                   </a>
                                 )}
                               </div>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation()
+                                  if (!confirm('¿Desvincular este contacto de la empresa?')) return
+                                  const { error } = await unlinkContactFromCompany(contact.id)
+                                  if (!error) {
+                                    const compRes = await getCompany(selectedCompany.id)
+                                    if (compRes.data) setDetailContacts(compRes.data.contacts || [])
+                                    refetchCompanies()
+                                  }
+                                }}
+                                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-all p-1"
+                                title="Desvincular contacto"
+                              >
+                                <Unlink className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           ))}
                         </div>
