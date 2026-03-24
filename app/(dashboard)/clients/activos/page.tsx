@@ -322,6 +322,7 @@ export default function ClientesActivosPage() {
               return (
                 <div
                   key={client.id}
+                  onClick={() => setSelectedClient(client)}
                   className={`grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-2 px-4 py-2.5 cursor-pointer transition-colors group ${
                     tagInfo ? `${tagInfo.rowBg} ${tagInfo.rowBorder}` : 'hover:bg-white/5'
                   }`}
@@ -389,7 +390,7 @@ export default function ClientesActivosPage() {
                   </div>
 
                   {/* Company name */}
-                  <div className="col-span-3 flex items-center gap-3 min-w-0" onClick={() => setSelectedClient(client)}>
+                  <div className="col-span-3 flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 bg-gradient-to-br from-green-500 to-emerald-600">
                       {client.name[0]}
                     </div>
@@ -399,22 +400,22 @@ export default function ClientesActivosPage() {
                     </div>
                   </div>
 
-                  <div className="col-span-2 flex items-center" onClick={() => setSelectedClient(client)}>
+                  <div className="col-span-2 flex items-center">
                     <span className="text-xs text-gray-300 truncate">{client.billing_address?.city || '—'}</span>
                   </div>
-                  <div className="col-span-1 flex items-center" onClick={() => setSelectedClient(client)}>
+                  <div className="col-span-1 flex items-center">
                     <span className="text-xs text-gray-300 truncate">{client.phone || '—'}</span>
                   </div>
-                  <div className="col-span-1 flex items-center" onClick={() => setSelectedClient(client)}>
+                  <div className="col-span-1 flex items-center">
                     <span className="text-xs text-gray-300 truncate">{cf.contacto || '—'}</span>
                   </div>
-                  <div className="col-span-2 flex items-center" onClick={() => setSelectedClient(client)}>
+                  <div className="col-span-2 flex items-center">
                     <span className="text-[10px] text-gray-400 truncate">{cf.forma_pago || '—'}</span>
                   </div>
-                  <div className="col-span-1 flex items-center" onClick={() => setSelectedClient(client)}>
+                  <div className="col-span-1 flex items-center">
                     <span className="text-xs text-gray-300 truncate">{client.email || cf.email_2 || '—'}</span>
                   </div>
-                  <div className="col-span-1 flex items-center" onClick={() => setSelectedClient(client)}>
+                  <div className="col-span-1 flex items-center">
                     <span className="text-xs text-gray-400 truncate">{client.vat_number || '—'}</span>
                   </div>
                 </div>
@@ -471,8 +472,8 @@ export default function ClientesActivosPage() {
         )
 
         return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && undefined}>
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
