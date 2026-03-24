@@ -18,8 +18,6 @@ import { usePrefetch } from '@/lib/hooks/use-prefetch'
 
 const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Contactos', href: '/contacts', icon: Users },
-  { name: 'Empresas', href: '/companies', icon: Building2 },
   { name: 'Oportunidades', href: '/deals', icon: TrendingUp },
   { name: 'Tareas', href: '/tasks', icon: CheckSquare },
   { name: 'Métricas', href: '/metrics', icon: BarChart3 },
@@ -28,9 +26,8 @@ const navigation = [
 ]
 
 const clientSubItems = [
-  { name: 'Activos', href: '/clients/activos', icon: UserPlus },
-  { name: 'Inactivos', href: '/clients/inactivos', icon: UserMinus },
-  { name: 'Cerrados', href: '/clients/cerrados', icon: Lock },
+  { name: 'Contactos', href: '/contacts', icon: Users },
+  { name: 'Empresas', href: '/companies', icon: Building2 },
 ]
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
@@ -48,7 +45,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }
 
   // Auto-open clients submenu if on a clients page
-  const isOnClientsPage = pathname.startsWith('/clients')
+  const isOnClientsPage = pathname.startsWith('/clients') || pathname.startsWith('/contacts') || pathname.startsWith('/companies')
   const isClientsExpanded = clientsOpen || isOnClientsPage
 
   const formatDate = () => {
@@ -102,8 +99,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             const Icon = item.icon
             const isActive = pathname === item.href
 
-            // Insert Clientes dropdown after Tareas
-            if (item.name === 'Métricas') {
+            // Insert Clientes dropdown before Oportunidades
+            if (item.name === 'Oportunidades') {
               return (
                 <div key="clients-group">
                   {/* Clientes Dropdown */}
@@ -168,7 +165,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     </div>
                   )}
 
-                  {/* Métricas link */}
+                  {/* Next nav item link */}
                   <Link
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}

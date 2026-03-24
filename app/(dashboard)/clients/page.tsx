@@ -1,26 +1,65 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Users, DollarSign, Calendar, Lock, AlertTriangle, Clock, Loader2, CalendarCheck } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import {
+  Search, Building2, Users, Phone, Mail, MapPin, ChevronRight,
+  Loader2, Filter, UserCheck, UserMinus, Lock, AlertTriangle, Plus
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getCompaniesWithStatus, type CompaniesGrouped, type CompanyWithStatus } from '@/lib/actions/clients'
+import { getClientsList, type ClientListItem } from '@/lib/actions/client-detail'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+
+type FilterType = 'todos' | 'customer' | 'prospect' | 'lead' | 'partner' | 'supplier'
 
 export default function ClientsPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
+  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<FilterType>('todos')
 
-  // Cached data - loads instantly if cached
-  const { data, loading: dataLoading, error } = useCachedData<CompaniesGrouped>(
-    `clients-status-${workspaceId}`,
-    () => getCompaniesWithStatus(workspaceId),
+  const { data: clients, loading: dataLoading, error } = useCachedData<ClientListItem[]>(
+    `clients-list-${workspaceId}`,
+    () => getClientsList(workspaceId),
     [workspaceId],
     { enabled: !!workspaceId }
   )
 
-  // Overall loading - only block if no cached data
-  const loading = wsLoading || (dataLoading && !data)
+  const loading = wsLoading || (dataLoading && !clients)
+
+  // Filter
+  const allClients: ClientListItem[] = clients || []
+  const filtered = allClients.filter((c) => {
+    const matchesSearch = !searchQuery || [
+      c.name, c.vat_number, c.email, c.phone, c.city, c.industry,
+      c.custom_fields?.codigo_cliente
+    ].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
+
+    const matchesType = filterType === 'todos' || c.account_type === filterType
+
+    return matchesSearch && matchesType
+  })
+
+  // Stats
+  const totalClients = allClients.length
+  const customers = allClients.filter(c => c.account_type === 'customer').length
+  const prospects = allClients.filter(c => c.account_type === 'prospect').length
+  const leads = allClients.filter(c => c.account_type === 'lead').length
+
+  const accountTypeLabels: Record<string, string> = {
+    customer: 'Cliente', prospect: 'Prospecto', lead: 'Lead', partner: 'Partner', supplier: 'Proveedor'
+  }
+  const accountTypeBadge: Record<string, string> = {
+    customer: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    prospect: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    lead: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    partner: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    supplier: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+  }
 
   if (loading) {
     return (
@@ -30,221 +69,165 @@ export default function ClientsPage() {
     )
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-sm text-red-400">Error al cargar clientes: {error}</p>
-      </div>
-    )
-  }
-
-  const activeCompanies = data?.active || []
-  const overdueCompanies = data?.overdue || []
-  const closedCompanies = data?.closed || []
-  const total = activeCompanies.length + overdueCompanies.length + closedCompanies.length
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white">Clientes</h1>
-        <p className="text-xs md:text-sm text-gray-300 mt-1">
-          {activeCompanies.length} activos · {overdueCompanies.length} atrasados · {closedCompanies.length} cerrados
-        </p>
-      </div>
-
-      {/* Notificacion Clientes Atrasados */}
-      {overdueCompanies.length > 0 && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 backdrop-blur-sm">
-          <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-amber-200">
-              {overdueCompanies.length} cliente{overdueCompanies.length > 1 ? 's' : ''} sin contacto reciente
-            </p>
-            <p className="text-xs text-amber-300/80 mt-0.5">
-              {overdueCompanies.map(c => c.name).join(', ')} — llevan mas de 7 dias sin actividad registrada.
-            </p>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Clientes</h1>
+          <p className="text-xs md:text-sm text-gray-300 mt-1">
+            {totalClients} clientes · {customers} activos · {prospects} prospectos · {leads} leads
+          </p>
         </div>
-      )}
+        <Button size="sm" onClick={() => router.push('/companies')} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-1" /> Nuevo Cliente
+        </Button>
+      </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-2 md:gap-4">
-        <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-3 md:p-6">
-            <div className="text-xl md:text-3xl font-bold text-green-600 dark:text-green-400">{activeCompanies.length}</div>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Activos</p>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-3 md:p-6">
-            <div className="text-xl md:text-3xl font-bold text-amber-500">{overdueCompanies.length}</div>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Atrasados</p>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-3 md:p-6">
-            <div className="text-xl md:text-3xl font-bold text-gray-500 dark:text-gray-400">{closedCompanies.length}</div>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Cerrados</p>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-xl transition-shadow">
-          <CardContent className="p-3 md:p-6">
-            <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">{total}</div>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-300 mt-1">Total</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-4 gap-2">
+        <button onClick={() => setFilterType('todos')} className="text-left">
+          <Card className={`hover:shadow-xl transition-all ${filterType === 'todos' ? 'ring-2 ring-blue-500' : ''}`}>
+            <CardContent className="p-3">
+              <div className="text-xl font-bold text-white">{totalClients}</div>
+              <p className="text-[10px] text-gray-400 mt-0.5">Total</p>
+            </CardContent>
+          </Card>
+        </button>
+        <button onClick={() => setFilterType('customer')} className="text-left">
+          <Card className={`hover:shadow-xl transition-all ${filterType === 'customer' ? 'ring-2 ring-green-500' : ''}`}>
+            <CardContent className="p-3">
+              <div className="text-xl font-bold text-green-400">{customers}</div>
+              <p className="text-[10px] text-gray-400 mt-0.5">Clientes</p>
+            </CardContent>
+          </Card>
+        </button>
+        <button onClick={() => setFilterType('prospect')} className="text-left">
+          <Card className={`hover:shadow-xl transition-all ${filterType === 'prospect' ? 'ring-2 ring-blue-500' : ''}`}>
+            <CardContent className="p-3">
+              <div className="text-xl font-bold text-blue-400">{prospects}</div>
+              <p className="text-[10px] text-gray-400 mt-0.5">Prospectos</p>
+            </CardContent>
+          </Card>
+        </button>
+        <button onClick={() => setFilterType('lead')} className="text-left">
+          <Card className={`hover:shadow-xl transition-all ${filterType === 'lead' ? 'ring-2 ring-purple-500' : ''}`}>
+            <CardContent className="p-3">
+              <div className="text-xl font-bold text-purple-400">{leads}</div>
+              <p className="text-[10px] text-gray-400 mt-0.5">Leads</p>
+            </CardContent>
+          </Card>
+        </button>
       </div>
 
-      {/* Clientes Activos */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Clientes Activos</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {activeCompanies.map((company) => (
-            <CompanyCard key={company.id} company={company} variant="active" />
-          ))}
-          {activeCompanies.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 col-span-full text-center py-6">No hay clientes activos</p>
-          )}
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Buscar por nombre, CIF, email, telefono, ciudad..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 bg-white/5 border-gray-700 text-white placeholder:text-gray-500"
+        />
       </div>
 
-      {/* Clientes Atrasados */}
-      {overdueCompanies.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-amber-400 mb-3 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" /> Clientes Atrasados
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            {overdueCompanies.map((company) => (
-              <CompanyCard key={company.id} company={company} variant="overdue" />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Clientes Cerrados */}
-      {closedCompanies.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Lock className="h-4 w-4 text-gray-500 dark:text-gray-400" /> Clientes Cerrados
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            {closedCompanies.map((company) => (
-              <CompanyCard key={company.id} company={company} variant="closed" />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function CompanyCard({ company, variant }: { company: CompanyWithStatus; variant: 'active' | 'overdue' | 'closed' }) {
-  const gradientMap = {
-    active: 'from-green-500 to-emerald-600',
-    overdue: 'from-amber-500 to-orange-600',
-    closed: 'from-gray-400 to-gray-500',
-  }
-  const borderMap = {
-    active: 'border-green-200 dark:border-green-800/40',
-    overdue: 'border-amber-300 dark:border-amber-700/50 bg-amber-50/5',
-    closed: 'border-gray-300 dark:border-gray-700 opacity-70 hover:opacity-100',
-  }
-  const badgeMap = {
-    active: { className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', label: 'Activo' },
-    overdue: { className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', label: 'Atrasado' },
-    closed: { className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400', label: 'Cerrado' },
-  }
-  const borderTMap = {
-    active: 'border-gray-200 dark:border-gray-700/30',
-    overdue: 'border-amber-200 dark:border-amber-700/30',
-    closed: 'border-gray-200 dark:border-gray-700/30',
-  }
-
-  return (
-    <Card className={`${borderMap[variant]} hover:shadow-xl transition-all`}>
-      <CardContent className="p-4 md:p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${gradientMap[variant]} flex items-center justify-center text-white font-bold text-lg shadow-lg flex-shrink-0`}>
-              {company.name[0]}
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate">{company.name}</h3>
-              <p className="text-xs text-gray-700 dark:text-gray-300 font-medium">{company.industry}</p>
-            </div>
-          </div>
-          <Badge className={`${badgeMap[variant].className} rounded-full text-[10px] flex-shrink-0`}>
-            {badgeMap[variant].label}
-          </Badge>
+      {/* Client List - Table style */}
+      <div className="rounded-xl border border-gray-700/30 overflow-hidden">
+        {/* Table header */}
+        <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 bg-white/5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="col-span-3">Razon Social</div>
+          <div className="col-span-2">CIF/NIF</div>
+          <div className="col-span-2">Telefono</div>
+          <div className="col-span-2">Ciudad</div>
+          <div className="col-span-1">Tipo</div>
+          <div className="col-span-1 text-center">Cont.</div>
+          <div className="col-span-1"></div>
         </div>
 
-        <div className="space-y-2 mb-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
-              <Users className="h-3.5 w-3.5" /> Contactos
-            </span>
-            <span className="text-gray-900 dark:text-white font-bold">{company.contact_count}</span>
+        {/* Rows */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <Building2 className="h-12 w-12 text-gray-600 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">
+              {searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}
+            </p>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
-              <DollarSign className="h-3.5 w-3.5" /> Valor deals
-            </span>
-            <span className="text-gray-900 dark:text-white font-bold">{formatCurrency(company.total_deal_value)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            {variant === 'overdue' ? (
-              <>
-                <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold">
-                  <AlertTriangle className="h-3.5 w-3.5" /> Dias sin contacto
-                </span>
-                <span className="text-amber-600 dark:text-amber-400 font-bold">{company.days_since_activity ?? '?'}d</span>
-              </>
-            ) : (
-              <>
-                <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
-                  <Clock className="h-3.5 w-3.5" /> Dias sin contacto
-                </span>
-                <span className="text-gray-900 dark:text-white font-bold">{company.days_since_activity ?? '?'}d</span>
-              </>
-            )}
-          </div>
-          {company.next_activity_date && variant === 'active' && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
-                <CalendarCheck className="h-3.5 w-3.5" /> Proxima actividad
-              </span>
-              <span className="text-green-600 dark:text-green-400 font-bold text-xs">
-                {new Date(company.next_activity_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-              </span>
-            </div>
-          )}
-          {company.last_activity_date && variant !== 'closed' && !company.next_activity_date && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium">
-                <Calendar className="h-3.5 w-3.5" /> Ultima actividad
-              </span>
-              <span className="text-gray-900 dark:text-white font-bold text-xs">
-                {new Date(company.last_activity_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-              </span>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="divide-y divide-gray-700/20">
+            {filtered.map((client) => (
+              <div
+                key={client.id}
+                onClick={() => router.push(`/clients/${client.id}`)}
+                className="grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-2 px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors group"
+              >
+                {/* Name + avatar */}
+                <div className="col-span-3 flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                    {client.name[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate group-hover:text-blue-400 transition-colors">{client.name}</p>
+                    {client.industry && <p className="text-[10px] text-gray-500 truncate">{client.industry}</p>}
+                  </div>
+                </div>
 
-        {company.contacts.length > 0 && variant !== 'closed' && (
-          <div className={`flex items-center gap-1 pt-2 border-t ${borderTMap[variant]}`}>
-            {company.contacts.slice(0, 4).map((c) => (
-              <div key={c.id} className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium" title={`${c.first_name} ${c.last_name}`}>
-                {c.first_name[0]}{c.last_name[0]}
+                {/* CIF */}
+                <div className="col-span-2 flex items-center">
+                  <span className="text-xs text-gray-300">{client.vat_number || '—'}</span>
+                </div>
+
+                {/* Phone */}
+                <div className="col-span-2 flex items-center">
+                  {client.phone ? (
+                    <span className="text-xs text-gray-300 flex items-center gap-1">
+                      <Phone className="h-3 w-3 text-gray-500" /> {client.phone}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">—</span>
+                  )}
+                </div>
+
+                {/* City */}
+                <div className="col-span-2 flex items-center">
+                  {client.city ? (
+                    <span className="text-xs text-gray-300 flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-gray-500" /> {client.city}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">—</span>
+                  )}
+                </div>
+
+                {/* Type badge */}
+                <div className="col-span-1 flex items-center">
+                  <Badge className={`${accountTypeBadge[client.account_type || 'prospect']} rounded-full text-[9px] px-1.5`}>
+                    {accountTypeLabels[client.account_type || 'prospect']}
+                  </Badge>
+                </div>
+
+                {/* Contact count */}
+                <div className="col-span-1 flex items-center justify-center">
+                  <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <Users className="h-3 w-3" /> {client.contact_count}
+                  </span>
+                </div>
+
+                {/* Arrow */}
+                <div className="col-span-1 flex items-center justify-end">
+                  <ChevronRight className="h-4 w-4 text-gray-500 group-hover:text-blue-400 transition-colors" />
+                </div>
               </div>
             ))}
-            {company.contacts.length > 4 && (
-              <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">+{company.contacts.length - 4}</span>
-            )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Count */}
+      {filtered.length > 0 && (
+        <p className="text-[10px] text-gray-500 text-center">
+          Mostrando {filtered.length} de {totalClients} clientes
+        </p>
+      )}
+    </div>
   )
 }
