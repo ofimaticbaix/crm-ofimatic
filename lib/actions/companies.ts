@@ -37,6 +37,7 @@ export async function getCompanies(workspaceId: string) {
     .eq('workspace_id', workspaceId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
+    .range(0, 1999)
 
   if (error) return { data: null, error: error.message }
   return { data, error: null }

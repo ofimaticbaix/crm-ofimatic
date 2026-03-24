@@ -239,6 +239,7 @@ export async function getClientsList(workspaceId: string): Promise<{ data: Clien
       .eq('workspace_id', workspaceId)
       .is('deleted_at', null)
       .order('name', { ascending: true })
+      .range(0, 1999)
 
     if (error) return { data: null, error: error.message }
 
