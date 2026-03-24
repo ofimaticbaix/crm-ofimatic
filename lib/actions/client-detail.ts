@@ -263,76 +263,160 @@ export async function getClientsList(workspaceId: string): Promise<{ data: Clien
   }
 }
 
-// Eliminar todos los contactos y recrearlos desde las empresas (custom_fields.contacto)
+// Restaurar contactos soft-deleted y vincularlos a empresas por nombre (custom_fields.contacto)
 export async function recreateContactsFromCompanies(workspaceId: string): Promise<{ created: number; deleted: number; error: string | null }> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { created: 0, deleted: 0, error: 'No autenticado' }
 
-    // 1. Soft-delete ALL existing contacts in this workspace
-    const { data: existingContacts } = await supabase
+    // 1. Restore any recently soft-deleted contacts (undo previous damage)
+    const { data: deletedContacts } = await supabase
       .from('contacts')
       .select('id')
       .eq('workspace_id', workspaceId)
-      .is('deleted_at', null)
+      .not('deleted_at', 'is', null)
 
-    const deletedCount = existingContacts?.length || 0
-
-    if (deletedCount > 0) {
-      const { error: delErr } = await supabase
+    if (deletedContacts && deletedContacts.length > 0) {
+      await supabase
         .from('contacts')
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ deleted_at: null })
         .eq('workspace_id', workspaceId)
-        .is('deleted_at', null)
-
-      if (delErr) return { created: 0, deleted: 0, error: `Error eliminando contactos: ${delErr.message}` }
+        .not('deleted_at', 'is', null)
     }
 
-    // 2. Get all companies with their data
-    const { data: companies, error: compErr } = await supabase
-      .from('companies')
-      .select('id, name, email, phone, custom_fields')
+    // 2. Get ALL contacts (active)
+    const { data: contacts, error: cErr } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, email, phone, company_id, workspace_id')
       .eq('workspace_id', workspaceId)
       .is('deleted_at', null)
 
-    if (compErr) return { created: 0, deleted: deletedCount, error: `Error obteniendo empresas: ${compErr.message}` }
-    if (!companies || companies.length === 0) return { created: 0, deleted: deletedCount, error: 'No hay empresas en el workspace' }
-
-    // 3. For each company with contacto, create a contact linked to it
-    let created = 0
-    for (const company of companies) {
-      const cf = company.custom_fields as Record<string, string> | null
-      const contactName = cf?.contacto?.trim()
-
-      if (!contactName) continue
-
-      // Parse name: "JOAN GARCIA" → first_name: "JOAN", last_name: "GARCIA"
-      const parts = contactName.split(/\s+/)
-      const firstName = parts[0] || contactName
-      const lastName = parts.slice(1).join(' ') || null
-
-      // Use contact-specific data (email_2, telefono_2) first, fallback to company data
-      const contactEmail = cf?.email_2 || company.email || null
-      const contactPhone = cf?.telefono_2 || company.phone || null
-
-      const { error: insertErr } = await supabase
-        .from('contacts')
-        .insert({
-          workspace_id: workspaceId,
-          first_name: firstName,
-          last_name: lastName,
-          email: contactEmail,
-          phone: contactPhone,
-          company_id: company.id,
-          created_by_id: user.id,
-          owner_id: user.id,
-        })
-
-      if (!insertErr) created++
+    if (cErr) return { created: 0, deleted: 0, error: `Error contactos: ${cErr.message}` }
+    if (!contacts || contacts.length === 0) {
+      return { created: 0, deleted: 0, error: `No hay contactos en workspace ${workspaceId?.slice(0, 8)}...` }
     }
 
-    return { created, deleted: deletedCount, error: null }
+    // 3. Get ALL companies - try workspace_id first, then without filter
+    let companies: any[] = []
+    const { data: wsCompanies } = await supabase
+      .from('companies')
+      .select('id, name, email, phone, custom_fields, workspace_id')
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
+
+    if (wsCompanies && wsCompanies.length > 0) {
+      companies = wsCompanies
+    } else {
+      // Companies might have a different workspace_id - get all
+      const { data: allCompanies } = await supabase
+        .from('companies')
+        .select('id, name, email, phone, custom_fields, workspace_id')
+        .is('deleted_at', null)
+
+      if (allCompanies && allCompanies.length > 0) {
+        companies = allCompanies
+      }
+    }
+
+    if (companies.length === 0) {
+      return { created: 0, deleted: 0, error: 'No se encontraron empresas en ningún workspace' }
+    }
+
+    // 4. Build lookup maps from companies
+    const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+
+    // Map: normalized contacto name → company
+    const contactoToCompany = new Map<string, any>()
+    // Map: normalized email → company
+    const emailToCompany = new Map<string, any>()
+    // Map: cleaned phone → company
+    const phoneToCompany = new Map<string, any>()
+    // Map: normalized company name → company
+    const nameToCompany = new Map<string, any>()
+
+    for (const comp of companies) {
+      const cf = comp.custom_fields as Record<string, string> | null
+      nameToCompany.set(normalize(comp.name), comp)
+
+      if (cf?.contacto) contactoToCompany.set(normalize(cf.contacto), comp)
+      if (comp.email) emailToCompany.set(comp.email.toLowerCase().trim(), comp)
+      if (cf?.email_2) emailToCompany.set(cf.email_2.toLowerCase().trim(), comp)
+      if (comp.phone) {
+        const cp = comp.phone.replace(/[\s\-\(\)\+\.]/g, '')
+        if (cp.length >= 6) phoneToCompany.set(cp, comp)
+      }
+      if (cf?.telefono_2) {
+        const cp = cf.telefono_2.replace(/[\s\-\(\)\+\.]/g, '')
+        if (cp.length >= 6) phoneToCompany.set(cp, comp)
+      }
+    }
+
+    // 5. Link each contact to its company
+    let linked = 0
+    for (const contact of contacts) {
+      if (contact.company_id) continue // already linked
+
+      const fullName = normalize(`${contact.first_name || ''} ${contact.last_name || ''}`)
+      let matchedCompany: any = null
+
+      // Strategy 1: contact full name matches company's custom_fields.contacto
+      if (fullName && contactoToCompany.has(fullName)) {
+        matchedCompany = contactoToCompany.get(fullName)
+      }
+
+      // Strategy 2: contact first_name matches contacto
+      if (!matchedCompany && contact.first_name) {
+        const fn = normalize(contact.first_name)
+        if (contactoToCompany.has(fn)) matchedCompany = contactoToCompany.get(fn)
+      }
+
+      // Strategy 3: exact email match
+      if (!matchedCompany && contact.email) {
+        const em = contact.email.toLowerCase().trim()
+        if (emailToCompany.has(em)) matchedCompany = emailToCompany.get(em)
+      }
+
+      // Strategy 4: email domain match (skip generic domains)
+      if (!matchedCompany && contact.email) {
+        const domain = contact.email.toLowerCase().trim().split('@')[1]
+        if (domain && !['gmail.com','hotmail.com','outlook.com','yahoo.com','icloud.com','live.com'].includes(domain)) {
+          for (const comp of companies) {
+            const compDomain = comp.email?.toLowerCase().trim().split('@')[1]
+            if (compDomain === domain) { matchedCompany = comp; break }
+          }
+        }
+      }
+
+      // Strategy 5: phone match
+      if (!matchedCompany && contact.phone) {
+        const cp = contact.phone.replace(/[\s\-\(\)\+\.]/g, '')
+        if (cp.length >= 6 && phoneToCompany.has(cp)) matchedCompany = phoneToCompany.get(cp)
+      }
+
+      // Strategy 6: partial name match (contact name contains/is contained in contacto)
+      if (!matchedCompany && fullName && fullName.length > 3) {
+        for (const [cn, comp] of contactoToCompany) {
+          if (cn.includes(fullName) || fullName.includes(cn)) { matchedCompany = comp; break }
+        }
+      }
+
+      if (matchedCompany) {
+        const { error } = await supabase
+          .from('contacts')
+          .update({ company_id: matchedCompany.id, updated_by_id: user.id })
+          .eq('id', contact.id)
+        if (!error) linked++
+      }
+    }
+
+    return {
+      created: linked,
+      deleted: deletedContacts?.length || 0,
+      error: linked === 0
+        ? `${contacts.length} contactos, ${companies.length} empresas (ws: ${companies[0]?.workspace_id?.slice(0,8)}), maps: contacto=${contactoToCompany.size}, email=${emailToCompany.size}, phone=${phoneToCompany.size}. No se encontraron coincidencias.`
+        : null
+    }
   } catch (err) {
     console.error('recreateContactsFromCompanies error:', err)
     return { created: 0, deleted: 0, error: String(err) }

@@ -216,8 +216,9 @@ export default function ContactsPage() {
     const { created, deleted, error } = await recreateContactsFromCompanies(workspaceId)
     if (error) {
       setLinkResult(`Error: ${error}`)
-    } else {
-      setLinkResult(`${deleted} contactos eliminados, ${created} contactos creados desde empresas`)
+    }
+    if (created > 0) {
+      setLinkResult(`${deleted > 0 ? `${deleted} restaurados, ` : ''}${created} contactos vinculados a empresas`)
       window.location.reload()
     }
     setLinking(false)
