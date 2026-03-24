@@ -70,7 +70,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 bg-[#0a1628]/80 backdrop-blur-sm rounded-2xl p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -127,7 +127,7 @@ export default function ClientsPage() {
           placeholder="Buscar por nombre, CIF, email, telefono, ciudad..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 bg-white/5 border-gray-700 text-white placeholder:text-gray-500"
+          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 dark:bg-white dark:border-gray-300 dark:text-gray-900 dark:placeholder:text-gray-400"
         />
       </div>
 
