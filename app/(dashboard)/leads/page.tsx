@@ -6,12 +6,21 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-  Search, Plus, Globe, Users, X, Building2, Target,
-  Mail, Phone, MapPin, User, Calendar, Loader2, Pencil, Trash2
+  Search, Globe, X, Building2, Target,
+  Mail, Phone, MapPin, User, Calendar, Loader2, Trash2,
+  ChevronDown, Tag
 } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompanies, getCompany, deleteCompany, updateCompany } from '@/lib/actions/companies'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+
+type LeadTag = 'visitar' | 'no_interesa' | 'cliente' | null
+
+const TAG_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+  visitar: { label: 'Visitar', bg: 'bg-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-400' },
+  no_interesa: { label: 'No Interesa', bg: 'bg-green-500/20', text: 'text-green-400', dot: 'bg-green-400' },
+  cliente: { label: 'Cliente', bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400' },
+}
 
 export default function LeadsPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
@@ -20,6 +29,8 @@ export default function LeadsPage() {
   const [detailData, setDetailData] = useState<any | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [tagDropdownId, setTagDropdownId] = useState<string | null>(null)
+  const [filterTag, setFilterTag] = useState<string>('todos')
 
   const { data: allCompanies, loading: dataLoading, refetch } = useCachedData<any[]>(
     `companies-${workspaceId}`,
@@ -34,11 +45,23 @@ export default function LeadsPage() {
   const leads = (allCompanies || []).filter((c: any) => c.account_type === 'lead')
 
   const filtered = leads.filter((c: any) => {
+    if (filterTag !== 'todos') {
+      const tag = c.custom_fields?.lead_tag || null
+      if (filterTag === 'sin_tag' && tag) return false
+      if (filterTag !== 'sin_tag' && tag !== filterTag) return false
+    }
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return [c.name, c.vat_number, c.email, c.phone, c.billing_address?.city, c.custom_fields?.contacto]
       .some(v => v?.toLowerCase().includes(q))
   })
+
+  // Tag counts
+  const tagCounts = {
+    visitar: leads.filter((c: any) => c.custom_fields?.lead_tag === 'visitar').length,
+    no_interesa: leads.filter((c: any) => c.custom_fields?.lead_tag === 'no_interesa').length,
+    cliente: leads.filter((c: any) => c.custom_fields?.lead_tag === 'cliente').length,
+  }
 
   // Load detail when selecting
   useEffect(() => {
@@ -61,6 +84,20 @@ export default function LeadsPage() {
     setDeletingId(null)
   }
 
+  const handleSetTag = async (leadId: string, tag: LeadTag) => {
+    // Get current company data
+    const company = leads.find((c: any) => c.id === leadId)
+    if (!company) return
+
+    const currentCf = company.custom_fields || {}
+    const newCf = { ...currentCf, lead_tag: tag || undefined }
+    if (!tag) delete newCf.lead_tag
+
+    await updateCompany(leadId, { custom_fields: newCf })
+    setTagDropdownId(null)
+    refetch()
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -79,9 +116,35 @@ export default function LeadsPage() {
             Clientes Potenciales
           </h1>
           <p className="text-xs md:text-sm text-gray-300 mt-1">
-            {leads.length} clientes potenciales registrados
+            {leads.length} registrados · {tagCounts.visitar} visitar · {tagCounts.cliente} clientes · {tagCounts.no_interesa} no interesa
           </p>
         </div>
+      </div>
+
+      {/* Filter tags */}
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { id: 'todos', label: 'Todos', count: leads.length },
+          { id: 'visitar', label: 'Visitar', count: tagCounts.visitar },
+          { id: 'cliente', label: 'Cliente', count: tagCounts.cliente },
+          { id: 'no_interesa', label: 'No Interesa', count: tagCounts.no_interesa },
+          { id: 'sin_tag', label: 'Sin etiqueta', count: leads.length - tagCounts.visitar - tagCounts.cliente - tagCounts.no_interesa },
+        ].map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilterTag(f.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              filterTag === f.id
+                ? f.id === 'visitar' ? 'bg-orange-500/30 text-orange-300'
+                : f.id === 'cliente' ? 'bg-yellow-500/30 text-yellow-300'
+                : f.id === 'no_interesa' ? 'bg-green-500/30 text-green-300'
+                : 'bg-blue-600 text-white'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            }`}
+          >
+            {f.label} ({f.count})
+          </button>
+        ))}
       </div>
 
       {/* Search */}
@@ -96,11 +159,12 @@ export default function LeadsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-gray-700/30 overflow-hidden">
-        <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 bg-white/5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+      <div className="rounded-xl border border-gray-700/30 overflow-hidden bg-[#0d1b2a]/60 backdrop-blur-sm">
+        <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2.5 bg-[#1b2838]/80 text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-700/30">
+          <div className="col-span-1">Estado</div>
           <div className="col-span-3">Empresa</div>
           <div className="col-span-2">Poblacion</div>
-          <div className="col-span-2">Telefono</div>
+          <div className="col-span-1">Telefono</div>
           <div className="col-span-2">Contacto</div>
           <div className="col-span-2">Email</div>
           <div className="col-span-1">NIF</div>
@@ -110,38 +174,107 @@ export default function LeadsPage() {
           <div className="text-center py-16">
             <Target className="h-12 w-12 text-gray-600 mx-auto mb-3" />
             <p className="text-sm text-gray-400">
-              {searchQuery ? 'No se encontraron resultados' : 'No hay clientes potenciales. Importa desde Excel.'}
+              {searchQuery || filterTag !== 'todos' ? 'No se encontraron resultados' : 'No hay clientes potenciales. Importa desde Excel.'}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-700/20">
             {filtered.map((lead: any) => {
               const cf = lead.custom_fields || {}
+              const tag = cf.lead_tag as string | undefined
+              const tagInfo = tag ? TAG_CONFIG[tag] : null
+
               return (
                 <div
                   key={lead.id}
-                  onClick={() => setSelectedLead(lead)}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-2 px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors group"
+                  className="grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-2 px-4 py-2.5 hover:bg-white/5 cursor-pointer transition-colors group"
                 >
-                  <div className="col-span-3 flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                  {/* Tag column */}
+                  <div className="col-span-1 flex items-center relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setTagDropdownId(tagDropdownId === lead.id ? null : lead.id)
+                      }}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${
+                        tagInfo
+                          ? `${tagInfo.bg} ${tagInfo.text}`
+                          : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                      }`}
+                    >
+                      {tagInfo ? (
+                        <>
+                          <div className={`w-1.5 h-1.5 rounded-full ${tagInfo.dot}`} />
+                          {tagInfo.label}
+                        </>
+                      ) : (
+                        <>
+                          <Tag className="h-2.5 w-2.5" />
+                          <ChevronDown className="h-2.5 w-2.5" />
+                        </>
+                      )}
+                    </button>
+
+                    {/* Tag dropdown */}
+                    {tagDropdownId === lead.id && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-xl py-1 min-w-[140px]">
+                        {Object.entries(TAG_CONFIG).map(([key, config]) => (
+                          <button
+                            key={key}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSetTag(lead.id, key as LeadTag)
+                            }}
+                            className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 transition-colors ${
+                              tag === key ? config.text : 'text-gray-300'
+                            }`}
+                          >
+                            <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+                            {config.label}
+                          </button>
+                        ))}
+                        {tag && (
+                          <>
+                            <div className="border-t border-gray-700 my-1" />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleSetTag(lead.id, null)
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 hover:bg-white/10 transition-colors"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                              Quitar etiqueta
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Company name */}
+                  <div className="col-span-3 flex items-center gap-3 min-w-0" onClick={() => setSelectedLead(lead)}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 ${
+                      tagInfo ? tagInfo.bg : 'bg-gradient-to-br from-orange-500 to-red-600'
+                    }`}>
                       {lead.name[0]}
                     </div>
-                    <p className="text-sm font-semibold text-white truncate group-hover:text-orange-400 transition-colors">{lead.name}</p>
+                    <p className="text-sm font-medium text-white truncate group-hover:text-orange-400 transition-colors">{lead.name}</p>
                   </div>
-                  <div className="col-span-2 flex items-center">
+
+                  <div className="col-span-2 flex items-center" onClick={() => setSelectedLead(lead)}>
                     <span className="text-xs text-gray-300 truncate">{lead.billing_address?.city || '—'}</span>
                   </div>
-                  <div className="col-span-2 flex items-center">
-                    <span className="text-xs text-gray-300">{lead.phone || '—'}</span>
+                  <div className="col-span-1 flex items-center" onClick={() => setSelectedLead(lead)}>
+                    <span className="text-xs text-gray-300 truncate">{lead.phone || '—'}</span>
                   </div>
-                  <div className="col-span-2 flex items-center">
+                  <div className="col-span-2 flex items-center" onClick={() => setSelectedLead(lead)}>
                     <span className="text-xs text-gray-300 truncate">{cf.contacto || '—'}</span>
                   </div>
-                  <div className="col-span-2 flex items-center">
+                  <div className="col-span-2 flex items-center" onClick={() => setSelectedLead(lead)}>
                     <span className="text-xs text-gray-300 truncate">{lead.email || cf.email_2 || '—'}</span>
                   </div>
-                  <div className="col-span-1 flex items-center">
+                  <div className="col-span-1 flex items-center" onClick={() => setSelectedLead(lead)}>
                     <span className="text-xs text-gray-400 truncate">{lead.vat_number || '—'}</span>
                   </div>
                 </div>
@@ -157,10 +290,17 @@ export default function LeadsPage() {
         </p>
       )}
 
+      {/* Click outside to close tag dropdown */}
+      {tagDropdownId && (
+        <div className="fixed inset-0 z-40" onClick={() => setTagDropdownId(null)} />
+      )}
+
       {/* Detail Modal */}
       {selectedLead && (() => {
         const lead = detailData || selectedLead
         const cf = lead.custom_fields || {}
+        const tag = cf.lead_tag as string | undefined
+        const tagInfo = tag ? TAG_CONFIG[tag] : null
 
         const InfoField = ({ icon: Icon, iconColor, label, value, href, external }: {
           icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean
@@ -191,15 +331,23 @@ export default function LeadsPage() {
               <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg ${
+                      tagInfo ? tagInfo.bg : 'bg-gradient-to-br from-orange-500 to-red-600'
+                    }`}>
                       {lead.name[0]}
                     </div>
                     <div>
                       <CardTitle className="text-gray-900 dark:text-white text-xl">{lead.name}</CardTitle>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 rounded-full text-xs">
-                          Cliente Potencial
-                        </Badge>
+                        {tagInfo ? (
+                          <Badge className={`${tagInfo.bg} ${tagInfo.text} rounded-full text-xs`}>
+                            {tagInfo.label}
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 rounded-full text-xs">
+                            Cliente Potencial
+                          </Badge>
+                        )}
                         {lead.vat_number && (
                           <span className="text-xs text-gray-500 dark:text-gray-400">NIF: {lead.vat_number}</span>
                         )}
@@ -209,6 +357,32 @@ export default function LeadsPage() {
                   <Button variant="ghost" size="sm" onClick={() => setSelectedLead(null)} className="rounded-xl">
                     <X className="h-4 w-4" />
                   </Button>
+                </div>
+
+                {/* Tag selector in modal */}
+                <div className="flex gap-2 mt-3">
+                  {Object.entries(TAG_CONFIG).map(([key, config]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        handleSetTag(lead.id, tag === key ? null : key as LeadTag)
+                        // Update local state too
+                        if (detailData) {
+                          const newCf = { ...detailData.custom_fields, lead_tag: tag === key ? undefined : key }
+                          if (tag === key) delete newCf.lead_tag
+                          setDetailData({ ...detailData, custom_fields: newCf })
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                        tag === key
+                          ? `${config.bg} ${config.text} border-current`
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-white/5'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+                      {config.label}
+                    </button>
+                  ))}
                 </div>
               </CardHeader>
 
@@ -239,7 +413,6 @@ export default function LeadsPage() {
                       </div>
                     </div>
 
-                    {/* Notes / description */}
                     {lead.description && (
                       <div>
                         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Notas</h3>
@@ -247,7 +420,6 @@ export default function LeadsPage() {
                       </div>
                     )}
 
-                    {/* Actions */}
                     <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                       <Button variant="outline" onClick={() => handleDelete(lead.id)} disabled={deletingId === lead.id}
                         className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
