@@ -9,7 +9,7 @@ import {
   Search, Plus, Globe, Users, X, Building2, TrendingUp,
   Mail, Phone, MapPin, User, Briefcase, DollarSign,
   Calendar, ChevronRight, PhoneCall, PlusCircle, Loader2, Pencil, Trash2,
-  Link2, Unlink
+  Link2, Unlink, Linkedin
 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
@@ -42,7 +42,7 @@ export default function CompaniesPage() {
   const [inlineEditData, setInlineEditData] = useState<any>(null)
   const [inlineSaving, setInlineSaving] = useState(false)
   const [showNewContactInline, setShowNewContactInline] = useState(false)
-  const [newContactInline, setNewContactInline] = useState({ first_name: '', last_name: '', job_title: '', email: '', phone: '' })
+  const [newContactInline, setNewContactInline] = useState({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '' })
   const [creatingContactInline, setCreatingContactInline] = useState(false)
   const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null)
   const [updatingCompany, setUpdatingCompany] = useState(false)
@@ -1042,53 +1042,113 @@ export default function CompaniesPage() {
                             {!showNewContactInline ? (
                               <button
                                 onClick={() => setShowNewContactInline(true)}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-left transition-colors"
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 dark:border-green-500/30 hover:from-green-500/20 hover:to-emerald-500/20 text-left transition-all group"
                               >
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white flex-shrink-0">
-                                  <Plus className="h-3.5 w-3.5" />
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white shadow-md group-hover:shadow-lg transition-shadow flex-shrink-0">
+                                  <Plus className="h-4 w-4" />
                                 </div>
-                                <span className="text-xs font-medium text-green-600 dark:text-green-400">Crear nuevo contacto</span>
+                                <div>
+                                  <span className="text-sm font-medium text-green-700 dark:text-green-400">Crear nuevo contacto</span>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-400">Se vinculará a {selectedCompany.name}</p>
+                                </div>
                               </button>
                             ) : (
-                              <div className="space-y-2 pt-1">
-                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Nuevo contacto</p>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Input
-                                    placeholder="Nombre *"
-                                    value={newContactInline.first_name}
-                                    onChange={(e) => setNewContactInline({ ...newContactInline, first_name: e.target.value })}
-                                    className="rounded-lg text-xs h-8 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
-                                  />
-                                  <Input
-                                    placeholder="Apellido"
-                                    value={newContactInline.last_name}
-                                    onChange={(e) => setNewContactInline({ ...newContactInline, last_name: e.target.value })}
-                                    className="rounded-lg text-xs h-8 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
-                                  />
+                              <div className="rounded-xl bg-gradient-to-b from-gray-50 to-white dark:from-gray-800/80 dark:to-gray-800/40 border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white">
+                                    <User className="h-4 w-4" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">Nuevo contacto</p>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400">para {selectedCompany.name}</p>
+                                  </div>
                                 </div>
-                                <Input
-                                  placeholder="Cargo"
-                                  value={newContactInline.job_title}
-                                  onChange={(e) => setNewContactInline({ ...newContactInline, job_title: e.target.value })}
-                                  className="rounded-lg text-xs h-8 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
-                                />
-                                <Input
-                                  placeholder="Email"
-                                  type="email"
-                                  value={newContactInline.email}
-                                  onChange={(e) => setNewContactInline({ ...newContactInline, email: e.target.value })}
-                                  className="rounded-lg text-xs h-8 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
-                                />
-                                <Input
-                                  placeholder="Teléfono"
-                                  value={newContactInline.phone}
-                                  onChange={(e) => setNewContactInline({ ...newContactInline, phone: e.target.value })}
-                                  className="rounded-lg text-xs h-8 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
-                                />
-                                <div className="flex gap-2">
+
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Nombre *</label>
+                                    <div className="relative">
+                                      <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                      <Input
+                                        placeholder="Nombre"
+                                        value={newContactInline.first_name}
+                                        onChange={(e) => setNewContactInline({ ...newContactInline, first_name: e.target.value })}
+                                        className="rounded-lg text-xs h-8 pl-8 dark:bg-gray-900/50 dark:border-gray-600 dark:text-white"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Apellido</label>
+                                    <div className="relative">
+                                      <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                      <Input
+                                        placeholder="Apellido"
+                                        value={newContactInline.last_name}
+                                        onChange={(e) => setNewContactInline({ ...newContactInline, last_name: e.target.value })}
+                                        className="rounded-lg text-xs h-8 pl-8 dark:bg-gray-900/50 dark:border-gray-600 dark:text-white"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Cargo</label>
+                                  <div className="relative">
+                                    <Briefcase className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                    <Input
+                                      placeholder="Ej: Director Comercial"
+                                      value={newContactInline.job_title}
+                                      onChange={(e) => setNewContactInline({ ...newContactInline, job_title: e.target.value })}
+                                      className="rounded-lg text-xs h-8 pl-8 dark:bg-gray-900/50 dark:border-gray-600 dark:text-white"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Email</label>
+                                    <div className="relative">
+                                      <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                      <Input
+                                        placeholder="email@empresa.com"
+                                        type="email"
+                                        value={newContactInline.email}
+                                        onChange={(e) => setNewContactInline({ ...newContactInline, email: e.target.value })}
+                                        className="rounded-lg text-xs h-8 pl-8 dark:bg-gray-900/50 dark:border-gray-600 dark:text-white"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Teléfono</label>
+                                    <div className="relative">
+                                      <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                      <Input
+                                        placeholder="+34 600 000 000"
+                                        value={newContactInline.phone}
+                                        onChange={(e) => setNewContactInline({ ...newContactInline, phone: e.target.value })}
+                                        className="rounded-lg text-xs h-8 pl-8 dark:bg-gray-900/50 dark:border-gray-600 dark:text-white"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">LinkedIn</label>
+                                  <div className="relative">
+                                    <Linkedin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                    <Input
+                                      placeholder="linkedin.com/in/nombre"
+                                      value={newContactInline.linkedin_url}
+                                      onChange={(e) => setNewContactInline({ ...newContactInline, linkedin_url: e.target.value })}
+                                      className="rounded-lg text-xs h-8 pl-8 dark:bg-gray-900/50 dark:border-gray-600 dark:text-white"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-2 pt-1">
                                   <Button
                                     size="sm"
-                                    className="flex-1 rounded-lg text-xs h-8 bg-green-600 hover:bg-green-700"
+                                    className="flex-1 rounded-xl text-xs h-9 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-md hover:shadow-lg transition-all"
                                     disabled={!newContactInline.first_name || creatingContactInline}
                                     onClick={async () => {
                                       if (!workspaceId) return
@@ -1099,6 +1159,7 @@ export default function CompaniesPage() {
                                         job_title: newContactInline.job_title || undefined,
                                         email: newContactInline.email || undefined,
                                         phone: newContactInline.phone || undefined,
+                                        linkedin_url: newContactInline.linkedin_url || undefined,
                                         company_id: selectedCompany.id,
                                       })
                                       if (created) {
@@ -1106,20 +1167,21 @@ export default function CompaniesPage() {
                                         if (compRes.data) setDetailContacts(compRes.data.contacts || [])
                                         refetchCompanies()
                                       }
-                                      setNewContactInline({ first_name: '', last_name: '', job_title: '', email: '', phone: '' })
+                                      setNewContactInline({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '' })
                                       setShowNewContactInline(false)
                                       setCreatingContactInline(false)
                                     }}
                                   >
-                                    {creatingContactInline ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Crear'}
+                                    {creatingContactInline ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Plus className="h-3.5 w-3.5 mr-1.5" />}
+                                    {creatingContactInline ? 'Creando...' : 'Crear Contacto'}
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="rounded-lg text-xs h-8 dark:border-gray-700 dark:text-gray-300"
+                                    className="rounded-xl text-xs h-9 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800/50"
                                     onClick={() => {
                                       setShowNewContactInline(false)
-                                      setNewContactInline({ first_name: '', last_name: '', job_title: '', email: '', phone: '' })
+                                      setNewContactInline({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '' })
                                     }}
                                   >
                                     Cancelar
