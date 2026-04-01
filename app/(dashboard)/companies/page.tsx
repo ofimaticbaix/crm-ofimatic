@@ -126,7 +126,7 @@ export default function CompaniesPage() {
       company.name?.toLowerCase().includes(query) ||
       company.industry?.toLowerCase().includes(query)
     )
-  })
+  }).sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'es'))
 
   // Load contacts when modal opens
   useEffect(() => {

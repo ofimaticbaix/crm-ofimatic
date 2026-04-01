@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Mail, Phone, Building2, X, Briefcase, Calendar, PhoneCall, MapPin, Loader2, Pencil, Trash2, User, Globe, Linkedin, CheckCircle, Link2 } from 'lucide-react'
+import { Search, Plus, Mail, Phone, Building2, X, Briefcase, Calendar, PhoneCall, MapPin, Loader2, Pencil, Trash2, User, Globe, Linkedin, CheckCircle, Link2, ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getContacts, createContact, updateContact, deleteContact } from '@/lib/actions/contacts'
@@ -14,6 +14,9 @@ import { recreateContactsFromCompanies } from '@/lib/actions/client-detail'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+
+type SortField = 'name' | 'company' | 'email' | 'phone' | 'lifecycle'
+type SortDirection = 'asc' | 'desc' | null
 
 export default function ContactsPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
@@ -27,6 +30,8 @@ export default function ContactsPage() {
   const [deleting, setDeleting] = useState(false)
   const [linking, setLinking] = useState(false)
   const [linkResult, setLinkResult] = useState<string | null>(null)
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const [newContact, setNewContact] = useState({
     // Personal data
     firstName: '',
@@ -87,6 +92,35 @@ export default function ContactsPage() {
       contact.email?.toLowerCase().includes(query) ||
       contact.companies?.name?.toLowerCase().includes(query)
     )
+  })
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') setSortDirection('desc')
+      else if (sortDirection === 'desc') { setSortField(null); setSortDirection(null) }
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const LIFECYCLE_ORDER: Record<string, number> = { customer: 0, prospect: 1, lead: 2 }
+
+  const sortedContacts = [...filteredContacts].sort((a: any, b: any) => {
+    if (!sortField || !sortDirection) return 0
+    let valA = ''
+    let valB = ''
+    if (sortField === 'name') { valA = `${a.first_name || ''} ${a.last_name || ''}`; valB = `${b.first_name || ''} ${b.last_name || ''}` }
+    else if (sortField === 'company') { valA = a.companies?.name || ''; valB = b.companies?.name || '' }
+    else if (sortField === 'email') { valA = a.email || ''; valB = b.email || '' }
+    else if (sortField === 'phone') { valA = a.phone || ''; valB = b.phone || '' }
+    else if (sortField === 'lifecycle') {
+      const orderA = LIFECYCLE_ORDER[a.lifecycle_stage || ''] ?? 99
+      const orderB = LIFECYCLE_ORDER[b.lifecycle_stage || ''] ?? 99
+      return sortDirection === 'asc' ? orderA - orderB : orderB - orderA
+    }
+    const cmp = valA.localeCompare(valB, 'es', { sensitivity: 'base' })
+    return sortDirection === 'asc' ? cmp : -cmp
   })
 
   const selectedContact = selectedContactId ? (contacts || []).find(c => c.id === selectedContactId) : null
@@ -242,7 +276,7 @@ export default function ContactsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Contactos</h1>
-          <p className="text-xs md:text-sm text-gray-300 mt-1">{filteredContacts.length} contactos totales</p>
+          <p className="text-xs md:text-sm text-gray-300 mt-1">{sortedContacts.length} contactos totales</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
@@ -293,15 +327,40 @@ export default function ContactsPage() {
             <table className="w-full">
               <thead className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Contacto</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Empresa</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Teléfono</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                    <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                      Contacto
+                      {sortField === 'name' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                    <button onClick={() => handleSort('company')} className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                      Empresa
+                      {sortField === 'company' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                    <button onClick={() => handleSort('email')} className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                      Email
+                      {sortField === 'email' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                    <button onClick={() => handleSort('phone')} className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                      Teléfono
+                      {sortField === 'phone' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                    <button onClick={() => handleSort('lifecycle')} className="flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition-colors">
+                      Estado
+                      {sortField === 'lifecycle' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {filteredContacts.map((contact) => (
+                {sortedContacts.map((contact) => (
                   <tr key={contact.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
                     onClick={() => setSelectedContactId(contact.id)}>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -348,7 +407,7 @@ export default function ContactsPage() {
 
           {/* Mobile Cards */}
           <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredContacts.map((contact) => (
+            {sortedContacts.map((contact) => (
               <div key={contact.id} className="p-3 hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
                 onClick={() => setSelectedContactId(contact.id)}>
                 <div className="flex items-start gap-2 mb-2">
@@ -377,7 +436,7 @@ export default function ContactsPage() {
             ))}
           </div>
 
-          {filteredContacts.length === 0 && (
+          {sortedContacts.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400">No hay contactos{searchQuery ? ' que coincidan con la búsqueda' : ' aún'}</p>
             </div>

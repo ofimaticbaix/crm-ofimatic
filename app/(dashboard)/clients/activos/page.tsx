@@ -8,13 +8,15 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search, X, Building2, UserCheck,
   Mail, Phone, MapPin, User, Calendar, Loader2, Trash2,
-  ChevronDown, Tag, CreditCard, Hash, Pencil, Save
+  ChevronDown, ChevronUp, ArrowUpDown, Tag, CreditCard, Hash, Pencil, Save
 } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompanies, getCompany, deleteCompany, updateCompany } from '@/lib/actions/companies'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 type ClientTag = 'al_dia' | 'revisar' | 'vip' | null
+type SortField = 'name' | 'vat_number' | 'phone' | 'city' | 'tag'
+type SortDirection = 'asc' | 'desc' | null
 
 const TAG_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string; rowBg: string; rowBorder: string }> = {
   al_dia: { label: 'Al Día', bg: 'bg-green-500/20', text: 'text-green-400', dot: 'bg-green-400', rowBg: 'bg-green-500/15 hover:bg-green-500/25', rowBorder: 'border-l-4 border-l-green-400' },
@@ -56,6 +58,8 @@ export default function ClientesActivosPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState<EditForm | null>(null)
   const [saving, setSaving] = useState(false)
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
 
   const { data: allCompanies, loading: dataLoading, refetch } = useCachedData<any[]>(
     `companies-${workspaceId}`,
@@ -93,6 +97,37 @@ export default function ClientesActivosPage() {
       cf.contacto, cf.codigo_cliente, cf.forma_pago,
       cf.telefono_2, cf.email_2
     ].some(v => v?.toLowerCase().includes(q))
+  })
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') setSortDirection('desc')
+      else if (sortDirection === 'desc') { setSortField(null); setSortDirection(null) }
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const TAG_ORDER: Record<string, number> = { vip: 0, al_dia: 1, revisar: 2 }
+
+  const sorted = [...filtered].sort((a: any, b: any) => {
+    if (!sortField || !sortDirection) return 0
+    let valA = ''
+    let valB = ''
+    if (sortField === 'name') { valA = a.name || ''; valB = b.name || '' }
+    else if (sortField === 'vat_number') { valA = a.vat_number || ''; valB = b.vat_number || '' }
+    else if (sortField === 'phone') { valA = a.phone || ''; valB = b.phone || '' }
+    else if (sortField === 'city') { valA = a.billing_address?.city || ''; valB = b.billing_address?.city || '' }
+    else if (sortField === 'tag') {
+      const tagA = a.custom_fields?.client_tag || ''
+      const tagB = b.custom_fields?.client_tag || ''
+      const orderA = TAG_ORDER[tagA] ?? 99
+      const orderB = TAG_ORDER[tagB] ?? 99
+      return sortDirection === 'asc' ? orderA - orderB : orderB - orderA
+    }
+    const cmp = valA.localeCompare(valB, 'es', { sensitivity: 'base' })
+    return sortDirection === 'asc' ? cmp : -cmp
   })
 
   const tagCounts = {
@@ -295,17 +330,32 @@ export default function ClientesActivosPage() {
       {/* Table */}
       <div className="rounded-xl border border-gray-700/30 overflow-hidden bg-[#0d1b2a]/60 backdrop-blur-sm">
         <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2.5 bg-[#1b2838]/80 text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-700/30">
-          <div className="col-span-1">Estado</div>
-          <div className="col-span-3">Empresa</div>
-          <div className="col-span-2">Población</div>
-          <div className="col-span-1">Teléfono</div>
+          <button onClick={() => handleSort('tag')} className="col-span-1 flex items-center gap-1 hover:text-white transition-colors">
+            Estado
+            {sortField === 'tag' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
+          <button onClick={() => handleSort('name')} className="col-span-3 flex items-center gap-1 hover:text-white transition-colors">
+            Empresa
+            {sortField === 'name' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
+          <button onClick={() => handleSort('city')} className="col-span-2 flex items-center gap-1 hover:text-white transition-colors">
+            Población
+            {sortField === 'city' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
+          <button onClick={() => handleSort('phone')} className="col-span-1 flex items-center gap-1 hover:text-white transition-colors">
+            Teléfono
+            {sortField === 'phone' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
           <div className="col-span-1">Contacto</div>
           <div className="col-span-2">F. Pago</div>
           <div className="col-span-1">Email</div>
-          <div className="col-span-1">NIF</div>
+          <button onClick={() => handleSort('vat_number')} className="col-span-1 flex items-center gap-1 hover:text-white transition-colors">
+            NIF
+            {sortField === 'vat_number' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
         </div>
 
-        {filtered.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="text-center py-16">
             <UserCheck className="h-12 w-12 text-gray-600 mx-auto mb-3" />
             <p className="text-sm text-gray-400">
@@ -314,7 +364,7 @@ export default function ClientesActivosPage() {
           </div>
         ) : (
           <div className="divide-y divide-gray-700/20">
-            {filtered.map((client: any) => {
+            {sorted.map((client: any) => {
               const cf = client.custom_fields || {}
               const tag = cf.client_tag as string | undefined
               const tagInfo = tag ? TAG_CONFIG[tag] : null
@@ -425,9 +475,9 @@ export default function ClientesActivosPage() {
         )}
       </div>
 
-      {filtered.length > 0 && (
+      {sorted.length > 0 && (
         <p className="text-[10px] text-gray-500 text-center">
-          Mostrando {filtered.length} de {customers.length} clientes activos
+          Mostrando {sorted.length} de {customers.length} clientes activos
         </p>
       )}
 
