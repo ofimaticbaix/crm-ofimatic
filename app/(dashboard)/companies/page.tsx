@@ -914,12 +914,33 @@ export default function CompaniesPage() {
                         const ed = inlineEditData
                         const editing = isInlineEditing && ed
 
-                        const InfoField = ({ icon: Icon, iconColor, label, value, href, external, editKey }: { icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean; editKey?: string }) => (
+                        const FORMA_PAGO_OPTIONS = [
+                          { value: '', label: '— Seleccionar —' },
+                          { value: 'Transferencia 30 días', label: 'Transferencia 30 días' },
+                          { value: 'Transferencia 60 días', label: 'Transferencia 60 días' },
+                          { value: 'Giro bancario', label: 'Giro bancario' },
+                          { value: 'Confirming', label: 'Confirming' },
+                          { value: 'Contado', label: 'Contado' },
+                          { value: 'Pagaré', label: 'Pagaré' },
+                          { value: 'Recibo domiciliado', label: 'Recibo domiciliado' },
+                        ]
+
+                        const InfoField = ({ icon: Icon, iconColor, label, value, href, external, editKey, selectOptions }: { icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean; editKey?: string; selectOptions?: { value: string; label: string }[] }) => (
                           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
                             <Icon className={`h-5 w-5 ${iconColor} mt-0.5 flex-shrink-0`} />
                             <div className="min-w-0 flex-1">
                               <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-                              {editing && editKey ? (
+                              {editing && editKey && selectOptions ? (
+                                <select
+                                  value={ed[editKey] || ''}
+                                  onChange={(e) => setInlineEditData({ ...ed, [editKey]: e.target.value })}
+                                  className="mt-1 w-full h-8 text-sm rounded-md bg-white/10 border border-gray-600 text-white px-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  {selectOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value} className="bg-gray-800">{opt.label}</option>
+                                  ))}
+                                </select>
+                              ) : editing && editKey ? (
                                 <Input
                                   value={ed[editKey] || ''}
                                   onChange={(e) => setInlineEditData({ ...ed, [editKey]: e.target.value })}
@@ -952,7 +973,7 @@ export default function CompaniesPage() {
                             <InfoField icon={Phone} iconColor="text-green-500" label="Telefono" value={selectedCompany.phone} href={!editing && selectedCompany.phone ? `tel:${selectedCompany.phone}` : undefined} editKey="phone" />
                             <InfoField icon={Phone} iconColor="text-green-400" label="Movil" value={cf.telefono_2} href={!editing && cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} editKey="telefono_2" />
                             <InfoField icon={Calendar} iconColor="text-amber-500" label="F. Ultima Compra" value={cf.ultima_compra} editKey="ultima_compra" />
-                            <InfoField icon={DollarSign} iconColor="text-green-500" label="Forma de Pago" value={cf.forma_pago} editKey="forma_pago" />
+                            <InfoField icon={DollarSign} iconColor="text-green-500" label="Forma de Pago" value={cf.forma_pago} editKey="forma_pago" selectOptions={FORMA_PAGO_OPTIONS} />
                             <InfoField icon={Mail} iconColor="text-blue-500" label="Email" value={selectedCompany.email} href={!editing && selectedCompany.email ? `mailto:${selectedCompany.email}` : undefined} editKey="email" />
                             <InfoField icon={Mail} iconColor="text-blue-400" label="Email 2" value={cf.email_2} href={!editing && cf.email_2 ? `mailto:${cf.email_2}` : undefined} editKey="email_2" />
                             <InfoField icon={Mail} iconColor="text-blue-300" label="Email 3" value={cf.email_3} href={!editing && cf.email_3 ? `mailto:${cf.email_3}` : undefined} editKey="email_3" />
