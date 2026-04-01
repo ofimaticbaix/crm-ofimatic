@@ -38,6 +38,9 @@ export default function CompaniesPage() {
     notes: ''
   })
   const [editingCompany, setEditingCompany] = useState<any>(null)
+  const [isInlineEditing, setIsInlineEditing] = useState(false)
+  const [inlineEditData, setInlineEditData] = useState<any>(null)
+  const [inlineSaving, setInlineSaving] = useState(false)
   const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null)
   const [updatingCompany, setUpdatingCompany] = useState(false)
   const [deletingCompany, setDeletingCompany] = useState(false)
@@ -832,7 +835,7 @@ export default function CompaniesPage() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedCompany(null)} className="rounded-xl">
+                  <Button variant="ghost" size="sm" onClick={() => { setSelectedCompany(null); setIsInlineEditing(false); setInlineEditData(null) }} className="rounded-xl">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -862,17 +865,64 @@ export default function CompaniesPage() {
                   <>
                     {/* Informacion de Contacto */}
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                        Informacion de Contacto
-                      </h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Informacion de Contacto
+                        </h3>
+                        {!isInlineEditing && (
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            const cf = selectedCompany.custom_fields || {}
+                            setInlineEditData({
+                              name: selectedCompany.name || '',
+                              vat_number: selectedCompany.vat_number || '',
+                              phone: selectedCompany.phone || '',
+                              email: selectedCompany.email || '',
+                              website: selectedCompany.website || '',
+                              industry: selectedCompany.industry || '',
+                              company_size: selectedCompany.company_size || '',
+                              description: selectedCompany.description || '',
+                              linkedin_url: selectedCompany.linkedin_url || '',
+                              street: selectedCompany.billing_address?.street || '',
+                              city: selectedCompany.billing_address?.city || '',
+                              postal_code: selectedCompany.billing_address?.postal_code || '',
+                              province: selectedCompany.billing_address?.state || '',
+                              country: selectedCompany.billing_address?.country || 'España',
+                              contacto: cf.contacto || '',
+                              telefono_2: cf.telefono_2 || '',
+                              ultima_compra: cf.ultima_compra || '',
+                              forma_pago: cf.forma_pago || '',
+                              email_2: cf.email_2 || '',
+                              email_3: cf.email_3 || '',
+                              email_4: cf.email_4 || '',
+                              email_5: cf.email_5 || '',
+                              account_type: selectedCompany.account_type || 'prospect',
+                              account_status: selectedCompany.account_status || 'active',
+                              annual_revenue: selectedCompany.annual_revenue || '',
+                              canal: cf.canal || '',
+                            })
+                            setIsInlineEditing(true)
+                          }} className="text-xs text-gray-400 hover:text-white">
+                            <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+                          </Button>
+                        )}
+                      </div>
                       {(() => {
                         const cf = selectedCompany.custom_fields || {}
-                        const InfoField = ({ icon: Icon, iconColor, label, value, href, external }: { icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean }) => (
+                        const ed = inlineEditData
+                        const editing = isInlineEditing && ed
+
+                        const InfoField = ({ icon: Icon, iconColor, label, value, href, external, editKey }: { icon: any; iconColor: string; label: string; value: string | null | undefined; href?: string; external?: boolean; editKey?: string }) => (
                           <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
                             <Icon className={`h-5 w-5 ${iconColor} mt-0.5 flex-shrink-0`} />
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-                              {value ? (
+                              {editing && editKey ? (
+                                <Input
+                                  value={ed[editKey] || ''}
+                                  onChange={(e) => setInlineEditData({ ...ed, [editKey]: e.target.value })}
+                                  className="mt-1 h-8 text-sm bg-white/10 border-gray-600 text-white"
+                                />
+                              ) : value ? (
                                 href ? (
                                   <a href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                                     className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">
@@ -889,47 +939,25 @@ export default function CompaniesPage() {
                         )
                         return (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {/* Razon Social */}
-                            <InfoField icon={Building2} iconColor="text-blue-500" label="Razon Social" value={selectedCompany.name} />
-                            {/* Direccion */}
-                            <InfoField icon={MapPin} iconColor="text-red-500" label="Direccion" value={selectedCompany.billing_address?.street} />
-                            {/* C.P. */}
-                            <InfoField icon={MapPin} iconColor="text-red-400" label="C.P." value={selectedCompany.billing_address?.postal_code} />
-                            {/* Poblacion */}
-                            <InfoField icon={MapPin} iconColor="text-orange-500" label="Poblacion" value={selectedCompany.billing_address?.city} />
-                            {/* Provincia */}
-                            <InfoField icon={MapPin} iconColor="text-amber-500" label="Provincia" value={selectedCompany.billing_address?.state} />
-                            {/* CIF/NIF */}
-                            <InfoField icon={Building2} iconColor="text-purple-500" label="CIF/NIF" value={selectedCompany.vat_number} />
-                            {/* Persona de Contacto */}
-                            <InfoField icon={User} iconColor="text-cyan-500" label="Persona de Contacto" value={cf.contacto} />
-                            {/* Telefono */}
-                            <InfoField icon={Phone} iconColor="text-green-500" label="Telefono" value={selectedCompany.phone} href={selectedCompany.phone ? `tel:${selectedCompany.phone}` : undefined} />
-                            {/* Movil (Telefono 2) */}
-                            <InfoField icon={Phone} iconColor="text-green-400" label="Movil" value={cf.telefono_2} href={cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} />
-                            {/* F. Ultima Compra */}
-                            <InfoField icon={Calendar} iconColor="text-amber-500" label="F. Ultima Compra" value={cf.ultima_compra} />
-                            {/* Forma de Pago */}
-                            <InfoField icon={DollarSign} iconColor="text-green-500" label="Forma de Pago" value={cf.forma_pago} />
-                            {/* Email */}
-                            <InfoField icon={Mail} iconColor="text-blue-500" label="Email" value={selectedCompany.email} href={selectedCompany.email ? `mailto:${selectedCompany.email}` : undefined} />
-                            {/* Email 2 */}
-                            <InfoField icon={Mail} iconColor="text-blue-400" label="Email 2" value={cf.email_2} href={cf.email_2 ? `mailto:${cf.email_2}` : undefined} />
-                            {/* Email 3 */}
-                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 3" value={cf.email_3} href={cf.email_3 ? `mailto:${cf.email_3}` : undefined} />
-                            {/* Email 4 */}
-                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 4" value={cf.email_4} href={cf.email_4 ? `mailto:${cf.email_4}` : undefined} />
-                            {/* Email 5 */}
-                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 5" value={cf.email_5} href={cf.email_5 ? `mailto:${cf.email_5}` : undefined} />
-                            {/* Web */}
-                            {selectedCompany.website && (
-                              <InfoField icon={Globe} iconColor="text-indigo-500" label="Sitio Web" value={selectedCompany.website}
-                                href={selectedCompany.website.startsWith('http') ? selectedCompany.website : `https://${selectedCompany.website}`} external />
-                            )}
-                            {/* Canal */}
-                            {getCustomField(selectedCompany, 'canal') && (
-                              <InfoField icon={TrendingUp} iconColor="text-orange-500" label="Canal de Adquisicion" value={getCanalLabel(getCustomField(selectedCompany, 'canal'))} />
-                            )}
+                            <InfoField icon={Building2} iconColor="text-blue-500" label="Razon Social" value={selectedCompany.name} editKey="name" />
+                            <InfoField icon={MapPin} iconColor="text-red-500" label="Direccion" value={selectedCompany.billing_address?.street} editKey="street" />
+                            <InfoField icon={MapPin} iconColor="text-red-400" label="C.P." value={selectedCompany.billing_address?.postal_code} editKey="postal_code" />
+                            <InfoField icon={MapPin} iconColor="text-orange-500" label="Poblacion" value={selectedCompany.billing_address?.city} editKey="city" />
+                            <InfoField icon={MapPin} iconColor="text-amber-500" label="Provincia" value={selectedCompany.billing_address?.state} editKey="province" />
+                            <InfoField icon={Building2} iconColor="text-purple-500" label="CIF/NIF" value={selectedCompany.vat_number} editKey="vat_number" />
+                            <InfoField icon={User} iconColor="text-cyan-500" label="Persona de Contacto" value={cf.contacto} editKey="contacto" />
+                            <InfoField icon={Phone} iconColor="text-green-500" label="Telefono" value={selectedCompany.phone} href={!editing && selectedCompany.phone ? `tel:${selectedCompany.phone}` : undefined} editKey="phone" />
+                            <InfoField icon={Phone} iconColor="text-green-400" label="Movil" value={cf.telefono_2} href={!editing && cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} editKey="telefono_2" />
+                            <InfoField icon={Calendar} iconColor="text-amber-500" label="F. Ultima Compra" value={cf.ultima_compra} editKey="ultima_compra" />
+                            <InfoField icon={DollarSign} iconColor="text-green-500" label="Forma de Pago" value={cf.forma_pago} editKey="forma_pago" />
+                            <InfoField icon={Mail} iconColor="text-blue-500" label="Email" value={selectedCompany.email} href={!editing && selectedCompany.email ? `mailto:${selectedCompany.email}` : undefined} editKey="email" />
+                            <InfoField icon={Mail} iconColor="text-blue-400" label="Email 2" value={cf.email_2} href={!editing && cf.email_2 ? `mailto:${cf.email_2}` : undefined} editKey="email_2" />
+                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 3" value={cf.email_3} href={!editing && cf.email_3 ? `mailto:${cf.email_3}` : undefined} editKey="email_3" />
+                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 4" value={cf.email_4} editKey="email_4" />
+                            <InfoField icon={Mail} iconColor="text-blue-300" label="Email 5" value={cf.email_5} editKey="email_5" />
+                            <InfoField icon={Globe} iconColor="text-indigo-500" label="Sitio Web" value={selectedCompany.website}
+                              href={!editing && selectedCompany.website ? (selectedCompany.website.startsWith('http') ? selectedCompany.website : `https://${selectedCompany.website}`) : undefined} external editKey="website" />
+                            <InfoField icon={TrendingUp} iconColor="text-orange-500" label="Canal de Adquisicion" value={getCanalLabel(getCustomField(selectedCompany, 'canal'))} editKey="canal" />
                           </div>
                         )
                       })()}
@@ -1171,20 +1199,104 @@ export default function CompaniesPage() {
 
                     {/* Acciones */}
                     <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <Button onClick={() => {
-                        setEditingCompany({...selectedCompany})
-                        setSelectedCompany(null)
-                      }} className="flex-1 rounded-xl shadow-lg">
-                        <Pencil className="h-4 w-4 mr-2" /> Editar
-                      </Button>
-                      <Button variant="outline" onClick={() => setDeletingCompanyId(selectedCompany.id)}
-                        className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
-                        <Trash2 className="h-4 w-4 mr-2" /> Eliminar
-                      </Button>
-                      <Button variant="outline" onClick={() => setSelectedCompany(null)}
-                        className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
-                        Cerrar
-                      </Button>
+                      {isInlineEditing ? (
+                        <>
+                          <Button onClick={async () => {
+                            if (!inlineEditData) return
+                            setInlineSaving(true)
+                            const cf = { ...(selectedCompany.custom_fields || {}) }
+                            cf.contacto = inlineEditData.contacto || undefined
+                            cf.telefono_2 = inlineEditData.telefono_2 || undefined
+                            cf.ultima_compra = inlineEditData.ultima_compra || undefined
+                            cf.forma_pago = inlineEditData.forma_pago || undefined
+                            cf.email_2 = inlineEditData.email_2 || undefined
+                            cf.email_3 = inlineEditData.email_3 || undefined
+                            cf.email_4 = inlineEditData.email_4 || undefined
+                            cf.email_5 = inlineEditData.email_5 || undefined
+                            cf.canal = inlineEditData.canal || undefined
+                            for (const k of Object.keys(cf)) { if (cf[k] === undefined) delete cf[k] }
+                            await updateCompany(selectedCompany.id, {
+                              name: inlineEditData.name,
+                              vat_number: inlineEditData.vat_number || undefined,
+                              phone: inlineEditData.phone || undefined,
+                              email: inlineEditData.email || undefined,
+                              website: inlineEditData.website || undefined,
+                              industry: inlineEditData.industry || undefined,
+                              company_size: inlineEditData.company_size || undefined,
+                              description: inlineEditData.description || undefined,
+                              linkedin_url: inlineEditData.linkedin_url || undefined,
+                              annual_revenue: inlineEditData.annual_revenue ? parseFloat(inlineEditData.annual_revenue) : undefined,
+                              account_type: inlineEditData.account_type,
+                              account_status: inlineEditData.account_status,
+                              billing_address: {
+                                street: inlineEditData.street || undefined,
+                                city: inlineEditData.city || undefined,
+                                postal_code: inlineEditData.postal_code || undefined,
+                                state: inlineEditData.province || undefined,
+                                country: inlineEditData.country || undefined,
+                              },
+                              custom_fields: cf,
+                            })
+                            setInlineSaving(false)
+                            setIsInlineEditing(false)
+                            setInlineEditData(null)
+                            setSelectedCompany(null)
+                            refetchCompanies()
+                          }} className="flex-1 rounded-xl shadow-lg bg-green-600 hover:bg-green-700" disabled={inlineSaving}>
+                            {inlineSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Pencil className="h-4 w-4 mr-2" />}
+                            {inlineSaving ? 'Guardando...' : 'Guardar'}
+                          </Button>
+                          <Button variant="outline" onClick={() => { setIsInlineEditing(false); setInlineEditData(null) }}
+                            className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                            Cancelar
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button onClick={() => {
+                            const cf = selectedCompany.custom_fields || {}
+                            setInlineEditData({
+                              name: selectedCompany.name || '',
+                              vat_number: selectedCompany.vat_number || '',
+                              phone: selectedCompany.phone || '',
+                              email: selectedCompany.email || '',
+                              website: selectedCompany.website || '',
+                              industry: selectedCompany.industry || '',
+                              company_size: selectedCompany.company_size || '',
+                              description: selectedCompany.description || '',
+                              linkedin_url: selectedCompany.linkedin_url || '',
+                              street: selectedCompany.billing_address?.street || '',
+                              city: selectedCompany.billing_address?.city || '',
+                              postal_code: selectedCompany.billing_address?.postal_code || '',
+                              province: selectedCompany.billing_address?.state || '',
+                              country: selectedCompany.billing_address?.country || 'España',
+                              contacto: cf.contacto || '',
+                              telefono_2: cf.telefono_2 || '',
+                              ultima_compra: cf.ultima_compra || '',
+                              forma_pago: cf.forma_pago || '',
+                              email_2: cf.email_2 || '',
+                              email_3: cf.email_3 || '',
+                              email_4: cf.email_4 || '',
+                              email_5: cf.email_5 || '',
+                              account_type: selectedCompany.account_type || 'prospect',
+                              account_status: selectedCompany.account_status || 'active',
+                              annual_revenue: selectedCompany.annual_revenue || '',
+                              canal: cf.canal || '',
+                            })
+                            setIsInlineEditing(true)
+                          }} className="flex-1 rounded-xl shadow-lg">
+                            <Pencil className="h-4 w-4 mr-2" /> Editar
+                          </Button>
+                          <Button variant="outline" onClick={() => setDeletingCompanyId(selectedCompany.id)}
+                            className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                            <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                          </Button>
+                          <Button variant="outline" onClick={() => setSelectedCompany(null)}
+                            className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                            Cerrar
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
