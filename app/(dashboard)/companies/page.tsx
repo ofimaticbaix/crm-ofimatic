@@ -969,11 +969,9 @@ export default function CompaniesPage() {
                             <InfoField icon={MapPin} iconColor="text-orange-500" label="Poblacion" value={selectedCompany.billing_address?.city} editKey="city" />
                             <InfoField icon={MapPin} iconColor="text-amber-500" label="Provincia" value={selectedCompany.billing_address?.state} editKey="province" />
                             <InfoField icon={Building2} iconColor="text-purple-500" label="CIF/NIF" value={selectedCompany.vat_number} editKey="vat_number" />
-                            <InfoField icon={User} iconColor="text-cyan-500" label="Persona de Contacto" value={cf.contacto} editKey="contacto" />
                             <InfoField icon={Phone} iconColor="text-green-500" label="Telefono" value={selectedCompany.phone} href={!editing && selectedCompany.phone ? `tel:${selectedCompany.phone}` : undefined} editKey="phone" />
                             <InfoField icon={Phone} iconColor="text-green-400" label="Movil" value={cf.telefono_2} href={!editing && cf.telefono_2 ? `tel:${cf.telefono_2}` : undefined} editKey="telefono_2" />
                             <InfoField icon={Calendar} iconColor="text-amber-500" label="F. Ultima Compra" value={cf.ultima_compra} editKey="ultima_compra" />
-                            <InfoField icon={DollarSign} iconColor="text-green-500" label="Forma de Pago" value={cf.forma_pago} editKey="forma_pago" selectOptions={FORMA_PAGO_OPTIONS} />
                             <InfoField icon={Mail} iconColor="text-blue-500" label="Email" value={selectedCompany.email} href={!editing && selectedCompany.email ? `mailto:${selectedCompany.email}` : undefined} editKey="email" />
                             <InfoField icon={Mail} iconColor="text-blue-400" label="Email 2" value={cf.email_2} href={!editing && cf.email_2 ? `mailto:${cf.email_2}` : undefined} editKey="email_2" />
                             <InfoField icon={Mail} iconColor="text-blue-300" label="Email 3" value={cf.email_3} href={!editing && cf.email_3 ? `mailto:${cf.email_3}` : undefined} editKey="email_3" />
@@ -985,6 +983,39 @@ export default function CompaniesPage() {
                           </div>
                         )
                       })()}
+                    </div>
+
+                    {/* Forma de Pago */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" /> Forma de Pago
+                      </h3>
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+                        <DollarSign className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <select
+                            value={selectedCompany.custom_fields?.forma_pago || ''}
+                            onChange={async (e) => {
+                              const newVal = e.target.value
+                              const cf = { ...(selectedCompany.custom_fields || {}), forma_pago: newVal || undefined }
+                              if (!newVal) delete cf.forma_pago
+                              await updateCompany(selectedCompany.id, { custom_fields: cf })
+                              setSelectedCompany({ ...selectedCompany, custom_fields: { ...selectedCompany.custom_fields, forma_pago: newVal } })
+                              refetchCompanies()
+                            }}
+                            className="w-full h-9 text-sm rounded-xl bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white px-3 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                          >
+                            <option value="">— Seleccionar forma de pago —</option>
+                            <option value="Transferencia 30 días">Transferencia 30 días</option>
+                            <option value="Transferencia 60 días">Transferencia 60 días</option>
+                            <option value="Giro bancario">Giro bancario</option>
+                            <option value="Confirming">Confirming</option>
+                            <option value="Contado">Contado</option>
+                            <option value="Pagaré">Pagaré</option>
+                            <option value="Recibo domiciliado">Recibo domiciliado</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Personas de Contacto */}
