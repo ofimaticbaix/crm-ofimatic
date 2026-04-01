@@ -9,7 +9,7 @@ import {
   Search, Plus, Globe, Users, X, Building2, TrendingUp,
   Mail, Phone, MapPin, User, Briefcase, DollarSign,
   Calendar, ChevronRight, PhoneCall, PlusCircle, Loader2, Pencil, Trash2,
-  Link2, Unlink, Linkedin
+  Link2, Unlink, Linkedin, CheckCircle
 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
@@ -42,7 +42,7 @@ export default function CompaniesPage() {
   const [inlineEditData, setInlineEditData] = useState<any>(null)
   const [inlineSaving, setInlineSaving] = useState(false)
   const [showNewContactInline, setShowNewContactInline] = useState(false)
-  const [newContactInline, setNewContactInline] = useState({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '' })
+  const [newContactInline, setNewContactInline] = useState({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '', notes: '', is_decision_maker: false })
   const [creatingContactInline, setCreatingContactInline] = useState(false)
   const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null)
   const [updatingCompany, setUpdatingCompany] = useState(false)
@@ -1145,6 +1145,30 @@ export default function CompaniesPage() {
                                   </div>
                                 </div>
 
+                                <div>
+                                  <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Notas</label>
+                                  <textarea
+                                    placeholder="Notas sobre este contacto..."
+                                    value={newContactInline.notes}
+                                    onChange={(e) => setNewContactInline({ ...newContactInline, notes: e.target.value })}
+                                    rows={2}
+                                    className="w-full rounded-lg text-xs px-3 py-2 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                                  />
+                                </div>
+
+                                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-100/50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900/50 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={newContactInline.is_decision_maker}
+                                    onChange={(e) => setNewContactInline({ ...newContactInline, is_decision_maker: e.target.checked })}
+                                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500"
+                                  />
+                                  <div className="flex items-center gap-1.5">
+                                    <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Es decisor en la empresa</span>
+                                  </div>
+                                </label>
+
                                 <div className="flex gap-2 pt-1">
                                   <Button
                                     size="sm"
@@ -1160,6 +1184,8 @@ export default function CompaniesPage() {
                                         email: newContactInline.email || undefined,
                                         phone: newContactInline.phone || undefined,
                                         linkedin_url: newContactInline.linkedin_url || undefined,
+                                        notes: newContactInline.notes || undefined,
+                                        is_decision_maker: newContactInline.is_decision_maker,
                                         company_id: selectedCompany.id,
                                       })
                                       if (created) {
@@ -1167,7 +1193,7 @@ export default function CompaniesPage() {
                                         if (compRes.data) setDetailContacts(compRes.data.contacts || [])
                                         refetchCompanies()
                                       }
-                                      setNewContactInline({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '' })
+                                      setNewContactInline({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '', notes: '', is_decision_maker: false })
                                       setShowNewContactInline(false)
                                       setCreatingContactInline(false)
                                     }}
@@ -1181,7 +1207,7 @@ export default function CompaniesPage() {
                                     className="rounded-xl text-xs h-9 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800/50"
                                     onClick={() => {
                                       setShowNewContactInline(false)
-                                      setNewContactInline({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '' })
+                                      setNewContactInline({ first_name: '', last_name: '', job_title: '', email: '', phone: '', linkedin_url: '', notes: '', is_decision_maker: false })
                                     }}
                                   >
                                     Cancelar

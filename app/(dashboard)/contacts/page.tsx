@@ -475,211 +475,156 @@ export default function ContactsPage() {
       {/* Modal Nuevo Contacto - Completo */}
       {showNewContactModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700">
-              <CardTitle className="text-gray-900 dark:text-white">Nuevo Contacto</CardTitle>
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                  <User className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-gray-900 dark:text-white text-lg">Nuevo Contacto</CardTitle>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Rellena los datos de la persona</p>
+                </div>
+              </div>
               <Button variant="ghost" size="sm" onClick={() => { setShowNewContactModal(false); resetNewContactForm() }} className="rounded-xl">
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-
-              {/* SECCIÓN 1: DATOS PERSONALES */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <User className="h-4 w-4" /> Datos Personales
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Nombre *</label>
+            <CardContent className="pt-5 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Nombre *</label>
+                  <div className="relative">
+                    <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                     <Input value={newContact.firstName} onChange={(e) => setNewContact({...newContact, firstName: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Juan" />
+                      className="rounded-xl text-sm h-9 pl-9 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Nombre" />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Apellidos *</label>
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Apellido</label>
+                  <div className="relative">
+                    <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                     <Input value={newContact.lastName} onChange={(e) => setNewContact({...newContact, lastName: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Pérez García" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Email *</label>
-                    <Input type="email" value={newContact.email} onChange={(e) => setNewContact({...newContact, email: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="juan@empresa.com" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Teléfono fijo</label>
-                    <Input value={newContact.phone} onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 93 000 0000" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Móvil</label>
-                    <Input value={newContact.mobile} onChange={(e) => setNewContact({...newContact, mobile: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 600 000 000" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Cargo</label>
-                    <Input value={newContact.jobTitle} onChange={(e) => setNewContact({...newContact, jobTitle: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Director General" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Departamento</label>
-                    <Input value={newContact.department} onChange={(e) => setNewContact({...newContact, department: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Ventas, Marketing, etc." />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">LinkedIn</label>
-                    <Input value={newContact.linkedinUrl} onChange={(e) => setNewContact({...newContact, linkedinUrl: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="linkedin.com/in/..." />
+                      className="rounded-xl text-sm h-9 pl-9 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Apellido" />
                   </div>
                 </div>
               </div>
 
-              {/* SECCIÓN 2: EMPRESA Y CLASIFICACIÓN */}
+              {/* Empresa selector */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Building2 className="h-4 w-4" /> Empresa y Clasificación
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Company selector */}
-                  <div className="relative">
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Empresa</label>
-                    {selectedCompanyForContact ? (
-                      <div className="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 border dark:border-gray-700">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-medium">
-                            {selectedCompanyForContact.name?.[0] || 'E'}
-                          </div>
-                          <span className="text-sm text-gray-900 dark:text-white">{selectedCompanyForContact.name}</span>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => setNewContact({...newContact, companyId: ''})} className="text-red-500 hover:text-red-600">
-                          <X className="h-4 w-4" />
-                        </Button>
+                <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Empresa</label>
+                {selectedCompanyForContact ? (
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 border dark:border-gray-700">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-medium">
+                        {selectedCompanyForContact.name?.[0] || 'E'}
                       </div>
-                    ) : (
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          value={companySearchQuery}
-                          onChange={(e) => { setCompanySearchQuery(e.target.value); setShowCompanyDropdown(true) }}
-                          onFocus={() => setShowCompanyDropdown(true)}
-                          className="pl-10 rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
-                          placeholder="Buscar empresa..."
-                        />
-                        {showCompanyDropdown && companySearchQuery && filteredCompaniesForDropdown.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto">
-                            {filteredCompaniesForDropdown.map(company => (
-                              <button
-                                key={company.id}
-                                onClick={() => { setNewContact({...newContact, companyId: company.id}); setCompanySearchQuery(''); setShowCompanyDropdown(false) }}
-                                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3"
-                              >
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                                  {company.name?.[0] || 'E'}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900 dark:text-white">{company.name}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{company.industry || 'Sin industria'}</p>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                      <span className="text-sm text-gray-900 dark:text-white">{selectedCompanyForContact.name}</span>
+                    </div>
+                    <button onClick={() => setNewContact({...newContact, companyId: ''})} className="text-gray-400 hover:text-red-500 transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                    <Input
+                      value={companySearchQuery}
+                      onChange={(e) => { setCompanySearchQuery(e.target.value); setShowCompanyDropdown(true) }}
+                      onFocus={() => setShowCompanyDropdown(true)}
+                      className="rounded-xl text-sm h-9 pl-9 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                      placeholder="Buscar empresa..."
+                    />
+                    {showCompanyDropdown && companySearchQuery && filteredCompaniesForDropdown.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto">
+                        {filteredCompaniesForDropdown.map(company => (
+                          <button
+                            key={company.id}
+                            onClick={() => { setNewContact({...newContact, companyId: company.id}); setCompanySearchQuery(''); setShowCompanyDropdown(false) }}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0">
+                              {company.name?.[0] || 'E'}
+                            </div>
+                            <span className="text-sm text-gray-900 dark:text-white">{company.name}</span>
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Estado *</label>
-                    <select value={newContact.lifecycle} onChange={(e) => setNewContact({...newContact, lifecycle: e.target.value})}
-                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                      <option value="lead">Lead</option>
-                      <option value="prospect">Prospecto</option>
-                      <option value="customer">Cliente</option>
-                      <option value="evangelist">Evangelista</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Canal de origen</label>
-                    <select value={newContact.leadSource} onChange={(e) => setNewContact({...newContact, leadSource: e.target.value})}
-                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                      <option value="">Seleccionar canal</option>
-                      <option value="web">Página Web</option>
-                      <option value="referido">Referido</option>
-                      <option value="email">Email Marketing</option>
-                      <option value="social">Redes Sociales</option>
-                      <option value="llamada">Llamada Fría</option>
-                      <option value="evento">Evento/Feria</option>
-                      <option value="publicidad">Publicidad Online</option>
-                      <option value="otro">Otro</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-3 pt-6">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newContact.isDecisionMaker}
-                        onChange={(e) => setNewContact({...newContact, isDecisionMaker: e.target.checked})}
-                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
-                        <CheckCircle className="h-4 w-4 text-green-500" /> Es decisor
-                      </span>
-                    </label>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* SECCIÓN 3: PREFERENCIAS (OPCIONAL) */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" /> Preferencias (opcional)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Idioma preferido</label>
-                    <select value={newContact.language} onChange={(e) => setNewContact({...newContact, language: e.target.value})}
-                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                      <option value="es">Español</option>
-                      <option value="ca">Catalán</option>
-                      <option value="en">Inglés</option>
-                      <option value="fr">Francés</option>
-                    </select>
+                <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Cargo</label>
+                <div className="relative">
+                  <Briefcase className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Input value={newContact.jobTitle} onChange={(e) => setNewContact({...newContact, jobTitle: e.target.value})}
+                    className="rounded-xl text-sm h-9 pl-9 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="Ej: Director Comercial" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                    <Input type="email" value={newContact.email} onChange={(e) => setNewContact({...newContact, email: e.target.value})}
+                      className="rounded-xl text-sm h-9 pl-9 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="email@empresa.com" />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Cumpleaños</label>
-                    <Input type="date" value={newContact.birthday} onChange={(e) => setNewContact({...newContact, birthday: e.target.value})}
-                      className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" />
-                  </div>
-                  <div className="flex items-center gap-3 pt-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newContact.consentMarketing}
-                        onChange={(e) => setNewContact({...newContact, consentMarketing: e.target.checked})}
-                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Acepta recibir comunicaciones de marketing (RGPD)</span>
-                    </label>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Notas</label>
-                    <textarea value={newContact.notes} onChange={(e) => setNewContact({...newContact, notes: e.target.value})}
-                      className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white resize-none h-20"
-                      placeholder="Notas adicionales sobre este contacto..." />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Teléfono</label>
+                  <div className="relative">
+                    <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                    <Input value={newContact.phone} onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
+                      className="rounded-xl text-sm h-9 pl-9 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="+34 600 000 000" />
                   </div>
                 </div>
               </div>
 
-              {/* BOTONES DE ACCIÓN */}
-              <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
-                <Button onClick={handleCreateContact} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
-                  disabled={!newContact.firstName || !newContact.lastName || !newContact.email || creating}>
-                  {creating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creando...</> : 'Crear Contacto'}
+              <div>
+                <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">LinkedIn</label>
+                <div className="relative">
+                  <Linkedin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Input value={newContact.linkedinUrl} onChange={(e) => setNewContact({...newContact, linkedinUrl: e.target.value})}
+                    className="rounded-xl text-sm h-9 pl-9 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white" placeholder="linkedin.com/in/nombre" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 block mb-1">Notas</label>
+                <textarea value={newContact.notes} onChange={(e) => setNewContact({...newContact, notes: e.target.value})}
+                  rows={2}
+                  className="w-full rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Notas sobre este contacto..." />
+              </div>
+
+              <label className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={newContact.isDecisionMaker}
+                  onChange={(e) => setNewContact({...newContact, isDecisionMaker: e.target.checked})}
+                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500"
+                />
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Es decisor en la empresa</span>
+                </div>
+              </label>
+
+              {/* BOTONES */}
+              <div className="flex gap-3 pt-3 border-t dark:border-gray-700">
+                <Button onClick={handleCreateContact}
+                  className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  disabled={!newContact.firstName || creating}>
+                  {creating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creando...</> : <><Plus className="h-4 w-4 mr-2" /> Crear Contacto</>}
                 </Button>
                 <Button variant="outline" onClick={() => { setShowNewContactModal(false); resetNewContactForm() }}
                   className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
                   Cancelar
                 </Button>
               </div>
-
             </CardContent>
           </Card>
         </div>
