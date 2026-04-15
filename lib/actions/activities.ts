@@ -74,6 +74,52 @@ export async function createActivity(workspaceId: string, input: ActivityInput) 
   return { data, error: null }
 }
 
+// Registrar un contacto inmediato con un cliente (crea una activity ya completada)
+// — la forma rápida de decir "acabo de hablar con este cliente".
+export async function logContact(
+  workspaceId: string,
+  input: {
+    type: 'call' | 'meeting' | 'email' | 'note'
+    company_id?: string | null
+    contact_id?: string | null
+    deal_id?: string | null
+    subject?: string
+    description?: string
+  }
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const now = new Date().toISOString()
+
+  const subjectDefaults: Record<string, string> = {
+    call: 'Llamada',
+    meeting: 'Reunión',
+    email: 'Email',
+    note: 'Nota',
+  }
+
+  const { data, error } = await supabase
+    .from('activities')
+    .insert({
+      workspace_id: workspaceId,
+      type: input.type,
+      subject: input.subject || subjectDefaults[input.type],
+      description: input.description || null,
+      company_id: input.company_id || null,
+      contact_id: input.contact_id || null,
+      deal_id: input.deal_id || null,
+      is_completed: true,
+      completed_at: now,
+      created_by_id: user!.id,
+      assigned_to_id: user!.id,
+    })
+    .select()
+    .single()
+
+  if (error) return { data: null, error: error.message }
+  return { data, error: null }
+}
+
 // Actualizar actividad
 export async function updateActivity(id: string, input: Partial<ActivityInput>) {
   const supabase = await createClient()

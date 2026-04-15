@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Users, DollarSign, Calendar, Clock, AlertTriangle, Loader2, CalendarCheck } from 'lucide-react'
@@ -7,12 +8,14 @@ import { formatCurrency } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompaniesWithStatus, type CompanyWithStatus, type CompaniesGrouped } from '@/lib/actions/clients'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { CompanyDetailModal } from '@/components/company-detail-modal'
 
 export default function ClientesInactivosPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   // Cached data - shares cache with main clients page
-  const { data, loading: dataLoading, error } = useCachedData<CompaniesGrouped>(
+  const { data, loading: dataLoading, error, refetch } = useCachedData<CompaniesGrouped>(
     `clients-status-${workspaceId}`,
     () => getCompaniesWithStatus(workspaceId),
     [workspaceId],
@@ -63,7 +66,7 @@ export default function ClientesInactivosPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {companies.map((company) => (
-          <Card key={company.id} className="border-amber-300 dark:border-amber-700/50 hover:shadow-xl transition-all bg-amber-50/5">
+          <Card key={company.id} onClick={() => setSelectedId(company.id)} className="border-amber-300 dark:border-amber-700/50 hover:shadow-xl transition-all bg-amber-50/5 cursor-pointer">
             <CardContent className="p-4 md:p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -117,6 +120,16 @@ export default function ClientesInactivosPage() {
       </div>
       {companies.length === 0 && (
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No hay clientes inactivos. Todos estan al dia.</p>
+      )}
+
+      {selectedId && (
+        <CompanyDetailModal
+          companyId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onChanged={() => refetch()}
+          accentColor="amber"
+          defaultBadge={{ label: 'Inactivo', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' }}
+        />
       )}
     </div>
   )

@@ -1,605 +1,527 @@
-# Manual de Usuario - CRM Ofimatic Baix
+<img src="../public/images/logo.png" alt="Ofimatic Baix" width="60" style="display:block;margin:0" />
 
-> **Versión:** 1.0 | **Actualizado:** Marzo 2026
-
----
-
-## Indice
-
-1. [Introduccion](#1-introduccion)
-2. [Primeros Pasos](#2-primeros-pasos)
-3. [Panel de Control](#3-panel-de-control-dashboard)
-4. [Contactos](#4-contactos)
-5. [Empresas](#5-empresas)
-6. [Oportunidades (Deals)](#6-oportunidades-deals)
-7. [Tareas](#7-tareas)
-8. [Clientes](#8-clientes)
-9. [Metricas](#9-metricas)
-10. [Importar Datos](#10-importar-datos)
-11. [Configuracion](#11-configuracion)
-12. [Preguntas Frecuentes](#12-preguntas-frecuentes)
+<h1 style="text-align:center;margin-top:10px">Manual de Usuario — CRM Ofimatic Baix</h1>
+<p style="text-align:center"><strong>Versión:</strong> 2.0 | <strong>Actualizado:</strong> Abril 2026</p>
 
 ---
 
-## 1. Introduccion
+## 1. Primeros pasos
 
-### Que es el CRM Ofimatic Baix?
+### 1.1 Acceder al CRM
 
-El CRM Ofimatic Baix es una plataforma moderna de gestion de relaciones con clientes disenada para equipos de ventas, agencias y PYMEs. Te permite gestionar de forma sencilla:
+1. Abre tu navegador y ve a la dirección del CRM
+2. Escribe tu **email** y tu **contraseña**
+3. Pulsa **Iniciar sesión**
 
-- **Contactos**: Todas las personas con las que interactuas
-- **Empresas**: Clientes, prospectos y proveedores
-- **Oportunidades**: Tu embudo de ventas completo
-- **Tareas**: Seguimiento de actividades pendientes
-- **Metricas**: Analisis de rendimiento en tiempo real
+Si no recuerdas tu contraseña, contacta con el administrador del sistema.
 
-### Requisitos
+### 1.2 Navegación principal
 
-- Navegador web moderno (Chrome, Firefox, Safari, Edge)
-- Conexion a internet
-- Cuenta activa en el CRM
+Una vez dentro, verás una barra lateral a la izquierda con todas las secciones:
 
----
+| Sección | Para qué sirve |
+|---------|----------------|
+| **Panel** | Resumen del día: ventas, tareas pendientes, calendario |
+| **Contactos** | Personas con las que trabajas |
+| **Empresas** | Fichas de todas las empresas |
+| **Clientes** | Vista general, activos, inactivos, cerrados y potenciales |
+| **Oportunidades** | Ventas en curso (embudo comercial) |
+| **Tareas** | Cosas que tienes que hacer, con calendario |
+| **Métricas** | Números y estadísticas de tu negocio |
+| **Importar** | Subir datos desde archivos Excel o CSV |
+| **Configuración** | Ajustes de la cuenta y del equipo |
 
-## 2. Primeros Pasos
-
-### Acceso al Sistema
-
-1. Abre tu navegador y ve a la URL del CRM
-2. Introduce tu email y contrasena
-3. Haz clic en "Iniciar sesion"
-
-### Interfaz Principal
-
-Al entrar veras:
-
-```
-+------------------+--------------------------------+
-|                  |                                |
-|   MENU LATERAL   |     AREA DE CONTENIDO          |
-|                  |                                |
-|   - Panel        |     (Aqui se muestra la        |
-|   - Contactos    |      seccion seleccionada)     |
-|   - Empresas     |                                |
-|   - Oportunidades|                                |
-|   - Tareas       |                                |
-|   - Metricas     |                                |
-|   - Importar     |                                |
-|   - Config       |                                |
-|   - Clientes     |                                |
-|                  |                                |
-+------------------+--------------------------------+
-```
-
-### Barra Superior
-
-- **Selector de workspace**: Si tienes acceso a multiples espacios
-- **Fecha actual**: Muestra la fecha de hoy
-- **Tema claro/oscuro**: Cambia entre modo dia y noche
-- **Tu perfil**: Muestra tu rol y opcion de cerrar sesion
+En la parte inferior de la barra verás tu nombre, tu rol y el botón para **cerrar sesión**.
 
 ---
 
-## 3. Panel de Control (Dashboard)
+## 2. Panel (Página de Inicio)
 
-El Dashboard es tu centro de operaciones. Muestra un resumen ejecutivo de toda tu actividad.
+Es lo primero que ves al entrar. Te muestra un resumen rápido de cómo va tu negocio.
 
-### Metricas Principales (4 tarjetas)
+### 2.1 Tarjetas de resumen
 
-| Metrica | Descripcion |
-|---------|-------------|
-| **Ventas** | Valor total de oportunidades abiertas |
-| **Prevision** | Valor ponderado por probabilidad de cierre |
-| **Exito** | Porcentaje de oportunidades ganadas |
-| **Tareas** | Numero de tareas pendientes |
+En la parte superior hay 4 tarjetas con los datos más importantes:
 
-### Tus Tareas
+- **Ventas** — Valor total de todas las oportunidades abiertas
+- **Previsión** — Valor estimado teniendo en cuenta la probabilidad de cerrar cada venta
+- **Éxito** — Porcentaje de oportunidades que se han ganado
+- **Tareas** — Cuántas tareas tienes pendientes. Si alguna está atrasada, se marca en rojo
 
-Lista de las 5 tareas mas proximas a vencer:
-- Marca como completada con el checkbox
-- Ve la prioridad (Alta = rojo, Media = naranja, Baja = verde)
-- Identifica tareas vencidas facilmente
+### 2.2 Tus Tareas
 
-### Proximos Cierres
+Debajo de las tarjetas aparecen las 5 tareas más urgentes. Puedes:
 
-Oportunidades que cierran esta semana:
-- Nombre del deal
-- Empresa asociada
-- Valor en euros
-- Fecha de cierre
+- **Completar** una tarea pulsando la casilla a la izquierda
+- Ver si es **urgente** (etiqueta roja) o si está **atrasada**
+- Pulsar **"Ver todas"** para ir a la sección completa de tareas
 
-### Calendario
+### 2.3 Próximos Cierres
 
-- Navega entre meses
-- Los dias con tareas tienen puntos de colores
-- Haz clic en un dia para ver el detalle
-- Boton "+ Agregar tarea" para crear rapidamente
+Muestra las ventas que se espera cerrar durante esta semana. Cada una indica:
 
-### Actividad Reciente
+- Nombre de la oportunidad
+- Empresa
+- Importe
+- Fecha prevista de cierre
 
-Timeline de las ultimas acciones:
-- Llamadas realizadas
-- Emails enviados
-- Reuniones
-- Notas agregadas
+### 2.4 Calendario
+
+A la derecha hay un calendario del mes actual. Los días que tienen tareas muestran un punto de color:
+
+- **Punto naranja** — Tarea de prioridad media
+- **Punto rojo** — Tarea urgente
+
+Pulsa en cualquier día para ver las tareas de ese día o para crear una nueva.
+
+### 2.5 Actividad Reciente
+
+Debajo del calendario aparecen las últimas acciones realizadas en el CRM: llamadas, emails enviados, reuniones, etc.
+
+---
+
+## 3. Empresas
+
+Aquí gestionas todas las empresas con las que trabajas.
+
+### 3.1 Ver empresas
+
+Al entrar en **Empresas** verás tarjetas ordenadas **alfabéticamente** con todas las empresas. Cada tarjeta muestra:
+
+- Nombre de la empresa
+- Sector
+- Email y teléfono
+- Número de contactos y oportunidades
+- Sitio web
+
+Usa la **barra de búsqueda** para encontrar una empresa por nombre o sector.
+
+### 3.2 Crear una empresa nueva
+
+1. Pulsa **"+ Nueva Empresa"** (botón arriba a la derecha)
+2. Rellena los datos:
+   - **Nombre** (obligatorio)
+   - CIF/NIF
+   - Sector, tamaño de empresa
+   - Sitio web, email, teléfono, LinkedIn
+   - Descripción
+   - Dirección completa: calle, ciudad, código postal, provincia, país
+   - Tipo de cuenta: Lead, Prospecto, Cliente, Partner o Proveedor
+   - Estado: Activo, Inactivo, En negociación o Perdido
+   - Canal de captación: Web, Referido, Email, etc.
+   - Facturación anual
+3. Pulsa **"Crear Empresa"**
+
+### 3.3 Ficha de empresa (detalle)
+
+Pulsa sobre cualquier tarjeta para abrir la ficha completa. Contiene:
+
+**Cabecera:**
+- Nombre de la empresa con su inicial
+- Sector y tamaño
+- 3 indicadores: Contactos, Deals abiertos y Valor total
+
+**Información de la empresa:**
+Todos los datos organizados en una rejilla con iconos de colores:
+- Razón social, dirección, C.P., población, provincia
+- CIF/NIF
+- Teléfono y móvil (pulsables para llamar directamente)
+- Fecha de última compra
+- Emails (hasta 5 direcciones)
+- Sitio web (pulsable para abrir en otra pestaña)
+- Canal de adquisición
+
+**Forma de Pago:**
+Justo debajo de la información aparece un desplegable para seleccionar cómo paga la empresa. Las opciones son:
+
+- Transferencia 30 días
+- Transferencia 60 días
+- Giro bancario
+- Confirming
+- Contado
+- Pagaré
+- Recibo domiciliado
+
+Al seleccionar una opción **se guarda automáticamente**, no hace falta pulsar nada más.
+
+### 3.4 Editar una empresa
+
+Hay dos formas de empezar a editar:
+
+- Pulsar el **icono de lápiz** arriba a la derecha del título "Información de Contacto"
+- Pulsar el botón **"Editar"** en la parte inferior del panel
+
+Cuando activas la edición:
+1. Los textos se convierten en campos editables (sin cambiar de pantalla)
+2. Modifica lo que necesites
+3. Pulsa **"Guardar"** para confirmar o **"Cancelar"** para descartar
+
+### 3.5 Añadir contactos a una empresa
+
+Dentro de la ficha de empresa, en la sección **"Personas de Contacto"**:
+
+1. Pulsa **"+ Añadir Contacto"**
+2. Se abre un desplegable con dos opciones:
+
+**Opción A — Vincular un contacto que ya existe:**
+- Escribe el nombre o email en la barra de búsqueda
+- Pulsa sobre la persona para vincularla a la empresa
+
+**Opción B — Crear una persona nueva:**
+- Pulsa el botón verde **"Crear nuevo contacto"** (debajo de la búsqueda)
+- Se despliega un formulario con estos campos:
+  - **Nombre** (obligatorio) y **Apellido**
+  - **Cargo** (ej: Director Comercial, Responsable de Compras)
+  - **Email** y **Teléfono**
+  - **LinkedIn**
+  - **Notas** (cualquier comentario sobre esta persona)
+  - **Es decisor en la empresa** (marca esta casilla si la persona toma decisiones de compra)
+- Pulsa **"Crear Contacto"**
+
+La persona se vincula automáticamente a la empresa. No necesitas asignar la empresa manualmente.
+
+Para **desvincular** un contacto, pasa el ratón sobre la persona y pulsa el icono de desvincular que aparece a la derecha.
+
+### 3.6 Actividades
+
+En la parte inferior de la ficha verás las actividades organizadas en 3 columnas:
+
+- **Pendiente** — Actividades por hacer
+- **Completada** — Actividades ya hechas
+- **Cancelada** — Actividades canceladas
+
+Puedes filtrar por tipo: **Todos**, **Llamar** o **Visitar**.
+
+Para registrar una actividad nueva:
+1. Pulsa **"+ Registrar Actividad"**
+2. Rellena: tipo, asunto, contacto, seguimiento, fecha, hora y notas
+3. Pulsa **"Registrar"**
+
+### 3.7 Eliminar una empresa
+
+1. Abre la ficha de la empresa
+2. Pulsa el botón rojo **"Eliminar"**
+3. Confirma la eliminación
+
+**Atención:** esta acción no se puede deshacer.
 
 ---
 
 ## 4. Contactos
 
-### Para que sirve?
+Aquí gestionas las personas individuales (empleados, directivos, etc. de las empresas).
 
-Gestiona todas las personas con las que interactuas: clientes, prospectos, colaboradores, etc.
+### 4.1 Ver contactos
 
-### Vista Principal
-
-**Buscar contactos:**
-- Escribe en el buscador para filtrar por nombre, email o empresa
-- Los resultados aparecen en tiempo real
-
-**Tabla de contactos:**
-| Columna | Descripcion |
-|---------|-------------|
-| Contacto | Nombre completo y avatar |
-| Empresa | Empresa asociada |
-| Email | Email de contacto |
-| Telefono | Numero de telefono |
-| Estado | Lead, Prospecto, Cliente o Evangelista |
-
-### Estados de Contactos
-
-| Estado | Significado | Color |
-|--------|-------------|-------|
-| **Lead** | Potencial cliente nuevo | Amarillo |
-| **Prospecto** | Interesado activo | Azul |
-| **Cliente** | Ya es cliente | Verde |
-| **Evangelista** | Promotor/referidor | Morado |
-
-### Crear Nuevo Contacto
-
-1. Haz clic en "+ Nuevo Contacto"
-2. Completa los campos:
-
-**Datos Personales:**
-- Nombre* (obligatorio)
-- Apellidos* (obligatorio)
-- Email* (obligatorio)
-- Telefono fijo
-- Movil
-- Cargo
-- Departamento
-- LinkedIn
-
-**Empresa y Clasificacion:**
-- Empresa (selecciona o crea nueva)
-- Estado (Lead, Prospecto, Cliente, Evangelista)
-- Canal de origen (Web, Referido, Email, etc.)
-- Es decisor? (marcar si es quien toma decisiones)
-
-**Preferencias:**
-- Idioma preferido
-- Cumpleanos
-- Consentimiento marketing (RGPD)
-- Notas adicionales
-
-3. Haz clic en "Crear Contacto"
-
-### Ver Detalle de Contacto
-
-Haz clic en cualquier contacto para ver:
-- Informacion completa
-- Empresa asociada
-- Oportunidades relacionadas
-- Historial de actividades
-- Opciones para editar o eliminar
-
----
-
-## 5. Empresas
-
-### Para que sirve?
-
-Gestiona clientes, prospectos, proveedores y socios comerciales.
-
-### Vista Principal
-
-**Tarjetas de empresa:**
-Cada empresa muestra:
-- Logo o inicial
-- Nombre y sector
-- Email y telefono
-- Numero de contactos asociados
-- Numero de oportunidades
-- Valor total de deals
-- Link al sitio web
-
-### Crear Nueva Empresa
-
-1. Haz clic en "+ Nueva Empresa"
-2. Completa las secciones:
-
-**Datos Basicos:**
-- Nombre de empresa* (obligatorio)
-- CIF/NIF
-- Industria/Sector
-- Tamano (1-10, 11-50, 51-200, 201-500, 501+)
-- Sitio web
+La tabla muestra todos los contactos con estas columnas:
+- Nombre
+- Empresa
 - Email
-- Telefono
-- LinkedIn
-- Descripcion
+- Teléfono
+- Estado (Lead, Prospecto, Cliente)
 
-**Direccion:**
-- Calle y numero
-- Ciudad
-- Codigo postal
-- Provincia
-- Pais
+### 4.2 Ordenar la tabla
 
-**Personas de Contacto:**
-- Busca contactos existentes
-- O crea nuevos desde aqui (nombre, apellido, email, cargo)
+Todas las columnas tienen una **flechita** en el encabezado:
 
-**Clasificacion:**
-- Tipo de cuenta (Lead, Prospecto, Cliente, Partner, Proveedor)
-- Estado (Activo, Inactivo, En negociacion, Perdido)
-- Canal de captacion
-- Facturacion anual
+- **1er clic** — Orden ascendente (A→Z)
+- **2do clic** — Orden descendente (Z→A)
+- **3er clic** — Quitar el orden
 
-3. Haz clic en "Crear Empresa"
+Esto te permite, por ejemplo, agrupar todos los contactos de una misma empresa o ver primero los clientes.
 
-### Ver Detalle de Empresa
+### 4.3 Crear un contacto nuevo
 
-Haz clic en "Ver detalle" para acceder a:
-- Informacion completa de la empresa
-- Lista de contactos asociados
-- Oportunidades abiertas
-- Historial de actividades
-- Boton para registrar nueva actividad
+1. Pulsa **"+ Nuevo Contacto"** (botón arriba a la derecha)
+2. Rellena los campos:
+   - **Nombre** (obligatorio) y **Apellido**
+   - **Empresa** (busca y selecciona del listado)
+   - **Cargo**
+   - **Email** y **Teléfono**
+   - **LinkedIn**
+   - **Notas**
+   - **Es decisor en la empresa** (casilla)
+3. Pulsa **"Crear Contacto"**
+
+Los campos y el diseño son los mismos que al crear un contacto desde una empresa.
+
+### 4.4 Ver detalle de un contacto
+
+Pulsa sobre cualquier fila para abrir la ficha completa con toda su información, oportunidades asociadas y actividades.
 
 ---
 
-## 6. Oportunidades (Deals)
+## 5. Clientes
 
-### Para que sirve?
+La sección de Clientes tiene varias subsecciones en el menú lateral.
 
-Gestiona tu embudo de ventas desde el primer contacto hasta el cierre.
+### 5.1 Vista General
 
-### Vista Kanban (Tablero)
+Muestra **todos** los registros (clientes, prospectos, leads) en una sola tabla.
 
-Tu pipeline se muestra como un tablero con columnas:
+**Filtros rápidos** (tarjetas en la parte superior):
+- **Total** — Todos los registros
+- **Clientes** (verde) — Solo clientes activos
+- **Prospectos** (azul) — Solo prospectos
+- **Leads** (morado) — Solo leads
 
-```
-| Nuevo | Contactado | Propuesta | Negociacion | Ganado | Perdido |
-|-------|------------|-----------|-------------|--------|---------|
-| Deal1 | Deal4      | Deal7     | Deal9       | Deal11 | Deal12  |
-| Deal2 | Deal5      | Deal8     | Deal10      |        |         |
-| Deal3 | Deal6      |           |             |        |         |
-```
+Pulsa en una tarjeta para filtrar la tabla.
 
-**Cada columna muestra:**
-- Nombre de la etapa
-- Probabilidad de cierre (%)
-- Numero de deals
-- Valor total
+**Columnas de la tabla** (todas se pueden ordenar con las flechitas):
+- Razón Social
+- CIF/NIF
+- Teléfono
+- Ciudad
+- Tipo (Cliente, Prospecto, Lead, Partner, Proveedor)
+- Nº de contactos
 
-**Cada tarjeta de deal muestra:**
+### 5.2 Clientes Activos
+
+Muestra solo las empresas que son **clientes**.
+
+**Filtros por etiqueta:**
+- **Todos** — Todos los clientes
+- **Al Día** (verde) — Clientes al corriente de todo
+- **VIP** (amarillo) — Clientes prioritarios
+- **Revisar** (naranja) — Clientes que necesitan atención
+- **Sin etiqueta** — Clientes sin clasificar
+
+**Filtro por forma de pago:** Si hay distintas formas de pago registradas, aparecen botones para filtrar por cada una (ej: Transferencia 30 días, Contado, etc.).
+
+**Cómo cambiar la etiqueta de un cliente:**
+1. En la tabla, pulsa sobre la columna **Estado** de cualquier fila
+2. Se abre un pequeño menú con las opciones: Al Día, VIP, Revisar
+3. Selecciona una opción o pulsa "Quitar etiqueta" para dejarla en blanco
+
+Las filas se colorean según la etiqueta para que lo veas de un vistazo.
+
+**Ficha de cliente:**
+Pulsa en cualquier fila para abrir el detalle completo. Podrás ver y editar toda la información, cambiar etiquetas, ver notas y modificar datos.
+
+### 5.3 Clientes Potenciales (Leads)
+
+Muestra las empresas marcadas como **lead** — empresas que aún no son clientes pero podrían serlo.
+
+**Etiquetas disponibles:**
+- **Visitar** (naranja) — Hay que ir a visitarlos
+- **Cliente** (amarillo) — Ya se ha convertido en cliente
+- **No Interesa** (verde) — No están interesados
+
+Funciona igual que Clientes Activos: puedes cambiar etiquetas, ordenar columnas y buscar.
+
+### 5.4 Clientes Inactivos y Cerrados
+
+Muestran las empresas que llevan tiempo sin actividad o que se han dado de baja. Se presentan en tarjetas con información resumida.
+
+---
+
+## 6. Oportunidades (Embudo de Ventas)
+
+Aquí gestionas las ventas en curso. Las oportunidades se organizan en un tablero visual por etapas.
+
+### 6.1 Vista del embudo
+
+Las oportunidades se muestran en **columnas**, una por cada etapa del proceso de venta. Cada tarjeta muestra:
+
 - Nombre de la oportunidad
 - Empresa
-- Valor (destacado)
-- Contactos asociados
-- Fecha de cierre esperada
-- Tiempo desde ultima actividad
+- Importe en euros
+- Fecha prevista de cierre
+- Probabilidad de éxito
 
-### Crear Nueva Oportunidad
+### 6.2 Crear una oportunidad
 
-1. Haz clic en "+ Nueva Oportunidad"
-2. Completa:
-   - Nombre* (ej: "Proyecto CRM - Acme Corp")
-   - Valor* (en euros)
-   - Empresa*
-   - Etapa* (selecciona del pipeline)
-   - Fecha de cierre esperada*
-3. Haz clic en "Crear"
+1. Pulsa **"+ Nueva Oportunidad"**
+2. Rellena:
+   - Nombre (obligatorio)
+   - Importe
+   - Empresa (buscador)
+   - Etapa del proceso
+   - Fecha estimada de cierre
+3. Pulsa **"Crear"**
 
-### Mover Oportunidades
+### 6.3 Mover una oportunidad de etapa
 
-- Las oportunidades se mueven entre etapas
-- Haz clic en el boton de editar para cambiar la etapa
-- El valor ponderado se calcula automaticamente
-
-### Indicadores de Riesgo
-
-- **Punto rojo**: Deal sin actividad en mas de 7 dias
-- **Revisa estos deals** para evitar que se enfrien
+Arrastra una tarjeta de una columna a otra para cambiar su etapa. Por ejemplo, de "Propuesta enviada" a "Negociación".
 
 ---
 
 ## 7. Tareas
 
-### Para que sirve?
+Gestiona todo lo que tienes que hacer: llamadas pendientes, reuniones, visitas, etc.
 
-Gestiona todas las actividades pendientes: llamadas, reuniones, seguimientos, etc.
+### 7.1 Vista de calendario
 
-### Dos Vistas Disponibles
+Es la vista principal. Muestra un calendario mensual donde:
 
-Usa el toggle en la esquina superior derecha:
-- **Lista**: Vista tradicional de tareas agrupadas
-- **Calendario**: Vista mensual tipo agenda
+- Los días con tareas tienen **puntos de color** (naranja = media, rojo = urgente)
+- Pulsa en un día para ver sus tareas
+- Cada tarea muestra la hora, el nombre y la prioridad
 
-### Vista Lista
+### 7.2 Vista de lista
 
-**Agrupacion:**
-1. **Tareas Vencidas** (rojo): Pasadas de fecha
-2. **Tareas de Hoy**: Para completar hoy
-3. **Proximas Tareas**: Futuras (30 dias)
+Pulsa el botón **"Lista"** en la cabecera para ver todas las tareas en formato tabla.
 
-**Cada tarea muestra:**
-- Checkbox para completar
-- Nombre de la tarea
-- Prioridad (Alta/Media/Baja)
-- Tipo (Tarea/Llamada/Reunion/Email/Nota)
-- Deal asociado
-- Empresa y contacto
-- Hora programada
-- Fecha de vencimiento
+### 7.3 Crear una tarea
 
-### Vista Calendario
+1. Pulsa **"+ Nueva Tarea"** o pulsa directamente en un día del calendario
+2. Rellena:
+   - **Título** (obligatorio)
+   - **Tipo**: Tarea, Llamada, Reunión, Email o Nota
+   - **Fecha y hora**
+   - **Prioridad**: Alta (rojo), Media (naranja) o Baja (verde)
+   - Empresa, Contacto u Oportunidad relacionada (opcional)
+   - Notas
+3. Pulsa **"Crear"**
 
-- Navega entre meses con las flechas
-- Los dias con tareas tienen puntos de colores
-- Haz clic en un dia para ver las tareas
-- Panel lateral muestra detalle del dia seleccionado
+### 7.4 Completar una tarea
 
-### Crear Nueva Tarea
-
-1. Haz clic en "+ Nueva Tarea"
-2. Completa:
-   - Titulo* (ej: "Llamar cliente para seguimiento")
-   - Tipo* (Tarea, Llamada, Reunion, Email, Nota)
-   - Prioridad* (Baja, Media, Alta)
-   - Fecha*
-   - Hora (opcional)
-   - Empresa (opcional)
-   - Contacto (opcional)
-   - Oportunidad asociada (opcional)
-3. Haz clic en "Crear Tarea"
-
-### Completar Tareas
-
-- Haz clic en el checkbox para marcar como completada
-- La tarea desaparecera de la lista de pendientes
-- El "ultimo contacto" del cliente se actualiza automaticamente
+Pulsa la **casilla** a la izquierda de la tarea para marcarla como completada.
 
 ---
 
-## 8. Clientes
+## 8. Métricas
 
-### Para que sirve?
+Muestra los números clave de tu negocio de un vistazo.
 
-Vista especializada para seguimiento del estado de tus clientes. Identifica rapidamente quien necesita atencion.
+### 8.1 Indicadores principales
 
-### Tres Categorias
+4 tarjetas con los datos más importantes:
 
-| Categoria | Significado | Accion Requerida |
-|-----------|-------------|------------------|
-| **Activos** | Contacto reciente o tarea programada | Mantener ritmo |
-| **Atrasados** | Sin contacto en mas de 7 dias | Requiere atencion! |
-| **Cerrados** | Relacion finalizada | Archivo |
+- **Pipeline Total** — Valor de todas las oportunidades abiertas
+- **Pipeline Ponderado** — Valor estimado según la probabilidad de cierre
+- **Ticket Medio** — Importe medio por oportunidad
+- **Tasa de Conversión** — Porcentaje de oportunidades ganadas
 
-### Metricas Clave
+### 8.2 Información detallada
 
-- **Dias sin contacto**: Tiempo desde la ultima tarea completada
-- **Proxima actividad**: Fecha de la siguiente tarea programada
+Debajo verás:
 
-### Alertas
-
-Si tienes clientes sin contactar en mas de 7 dias, veras una alerta:
-
-```
-⚠️ Clientes sin contacto en mas de 7 dias:
-   Empresa ABC, Empresa XYZ
-```
-
-### Tarjetas de Cliente
-
-Cada tarjeta muestra:
-- Nombre y sector
-- Estado (Activo/Atrasado/Cerrado)
-- Numero de contactos
-- Valor total de deals
-- Dias sin actividad
-- Proxima actividad programada
-- Avatares de contactos principales
+- Desglose del pipeline por etapa
+- Contactos por tipo (Cliente, Prospecto, Lead)
+- Empresas activas e inactivas
+- Actividades por tipo (llamadas, emails, reuniones)
+- Tareas pendientes, completadas y atrasadas
 
 ---
 
-## 9. Metricas
+## 9. Importar datos
 
-### Para que sirve?
+Si tienes datos en un archivo Excel o CSV, puedes subirlos al CRM de forma masiva.
 
-Analiza el rendimiento de tu equipo y pipeline de ventas.
+### 9.1 Pasos del asistente
 
-### KPIs Principales
+**Paso 1 — Subir archivo:**
+Arrastra tu archivo Excel (.xlsx) o CSV al recuadro, o pulsa para buscarlo en tu ordenador.
 
-| Metrica | Calculo |
-|---------|---------|
-| **Pipeline Total** | Suma de todos los deals abiertos |
-| **Pipeline Ponderado** | Suma ponderada por probabilidad |
-| **Ticket Medio** | Promedio del valor de deals |
-| **Tasa de Conversion** | % de deals ganados vs total |
+**Paso 2 — Tipo de datos:**
+Indica qué estás importando: Empresas, Contactos o Leads.
 
-### Secciones de Analisis
+**Paso 3 — Asignar columnas:**
+El sistema muestra las columnas de tu archivo. Asigna cada una al campo correspondiente del CRM (Nombre, Email, Teléfono, etc.). Algunas se asignan automáticamente.
 
-**Estado de Clientes:**
-- Activos vs Inactivos vs Total
+**Paso 4 — Duplicados:**
+Elige qué hacer si ya existe un registro igual:
+- **Saltar** — No importar el duplicado
+- **Actualizar** — Sobrescribir con los datos nuevos
+- **Insertar siempre** — Crear un registro nuevo aunque ya exista
 
-**Contactos por Estado:**
-- Clientes, Prospectos, Leads
+**Paso 5 — Vista previa:**
+Revisa una muestra de los datos antes de importar. Verás cuántos registros son válidos y cuántos tienen errores.
 
-**Pipeline por Etapa:**
-- Tabla con barra de progreso por etapa
-- Numero de deals y valor por etapa
+**Paso 6 — Importación:**
+Se ejecuta la importación. Una barra de progreso te muestra cuántos registros se han procesado.
 
-**Resumen de Tareas:**
-- Pendientes, Vencidas, Alta Prioridad
-- Desglose por tipo
-
-**Resumen de Actividades:**
-- Total y desglose por tipo (Llamadas, Emails, etc.)
+**Paso 7 — Resultado:**
+Resumen final con cuántos se importaron correctamente, cuántos se saltaron y cuántos fallaron.
 
 ---
 
-## 10. Importar Datos
+## 10. Mapa de Empresas
 
-### Para que sirve?
+Muestra las empresas en un mapa según su dirección.
 
-Carga datos masivos desde sistemas legacy o hojas de calculo.
+### 10.1 Funciones
 
-### Formatos Soportados
+- **Ver empresas** marcadas con chinchetas en el mapa
+- **Buscar** una empresa por nombre
+- **Filtrar** por tipo de empresa
+- **Pulsar una chincheta** para ver los datos de esa empresa
+- **Mi ubicación** — Muestra dónde estás tú en el mapa
 
-- **CSV** (.csv)
-- **Excel** (.xlsx, .xls)
-- **Access** (.mdb, .accdb)
+### 10.2 Check-in (registro de visita)
 
-### Proceso de Importacion (5 pasos)
-
-**Paso 1: Subir Archivo**
-- Arrastra y suelta el archivo
-- O haz clic para seleccionar
-
-**Paso 2: Seleccionar Tipo**
-- Contactos
-- Empresas
-- Facturas Pagadas
-- Facturas Pendientes
-
-**Paso 3: Mapear Columnas**
-- Asigna cada columna de tu archivo a un campo del CRM
-- Los campos obligatorios estan marcados con *
-- Guarda el perfil para reutilizarlo
-
-**Paso 4: Vista Previa**
-- Revisa los datos antes de importar
-- Corrige errores si los hay
-- Confirma la importacion
-
-**Paso 5: Resultado**
-- Ve cuantos registros se importaron
-- Revisa los que fallaron (si hay)
-- Navega a la seccion correspondiente
-
-### Consejos para Importacion
-
-1. Asegurate de que los emails sean validos
-2. Los nombres y apellidos deben estar separados
-3. Las fechas deben estar en formato reconocible
-4. Elimina filas vacias antes de importar
+Si visitas una empresa físicamente:
+1. Pulsa sobre su chincheta en el mapa
+2. Pulsa **"Check-in"**
+3. Indica el motivo de la visita
+4. Se registra la visita con la fecha y hora actuales
 
 ---
 
-## 11. Configuracion
+## 11. Configuración
 
-### Acceso
+### 11.1 Datos del espacio de trabajo
+Puedes cambiar el nombre de tu empresa o workspace.
 
-Menu lateral → Configuracion
+### 11.2 Suscripción
+Consulta tu plan actual (Starter, Pro o Enterprise), el uso de tu cuenta y cambia de plan si lo necesitas.
 
-### Secciones Disponibles
+### 11.3 Equipo
+- Ver los miembros del equipo
+- **Invitar** nuevos usuarios por email
+- Asignar rol: **Administrador** o **Miembro**
+- Eliminar miembros
 
-**Espacio de Trabajo:**
-- Cambia el nombre de tu empresa
-
-**Equipo:**
-- Ve los miembros actuales
-- Invita nuevos usuarios (Admin o Member)
-- Gestiona invitaciones pendientes
-- Elimina usuarios
-
-**Uso Actual:**
-- Barra de progreso por cada limite del plan:
-  - Contactos
-  - Empresas
-  - Oportunidades
-  - Pipelines
-
-**Plan y Facturacion:**
-- Ve tu plan actual
-- Compara planes disponibles
-- Cambia entre facturacion mensual y anual
-
-**Notificaciones:**
-- Configura alertas por email
-- Activa/desactiva notificaciones de tareas
-
-**API Keys:**
-- Genera claves para integraciones
-- Solo disponible en planes Pro y Enterprise
-
-**Webhooks:**
-- Configura webhooks para integraciones externas
-- Recibe notificaciones cuando cambian datos
+### 11.4 API e Integraciones
+Para usuarios avanzados: generar claves de API y configurar webhooks para conectar con otros sistemas.
 
 ---
 
-## 12. Preguntas Frecuentes
+## 12. Funciones que encontrarás en todas las secciones
 
-### General
+### 12.1 Ordenar tablas
 
-**P: Como cambio mi contrasena?**
-R: Haz clic en tu perfil (esquina superior derecha) y selecciona "Cambiar contrasena".
+Todas las tablas tienen **flechitas** en los encabezados de las columnas:
 
-**P: Puedo acceder desde el movil?**
-R: Si, el CRM es responsive y funciona en cualquier dispositivo.
+| Clic | Resultado |
+|------|-----------|
+| 1er clic | Orden ascendente (A→Z, menor a mayor) |
+| 2do clic | Orden descendente (Z→A, mayor a menor) |
+| 3er clic | Quitar el orden |
 
-**P: Como cambio entre modo claro y oscuro?**
-R: Usa el icono de sol/luna en la barra superior.
+Esto te permite agrupar por ciudad, ordenar por nombre, etc.
 
-### Contactos y Empresas
+### 12.2 Buscar
 
-**P: Como asocio un contacto a una empresa?**
-R: Al crear o editar el contacto, selecciona la empresa en el campo correspondiente.
+Todas las secciones tienen una **barra de búsqueda** en la parte superior. Escribe cualquier palabra y la lista se filtra al instante. Busca en todos los campos: nombre, email, teléfono, ciudad, CIF, etc.
 
-**P: Puedo crear una empresa sin contactos?**
-R: Si, puedes crear la empresa y anadir contactos despues.
+### 12.3 Tema oscuro / claro
 
-**P: Como elimino un contacto?**
-R: Abre el detalle del contacto y haz clic en "Eliminar".
-
-### Oportunidades
-
-**P: Como muevo un deal a otra etapa?**
-R: Haz clic en editar el deal y cambia la etapa.
-
-**P: Que significa el valor ponderado?**
-R: Es el valor del deal multiplicado por la probabilidad de cierre de su etapa.
-
-**P: Como marco un deal como ganado?**
-R: Muevelo a la etapa "Ganado" o una etapa con is_closed_won = true.
-
-### Tareas
-
-**P: Que pasa cuando completo una tarea?**
-R: Se marca como completada, actualiza el "ultimo contacto" del cliente y desaparece de pendientes.
-
-**P: Como creo una tarea recurrente?**
-R: Actualmente debes crear cada tarea manualmente. Tareas recurrentes estaran disponibles proximamente.
-
-### Importacion
-
-**P: Puedo deshacer una importacion?**
-R: No directamente. Tendras que eliminar los registros manualmente o contactar soporte.
-
-**P: Que hago si falla la importacion?**
-R: Revisa el archivo, corrige los errores indicados y vuelve a intentar.
+El CRM usa tema oscuro por defecto. Puedes cambiarlo con el icono de tema en la parte superior de la pantalla.
 
 ---
 
-## Soporte
+## 13. Preguntas frecuentes
 
-**Email:** soporte@ofimaticbaix.com
+**He borrado algo por error, ¿puedo recuperarlo?**
+No. Las eliminaciones son permanentes. Asegúrate siempre antes de confirmar.
 
-**Horario:** Lunes a Viernes, 9:00 - 18:00
+**¿Puedo usar el CRM desde el móvil?**
+Sí. El CRM se adapta a cualquier pantalla. Abre la misma dirección desde el navegador de tu móvil o tablet.
+
+**¿Cuántos usuarios pueden usar el CRM?**
+Depende de tu plan. Puedes consultarlo en Configuración > Suscripción.
+
+**¿Mis datos están seguros?**
+Sí. Los datos se guardan en servidores europeos con cifrado y cumplen con la normativa de protección de datos (RGPD).
+
+**¿Puedo exportar mis datos?**
+Actualmente puedes importar datos. Para exportar, contacta con el administrador.
+
+**¿Qué significan los colores de las etiquetas?**
+Cada sección usa colores para clasificar rápidamente. Por ejemplo, en Clientes Activos: verde = Al Día, amarillo = VIP, naranja = Revisar. En Leads: naranja = Visitar, amarillo = Cliente, verde = No Interesa.
 
 ---
 
-*Este manual se actualiza periodicamente. Ultima revision: Marzo 2026*
+*Manual de usuario — CRM Ofimatic Baix — Versión 2.0 — Abril 2026*

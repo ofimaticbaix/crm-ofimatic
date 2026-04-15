@@ -43,16 +43,22 @@ export async function getCompanies(workspaceId: string) {
   return { data, error: null }
 }
 
-// Obtener una empresa con sus contactos
-export async function getCompany(id: string) {
+// Obtener una empresa con sus contactos.
+// `workspaceId` es opcional pero recomendado: defense-in-depth en caso de que RLS falle.
+export async function getCompany(id: string, workspaceId?: string) {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('companies')
     .select('*, contacts(id, first_name, last_name, email, job_title, lifecycle_stage)')
     .eq('id', id)
     .is('deleted_at', null)
-    .single()
+
+  if (workspaceId) {
+    query = query.eq('workspace_id', workspaceId)
+  }
+
+  const { data, error } = await query.single()
 
   if (error) return { data: null, error: error.message }
   return { data, error: null }
@@ -84,6 +90,36 @@ export async function createCompany(workspaceId: string, input: CompanyInput) {
 
   if (limitCheck && !limitCheck.allowed) {
     return { data: null, error: `Has alcanzado el limite de ${limitCheck.max} empresas en tu plan. Mejora tu plan para continuar.` }
+  }
+
+  // Duplicate prevention: refuse to create if another active company in the same workspace
+  // already has the same normalized name or VAT. Non-destructive — returns legible error.
+  const normalizedName = (input.name || '').trim().toLowerCase()
+  if (normalizedName) {
+    const { data: existingByName } = await supabase
+      .from('companies')
+      .select('id, name')
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
+      .ilike('name', input.name.trim())
+      .limit(1)
+      .maybeSingle()
+    if (existingByName) {
+      return { data: null, error: `Ya existe una empresa con el nombre "${existingByName.name}". Abre esa ficha en lugar de crear un duplicado.` }
+    }
+  }
+  if (input.vat_number && input.vat_number.trim()) {
+    const { data: existingByVat } = await supabase
+      .from('companies')
+      .select('id, name, vat_number')
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
+      .eq('vat_number', input.vat_number.trim())
+      .limit(1)
+      .maybeSingle()
+    if (existingByVat) {
+      return { data: null, error: `El CIF/NIF ${input.vat_number} ya pertenece a "${existingByVat.name}". No se puede duplicar.` }
+    }
   }
 
   const { data, error } = await supabase

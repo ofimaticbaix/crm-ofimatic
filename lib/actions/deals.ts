@@ -48,10 +48,10 @@ export async function getDeals(workspaceId: string) {
 }
 
 // Obtener un deal con todas sus relaciones
-export async function getDeal(id: string) {
+export async function getDeal(id: string, workspaceId?: string) {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('deals')
     .select(`
       *,
@@ -62,7 +62,10 @@ export async function getDeal(id: string) {
     `)
     .eq('id', id)
     .is('deleted_at', null)
-    .single()
+
+  if (workspaceId) query = query.eq('workspace_id', workspaceId)
+
+  const { data, error } = await query.single()
 
   if (error) return { data: null, error: error.message }
   return { data, error: null }

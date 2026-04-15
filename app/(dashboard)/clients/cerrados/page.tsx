@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Users, DollarSign, Clock, Lock, Loader2 } from 'lucide-react'
@@ -7,12 +8,14 @@ import { formatCurrency } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompaniesWithStatus, type CompanyWithStatus, type CompaniesGrouped } from '@/lib/actions/clients'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { CompanyDetailModal } from '@/components/company-detail-modal'
 
 export default function ClientesCerradosPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   // Cached data - shares cache with main clients page
-  const { data, loading: dataLoading, error } = useCachedData<CompaniesGrouped>(
+  const { data, loading: dataLoading, error, refetch } = useCachedData<CompaniesGrouped>(
     `clients-status-${workspaceId}`,
     () => getCompaniesWithStatus(workspaceId),
     [workspaceId],
@@ -51,7 +54,7 @@ export default function ClientesCerradosPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {companies.map((company) => (
-          <Card key={company.id} className="border-gray-300 dark:border-gray-700 opacity-70 hover:opacity-100 hover:shadow-xl transition-all">
+          <Card key={company.id} onClick={() => setSelectedId(company.id)} className="border-gray-300 dark:border-gray-700 opacity-70 hover:opacity-100 hover:shadow-xl transition-all cursor-pointer">
             <CardContent className="p-4 md:p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -87,6 +90,16 @@ export default function ClientesCerradosPage() {
       </div>
       {companies.length === 0 && (
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No hay clientes cerrados</p>
+      )}
+
+      {selectedId && (
+        <CompanyDetailModal
+          companyId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onChanged={() => refetch()}
+          accentColor="gray"
+          defaultBadge={{ label: 'Cerrado', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' }}
+        />
       )}
     </div>
   )

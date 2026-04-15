@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock, CreditCard, Check, Zap, Crown, LogOut, Loader2, ShieldAlert, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 const plans = [
   {
@@ -264,7 +265,7 @@ export default function TrialExpiredPage() {
                 </div>
 
                 <button
-                  onClick={() => alert(`Proximamente: Checkout Stripe para plan ${plan.name}`)}
+                  onClick={() => toast.info(`Próximamente: Checkout Stripe para plan ${plan.name}`)}
                   className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
                     plan.popular
                       ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/25 hover:brightness-110'

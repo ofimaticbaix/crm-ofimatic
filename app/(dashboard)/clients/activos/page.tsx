@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useDeferredValue } from 'react'
+import { createPortal } from 'react-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -8,10 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search, X, Building2, UserCheck,
   Mail, Phone, MapPin, User, Calendar, Loader2, Trash2,
-  ChevronDown, ChevronUp, ArrowUpDown, Tag, CreditCard, Hash, Pencil, Save
+  ChevronDown, ChevronUp, ArrowUpDown, Tag, CreditCard, Hash, Pencil, Save, Briefcase,
+  PhoneCall, Users as UsersIcon, StickyNote, Check
 } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompanies, getCompany, deleteCompany, updateCompany } from '@/lib/actions/companies'
+import { logContact } from '@/lib/actions/activities'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 type ClientTag = 'al_dia' | 'revisar' | 'vip' | null
@@ -48,6 +51,7 @@ interface EditForm {
 export default function ClientesActivosPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
   const [searchQuery, setSearchQuery] = useState('')
+  const deferredSearch = useDeferredValue(searchQuery)
   const [selectedClient, setSelectedClient] = useState<any | null>(null)
   const [detailData, setDetailData] = useState<any | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -60,6 +64,58 @@ export default function ClientesActivosPage() {
   const [saving, setSaving] = useState(false)
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  const [mounted, setMounted] = useState(false)
+  const [stageSaving, setStageSaving] = useState(false)
+  const [statusSaving, setStatusSaving] = useState(false)
+  const [logging, setLogging] = useState<string | null>(null)
+  const [logNote, setLogNote] = useState('')
+  const [showLogNote, setShowLogNote] = useState(false)
+  const [pendingType, setPendingType] = useState<'call' | 'meeting' | 'email' | 'note' | null>(null)
+  const [justLogged, setJustLogged] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  const doLog = async (type: 'call' | 'meeting' | 'email' | 'note', note?: string) => {
+    const base = detailData || selectedClient
+    if (!base || !workspaceId) return
+    setLogging(type)
+    await logContact(workspaceId, {
+      type,
+      company_id: base.id,
+      description: note || undefined,
+    })
+    setLogging(null)
+    setShowLogNote(false)
+    setLogNote('')
+    setPendingType(null)
+    setJustLogged(true)
+    setTimeout(() => setJustLogged(false), 2000)
+    refetch()
+  }
+
+  const handleSetStage = async (newStage: string) => {
+    if (!selectedClient) return
+    setStageSaving(true)
+    await updateCompany(selectedClient.id, { account_type: (newStage || undefined) as any })
+    const updated = { ...selectedClient, account_type: newStage || null }
+    setSelectedClient(updated)
+    if (detailData) setDetailData({ ...detailData, account_type: newStage || null })
+    setStageSaving(false)
+    refetch()
+  }
+
+  const handleSetStatus = async (newStatus: string) => {
+    if (!selectedClient) return
+    setStatusSaving(true)
+    const base = detailData || selectedClient
+    const cf = { ...(base.custom_fields || {}) }
+    if (newStatus) cf.manual_status = newStatus
+    else delete cf.manual_status
+    await updateCompany(base.id, { custom_fields: cf })
+    if (detailData) setDetailData({ ...detailData, custom_fields: cf })
+    setSelectedClient({ ...selectedClient, custom_fields: cf })
+    setStatusSaving(false)
+    refetch()
+  }
 
   const { data: allCompanies, loading: dataLoading, refetch } = useCachedData<any[]>(
     `companies-${workspaceId}`,
@@ -70,8 +126,13 @@ export default function ClientesActivosPage() {
 
   const loading = wsLoading || (dataLoading && !allCompanies)
 
-  // Filter only customers
-  const customers = (allCompanies || []).filter((c: any) => c.account_type === 'customer')
+  // Filter only customers, excluding those manually forced to inactive/closed
+  const customers = (allCompanies || []).filter((c: any) => {
+    if (c.account_type !== 'customer') return false
+    const manual = c.custom_fields?.manual_status
+    if (manual === 'inactive' || manual === 'closed') return false
+    return true
+  })
 
   // Get unique payment methods for filter
   const paymentMethods = [...new Set(
@@ -88,8 +149,8 @@ export default function ClientesActivosPage() {
       const pago = c.custom_fields?.forma_pago || ''
       if (pago !== filterPago) return false
     }
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
+    if (!deferredSearch) return true
+    const q = deferredSearch.toLowerCase()
     const cf = c.custom_fields || {}
     return [
       c.name, c.vat_number, c.email, c.phone,
@@ -486,9 +547,12 @@ export default function ClientesActivosPage() {
       )}
 
       {/* Detail Modal */}
-      {selectedClient && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+      {mounted && selectedClient && createPortal(
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => { setSelectedClient(null); setIsEditing(false); setEditForm(null) }}
+        >
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
@@ -520,6 +584,55 @@ export default function ClientesActivosPage() {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Lifecycle stage */}
+              {(() => {
+                const base = detailData || selectedClient
+                const manual = base?.custom_fields?.manual_status as string | undefined
+                return (
+                  <div className="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50">
+                    <div className="flex items-center gap-3">
+                      <Briefcase className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">Tipo:</span>
+                      <select
+                        value={base?.account_type || ''}
+                        onChange={(e) => handleSetStage(e.target.value)}
+                        disabled={stageSaving}
+                        className="flex-1 h-8 text-sm rounded-lg bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+                      >
+                        <option value="">— Sin clasificar —</option>
+                        <option value="lead">Cliente Potencial</option>
+                        <option value="customer">Cliente</option>
+                      </select>
+                      {stageSaving && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+                    </div>
+                    {base?.account_type === 'customer' && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700/50">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 pl-7">Estado:</span>
+                          <select
+                            value={manual || ''}
+                            onChange={(e) => handleSetStatus(e.target.value)}
+                            disabled={statusSaving}
+                            className="flex-1 h-8 text-sm rounded-lg bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+                          >
+                            <option value="">Automático (según actividad)</option>
+                            <option value="active">Activo</option>
+                            <option value="inactive">Inactivo</option>
+                            <option value="closed">Cerrado</option>
+                          </select>
+                          {statusSaving && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+                        </div>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 pl-7">
+                          {manual
+                            ? 'Estado forzado manualmente. El sistema respetará este estado.'
+                            : 'El sistema clasifica este cliente en Activos, Inactivos o Cerrados según su actividad reciente.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Tag selector in modal */}
               <div className="flex gap-2 mt-3">
@@ -557,6 +670,59 @@ export default function ClientesActivosPage() {
                 </div>
               ) : (
                 <>
+                  {/* Quick contact logging */}
+                  <div className="rounded-xl border border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-950/20 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                        <PhoneCall className="h-3.5 w-3.5" /> Registrar contacto
+                      </h3>
+                      {justLogged && (
+                        <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 font-medium">
+                          <Check className="h-3.5 w-3.5" /> Registrado
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {([
+                        { type: 'call' as const,    label: 'Llamada',  Icon: PhoneCall },
+                        { type: 'meeting' as const, label: 'Reunión',  Icon: UsersIcon },
+                        { type: 'email' as const,   label: 'Email',    Icon: Mail },
+                        { type: 'note' as const,    label: 'Nota',     Icon: StickyNote },
+                      ]).map(({ type, label, Icon }) => (
+                        <button
+                          key={type}
+                          onClick={() => { setPendingType(type); setShowLogNote(true) }}
+                          disabled={logging !== null}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-400 transition-colors disabled:opacity-50"
+                        >
+                          {logging === type ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {showLogNote && pendingType && (
+                      <div className="mt-3 flex gap-2 items-start">
+                        <Input
+                          autoFocus
+                          placeholder="Breve nota (opcional)..."
+                          value={logNote}
+                          onChange={(e) => setLogNote(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') doLog(pendingType, logNote) }}
+                          className="flex-1 h-8 text-sm bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                        />
+                        <Button size="sm" onClick={() => doLog(pendingType, logNote)} disabled={logging !== null} className="bg-blue-600 hover:bg-blue-700 text-white h-8">
+                          {logging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Guardar'}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => { setShowLogNote(false); setLogNote(''); setPendingType(null) }} className="h-8">
+                          Cancelar
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
+                      Un click queda registrado como contacto de hoy.
+                    </p>
+                  </div>
+
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -662,7 +828,8 @@ export default function ClientesActivosPage() {
               )}
             </CardContent>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

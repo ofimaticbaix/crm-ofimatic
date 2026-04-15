@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useDeferredValue } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -14,8 +14,9 @@ import { Button } from '@/components/ui/button'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getClientsList, type ClientListItem } from '@/lib/actions/client-detail'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { CompanyDetailModal } from '@/components/company-detail-modal'
 
-type FilterType = 'todos' | 'customer' | 'prospect' | 'lead' | 'partner' | 'supplier'
+type FilterType = 'todos' | 'customer' | 'prospect' | 'partner' | 'supplier'
 type SortField = 'name' | 'vat_number' | 'phone' | 'city' | 'type'
 type SortDirection = 'asc' | 'desc' | null
 
@@ -23,11 +24,13 @@ export default function ClientsPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
+  const deferredSearch = useDeferredValue(searchQuery)
   const [filterType, setFilterType] = useState<FilterType>('todos')
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const { data: clients, loading: dataLoading, error } = useCachedData<ClientListItem[]>(
+  const { data: clients, loading: dataLoading, error, refetch } = useCachedData<ClientListItem[]>(
     `clients-list-${workspaceId}`,
     () => getClientsList(workspaceId),
     [workspaceId],
@@ -36,13 +39,13 @@ export default function ClientsPage() {
 
   const loading = wsLoading || (dataLoading && !clients)
 
-  // Filter
-  const allClients: ClientListItem[] = clients || []
+  // Leads belong to their own section ("Clientes Potenciales") — never mix them here.
+  const allClients: ClientListItem[] = (clients || []).filter(c => c.account_type !== 'lead')
   const filtered = allClients.filter((c) => {
-    const matchesSearch = !searchQuery || [
+    const matchesSearch = !deferredSearch || [
       c.name, c.vat_number, c.email, c.phone, c.city, c.industry,
       c.custom_fields?.codigo_cliente
-    ].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
+    ].some(v => v?.toLowerCase().includes(deferredSearch.toLowerCase()))
 
     const matchesType = filterType === 'todos' || c.account_type === filterType
 
@@ -78,11 +81,11 @@ export default function ClientsPage() {
     return sortDirection === 'asc' ? cmp : -cmp
   })
 
-  // Stats
+  // Stats (leads ya excluidos del dataset)
   const totalClients = allClients.length
   const customers = allClients.filter(c => c.account_type === 'customer').length
   const prospects = allClients.filter(c => c.account_type === 'prospect').length
-  const leads = allClients.filter(c => c.account_type === 'lead').length
+  const otros = allClients.filter(c => c.account_type && !['customer', 'prospect'].includes(c.account_type)).length
 
   const accountTypeLabels: Record<string, string> = {
     customer: 'Cliente', prospect: 'Prospecto', lead: 'Lead', partner: 'Partner', supplier: 'Proveedor'
@@ -110,7 +113,7 @@ export default function ClientsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Clientes</h1>
           <p className="text-xs md:text-sm text-gray-300 mt-1">
-            {totalClients} clientes · {customers} activos · {prospects} prospectos · {leads} leads
+            {totalClients} clientes reales · {customers} clientes · {prospects} prospectos
           </p>
         </div>
         <Button size="sm" onClick={() => router.push('/companies')} className="bg-blue-600 hover:bg-blue-700">
@@ -119,12 +122,12 @@ export default function ClientsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <button onClick={() => setFilterType('todos')} className="text-left">
           <Card className={`hover:shadow-xl transition-all ${filterType === 'todos' ? 'ring-2 ring-blue-500' : ''}`}>
             <CardContent className="p-3">
-              <div className="text-xl font-bold text-white">{totalClients}</div>
-              <p className="text-[10px] text-gray-400 mt-0.5">Total</p>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{totalClients}</div>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Total</p>
             </CardContent>
           </Card>
         </button>
@@ -141,14 +144,6 @@ export default function ClientsPage() {
             <CardContent className="p-3">
               <div className="text-xl font-bold text-blue-400">{prospects}</div>
               <p className="text-[10px] text-gray-400 mt-0.5">Prospectos</p>
-            </CardContent>
-          </Card>
-        </button>
-        <button onClick={() => setFilterType('lead')} className="text-left">
-          <Card className={`hover:shadow-xl transition-all ${filterType === 'lead' ? 'ring-2 ring-purple-500' : ''}`}>
-            <CardContent className="p-3">
-              <div className="text-xl font-bold text-purple-400">{leads}</div>
-              <p className="text-[10px] text-gray-400 mt-0.5">Leads</p>
             </CardContent>
           </Card>
         </button>
@@ -206,7 +201,7 @@ export default function ClientsPage() {
             {sorted.map((client) => (
               <div
                 key={client.id}
-                onClick={() => router.push(`/clients/${client.id}`)}
+                onClick={() => setSelectedId(client.id)}
                 className="grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-2 px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors group"
               >
                 {/* Name + avatar */}
@@ -276,6 +271,16 @@ export default function ClientsPage() {
         <p className="text-[10px] text-gray-500 text-center">
           Mostrando {sorted.length} de {totalClients} clientes
         </p>
+      )}
+
+      {selectedId && (
+        <CompanyDetailModal
+          companyId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onChanged={() => refetch()}
+          accentColor="blue"
+          defaultBadge={{ label: 'Cliente', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' }}
+        />
       )}
     </div>
   )

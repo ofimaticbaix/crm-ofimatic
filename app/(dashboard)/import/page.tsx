@@ -25,6 +25,7 @@ import {
 import type { ImportProfile } from '@/lib/import-types'
 import { cleanRow } from '@/lib/import-cleaners'
 import { importCompaniesBatch, importContactsBatch, importLeadsBatch, countDuplicates } from '@/lib/actions/import'
+import { toast } from 'sonner'
 import { useWorkspace } from '@/lib/context/workspace-context'
 
 // ==========================================
@@ -123,7 +124,7 @@ export default function ImportPage() {
 
   const processFileData = useCallback((rows: Record<string, string>[], name: string) => {
     if (rows.length === 0) {
-      alert('El archivo está vacío o no se pudo leer')
+      toast.error('El archivo está vacío o no se pudo leer')
       setIsProcessing(false)
       return
     }
@@ -152,7 +153,7 @@ export default function ImportPage() {
           processFileData(results.data as Record<string, string>[], uploadedFile.name)
         },
         error: () => {
-          alert('Error al leer el archivo CSV')
+          toast.error('Error al leer el archivo CSV')
           setIsProcessing(false)
         }
       })
@@ -215,7 +216,7 @@ export default function ImportPage() {
         processFileData(stringRows, uploadedFile.name)
       }
       reader.onerror = () => {
-        alert('Error al leer el archivo Excel')
+        toast.error('Error al leer el archivo Excel')
         setIsProcessing(false)
       }
       reader.readAsArrayBuffer(uploadedFile)
@@ -228,7 +229,7 @@ export default function ImportPage() {
           const mdb = new MDBReader(Buffer.from(buffer))
           const tables = mdb.getTableNames().filter(t => !t.startsWith('MSys'))
           if (tables.length === 0) {
-            alert('No se encontraron tablas en el archivo Access')
+            toast.error('No se encontraron tablas en el archivo Access')
             setIsProcessing(false)
             return
           }
@@ -249,13 +250,13 @@ export default function ImportPage() {
             setIsProcessing(false)
           }
         } catch {
-          alert('Error al leer el archivo Access. Asegúrate de que es un archivo .mdb o .accdb válido.')
+          toast.error('Error al leer el archivo Access. Asegúrate de que es un archivo .mdb o .accdb válido.')
           setIsProcessing(false)
         }
       }
       reader.readAsArrayBuffer(uploadedFile)
     } else {
-      alert('Formato no soportado. Usa CSV, Excel (.xlsx, .xls) o Access (.mdb, .accdb)')
+      toast.error('Formato no soportado. Usa CSV, Excel (.xlsx, .xls) o Access (.mdb, .accdb)')
       setIsProcessing(false)
     }
   }, [processFileData])
@@ -281,7 +282,7 @@ export default function ImportPage() {
         setAccessTables([])
         processFileData(stringRows, `${file.name} → ${tableName}`)
       } catch {
-        alert('Error al leer la tabla seleccionada')
+        toast.error('Error al leer la tabla seleccionada')
         setIsProcessing(false)
       }
     }

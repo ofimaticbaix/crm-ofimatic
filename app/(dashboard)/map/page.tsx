@@ -12,6 +12,7 @@ import {
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getGeocodedCompanies, geocodeAllCompanies, reGeocodeCompany } from '@/lib/actions/geocoding'
 import { checkIn, getActiveVisit } from '@/lib/actions/visits'
+import { toast } from 'sonner'
 
 // Dynamic import to avoid SSR issues with Leaflet
 const CompaniesMap = dynamic(
@@ -153,7 +154,7 @@ export default function MapPage() {
       message += `\n\n💡 Tip: Ve a Empresas y añade la dirección completa (calle, ciudad, código postal) para poder geocodificar.`
     }
 
-    alert(message)
+    toast.info(message)
   }
 
   // Handle check-in
@@ -174,7 +175,7 @@ export default function MapPage() {
     })
 
     if (result.error) {
-      alert(result.error)
+      toast.error(result.error)
     } else {
       setActiveVisit(result.data)
       setShowCheckInModal(false)
@@ -437,7 +438,7 @@ export default function MapPage() {
                       setReGeocoding(true)
                       const result = await reGeocodeCompany(selectedCompany.id)
                       if (result.error) {
-                        alert(`Error: ${result.error}`)
+                        toast.error(result.error)
                       } else {
                         // Reload companies
                         const companiesRes = await getGeocodedCompanies(workspaceId!)
@@ -447,7 +448,7 @@ export default function MapPage() {
                           const updated = companiesRes.data.find(c => c.id === selectedCompany.id)
                           if (updated) setSelectedCompany(updated as Company)
                         }
-                        alert('Ubicación actualizada correctamente')
+                        toast.success('Ubicación actualizada correctamente')
                       }
                       setReGeocoding(false)
                     }}
@@ -497,8 +498,8 @@ export default function MapPage() {
 
       {/* Check-in modal */}
       {showCheckInModal && checkInCompany && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setShowCheckInModal(false); setCheckInCompany(null) }}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Check-in</CardTitle>
               <Button

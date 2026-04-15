@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useDeferredValue } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,7 @@ import { recreateContactsFromCompanies } from '@/lib/actions/client-detail'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { toast } from 'sonner'
 
 type SortField = 'name' | 'company' | 'email' | 'phone' | 'lifecycle'
 type SortDirection = 'asc' | 'desc' | null
@@ -25,6 +26,7 @@ export default function ContactsPage() {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [editingContact, setEditingContact] = useState<any>(null)
+  const [contactEditMode, setContactEditMode] = useState(false)
   const [deletingContactId, setDeletingContactId] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -80,12 +82,15 @@ export default function ContactsPage() {
   const [allCompanies, setAllCompanies] = useState<any[]>([])
   const [companySearchQuery, setCompanySearchQuery] = useState('')
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false)
+  const [editCompanySearch, setEditCompanySearch] = useState('')
+  const [showEditCompanyDropdown, setShowEditCompanyDropdown] = useState(false)
 
   // Overall loading - only block if no cached data
   const loading = wsLoading || (contactsLoading && !contacts)
 
+  const deferredContactSearch = useDeferredValue(searchQuery)
   const filteredContacts = (contacts || []).filter(contact => {
-    const query = searchQuery.toLowerCase()
+    const query = deferredContactSearch.toLowerCase()
     return (
       contact.first_name?.toLowerCase().includes(query) ||
       contact.last_name?.toLowerCase().includes(query) ||
@@ -145,18 +150,27 @@ export default function ContactsPage() {
 
   // Load companies when modal opens
   useEffect(() => {
-    if (showNewContactModal && workspaceId) {
+    if ((showNewContactModal || editingContact) && workspaceId) {
       getCompanies(workspaceId).then(res => {
         if (res.data) setAllCompanies(res.data)
       })
     }
-  }, [showNewContactModal, workspaceId])
+  }, [showNewContactModal, editingContact, workspaceId])
 
-  // Filter companies for dropdown
-  const filteredCompaniesForDropdown = allCompanies.filter(c => {
-    if (!companySearchQuery) return true
-    return c.name?.toLowerCase().includes(companySearchQuery.toLowerCase())
-  }).slice(0, 5)
+  // Filter companies for dropdown (New contact form). Muestra hasta 10 sin filtro, o todas las que matcheen.
+  const filteredCompaniesForDropdown = allCompanies
+    .filter(c => !companySearchQuery || c.name?.toLowerCase().includes(companySearchQuery.toLowerCase()))
+    .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'es'))
+    .slice(0, companySearchQuery ? 15 : 10)
+
+  // Company search state for Edit form (separado del "new contact")
+  const editingContactCompany = editingContact?.company_id
+    ? allCompanies.find(c => c.id === editingContact.company_id)
+    : null
+  const editCompanyFiltered = allCompanies
+    .filter(c => !editCompanySearch || c.name?.toLowerCase().includes(editCompanySearch.toLowerCase()))
+    .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'es'))
+    .slice(0, editCompanySearch ? 15 : 10)
 
   const selectedCompanyForContact = newContact.companyId
     ? allCompanies.find(c => c.id === newContact.companyId)
@@ -197,7 +211,7 @@ export default function ContactsPage() {
       resetNewContactForm()
       refetchContacts()
     } else {
-      alert(`Error: ${result.error}`)
+      toast.error(result.error)
     }
   }
 
@@ -219,6 +233,7 @@ export default function ContactsPage() {
       birthday: editingContact.birthday || undefined,
       consent_marketing: editingContact.consent_marketing,
       notes: editingContact.notes || undefined,
+      company_id: editingContact.company_id || null,
     })
     setUpdating(false)
     if (!result.error) {
@@ -362,7 +377,7 @@ export default function ContactsPage() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {sortedContacts.map((contact) => (
                   <tr key={contact.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
-                    onClick={() => setSelectedContactId(contact.id)}>
+                    onClick={() => setEditingContact(contact)}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
@@ -409,7 +424,7 @@ export default function ContactsPage() {
           <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
             {sortedContacts.map((contact) => (
               <div key={contact.id} className="p-3 hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
-                onClick={() => setSelectedContactId(contact.id)}>
+                onClick={() => setEditingContact(contact)}>
                 <div className="flex items-start gap-2 mb-2">
                   <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shadow-md flex-shrink-0">
                     {contact.first_name?.[0]}{contact.last_name?.[0]}
@@ -474,8 +489,8 @@ export default function ContactsPage() {
 
       {/* Modal Nuevo Contacto - Completo */}
       {showNewContactModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowNewContactModal(false)}>
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
@@ -532,10 +547,11 @@ export default function ContactsPage() {
                       value={companySearchQuery}
                       onChange={(e) => { setCompanySearchQuery(e.target.value); setShowCompanyDropdown(true) }}
                       onFocus={() => setShowCompanyDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowCompanyDropdown(false), 150)}
                       className="rounded-xl text-sm h-9 pl-9 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
-                      placeholder="Buscar empresa..."
+                      placeholder="Buscar empresa o haz click para ver la lista..."
                     />
-                    {showCompanyDropdown && companySearchQuery && filteredCompaniesForDropdown.length > 0 && (
+                    {showCompanyDropdown && filteredCompaniesForDropdown.length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto">
                         {filteredCompaniesForDropdown.map(company => (
                           <button
@@ -648,8 +664,8 @@ export default function ContactsPage() {
         }
 
         return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedContactId(null)}>
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
@@ -802,17 +818,23 @@ export default function ContactsPage() {
         )
       })()}
 
-      {/* Modal Editar Contacto - Completo */}
+      {/* Modal Detalle/Editar Contacto - Completo */}
       {editingContact && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => { setEditingContact(null); setContactEditMode(false); setEditCompanySearch(''); setShowEditCompanyDropdown(false) }}
+        >
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700">
-              <CardTitle className="text-gray-900 dark:text-white">Editar Contacto</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setEditingContact(null)} className="rounded-xl">
+              <CardTitle className="text-gray-900 dark:text-white">
+                {contactEditMode ? 'Editar Contacto' : 'Detalle del Contacto'}
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => { setEditingContact(null); setContactEditMode(false) }} className="rounded-xl">
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
+              <fieldset disabled={!contactEditMode} className={!contactEditMode ? 'opacity-90' : ''}>
               {/* DATOS PERSONALES */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -867,6 +889,60 @@ export default function ContactsPage() {
                 <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Building2 className="h-4 w-4" /> Clasificación
                 </h3>
+
+                {/* Empresa selector */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Empresa</label>
+                  {editingContactCompany ? (
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border dark:border-gray-700">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-medium">
+                          {editingContactCompany.name?.[0] || 'E'}
+                        </div>
+                        <span className="text-sm text-gray-900 dark:text-white">{editingContactCompany.name}</span>
+                      </div>
+                      <button onClick={() => { setEditingContact({ ...editingContact, company_id: null }); setEditCompanySearch('') }}
+                        className="text-gray-400 hover:text-red-500 transition-colors" title="Quitar empresa">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        value={editCompanySearch}
+                        onChange={(e) => { setEditCompanySearch(e.target.value); setShowEditCompanyDropdown(true) }}
+                        onFocus={() => setShowEditCompanyDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowEditCompanyDropdown(false), 150)}
+                        className="rounded-xl text-sm pl-10 dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                        placeholder="Buscar empresa o haz click para ver la lista..."
+                      />
+                      {showEditCompanyDropdown && editCompanyFiltered.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg z-30 max-h-60 overflow-y-auto">
+                          {editCompanyFiltered.map(company => (
+                            <button
+                              key={company.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setEditingContact({ ...editingContact, company_id: company.id })
+                                setEditCompanySearch('')
+                                setShowEditCompanyDropdown(false)
+                              }}
+                              className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors"
+                            >
+                              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0">
+                                {company.name?.[0] || 'E'}
+                              </div>
+                              <span className="text-sm text-gray-900 dark:text-white truncate">{company.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-900 dark:text-white block mb-2">Estado *</label>
@@ -949,17 +1025,32 @@ export default function ContactsPage() {
                   </div>
                 </div>
               </div>
+              </fieldset>
 
               {/* BOTONES */}
               <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
-                <Button onClick={handleUpdateContact} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
-                  disabled={!editingContact.first_name || !editingContact.last_name || !editingContact.email || updating}>
-                  {updating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando...</> : 'Guardar Cambios'}
-                </Button>
-                <Button variant="outline" onClick={() => setEditingContact(null)}
-                  className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
-                  Cancelar
-                </Button>
+                {contactEditMode ? (
+                  <>
+                    <Button onClick={async () => { await handleUpdateContact(); setContactEditMode(false) }} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                      disabled={!editingContact.first_name || !editingContact.last_name || !editingContact.email || updating}>
+                      {updating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando...</> : 'Guardar Cambios'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setContactEditMode(false)}
+                      className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                      Cancelar edición
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button onClick={() => setContactEditMode(true)} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all">
+                      <Pencil className="h-4 w-4 mr-2" /> Editar
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditingContact(null)}
+                      className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">
+                      Cerrar
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -968,8 +1059,8 @@ export default function ContactsPage() {
 
       {/* Modal Eliminar Contacto */}
       {deletingContactId && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDeletingContactId(null)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">Eliminar Contacto</CardTitle>
             </CardHeader>

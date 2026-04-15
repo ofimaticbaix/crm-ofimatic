@@ -653,8 +653,8 @@ export default function TasksPage() {
 
       {/* Modal Nueva Tarea */}
       {showNewTaskModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowNewTaskModal(false)}>
+          <Card className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-gray-900 dark:text-white">Nueva Tarea</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setShowNewTaskModal(false)} className="rounded-xl">
@@ -705,7 +705,7 @@ export default function TasksPage() {
                     onChange={(e) => setNewTask({...newTask, companyId: e.target.value, contactId: ''})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin empresa</option>
-                    {(companies || []).map(c => (
+                    {[...(companies || [])].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'es')).map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -716,7 +716,7 @@ export default function TasksPage() {
                     onChange={(e) => setNewTask({...newTask, contactId: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin contacto</option>
-                    {filteredContactsForNewTask.map(c => (
+                    {[...filteredContactsForNewTask].sort((a: any, b: any) => `${a.first_name || ''} ${a.last_name || ''}`.localeCompare(`${b.first_name || ''} ${b.last_name || ''}`, 'es')).map(c => (
                       <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
                     ))}
                   </select>
@@ -726,7 +726,7 @@ export default function TasksPage() {
                   <select value={newTask.dealId} onChange={(e) => setNewTask({...newTask, dealId: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin oportunidad asociada</option>
-                    {(deals || []).map((deal) => (
+                    {[...(deals || [])].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'es')).map((deal) => (
                       <option key={deal.id} value={deal.id}>{deal.name}</option>
                     ))}
                   </select>
@@ -749,8 +749,8 @@ export default function TasksPage() {
 
       {/* Modal Editar Tarea */}
       {editingTask && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingTask(null)}>
+          <Card className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-gray-900 dark:text-white">Editar Tarea</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setEditingTask(null)} className="rounded-xl">
@@ -801,7 +801,7 @@ export default function TasksPage() {
                     onChange={(e) => setEditForm({...editForm, companyId: e.target.value, contactId: ''})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin empresa</option>
-                    {(companies || []).map(c => (
+                    {[...(companies || [])].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'es')).map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -812,7 +812,7 @@ export default function TasksPage() {
                     onChange={(e) => setEditForm({...editForm, contactId: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin contacto</option>
-                    {filteredContactsForEditTask.map(c => (
+                    {[...filteredContactsForEditTask].sort((a: any, b: any) => `${a.first_name || ''} ${a.last_name || ''}`.localeCompare(`${b.first_name || ''} ${b.last_name || ''}`, 'es')).map(c => (
                       <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
                     ))}
                   </select>
@@ -822,7 +822,7 @@ export default function TasksPage() {
                   <select value={editForm.dealId} onChange={(e) => setEditForm({...editForm, dealId: e.target.value})}
                     className="w-full rounded-xl px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <option value="">Sin oportunidad asociada</option>
-                    {(deals || []).map((deal) => (
+                    {[...(deals || [])].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', 'es')).map((deal) => (
                       <option key={deal.id} value={deal.id}>{deal.name}</option>
                     ))}
                   </select>

@@ -45,15 +45,18 @@ export async function getContacts(workspaceId: string) {
 }
 
 // Obtener un contacto por ID
-export async function getContact(id: string) {
+export async function getContact(id: string, workspaceId?: string) {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('contacts')
     .select('*, companies(id, name, industry)')
     .eq('id', id)
     .is('deleted_at', null)
-    .single()
+
+  if (workspaceId) query = query.eq('workspace_id', workspaceId)
+
+  const { data, error } = await query.single()
 
   if (error) return { data: null, error: error.message }
   return { data, error: null }

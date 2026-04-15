@@ -12,6 +12,7 @@ import { useWorkspace } from '@/lib/context/workspace-context'
 import { updateWorkspaceName } from '@/lib/actions/workspace'
 import { getPlans, getWorkspaceUsage } from '@/lib/actions/plans'
 import { useCachedData, invalidateCache } from '@/lib/hooks/use-cached-data'
+import { toast } from 'sonner'
 
 import type { Plan } from '@/lib/actions/plans'
 import { getWorkspaceMembers, getWorkspaceInvitations, inviteUser, revokeInvitation, removeMember } from '@/lib/actions/invitations'
@@ -201,7 +202,7 @@ export default function SettingsPage() {
                           if (!confirm(`Eliminar a ${member.fullName} del workspace?`)) return
                           const result = await removeMember(workspaceId, member.userId)
                           if (result.error) {
-                            alert(result.error)
+                            toast.error(result.error)
                           } else {
                             refetchMembers()
                           }
@@ -249,7 +250,7 @@ export default function SettingsPage() {
                           onClick={async () => {
                             const result = await revokeInvitation(inv.id)
                             if (result.error) {
-                              alert(result.error)
+                              toast.error(result.error)
                             } else {
                               refetchInvitations()
                             }
@@ -273,7 +274,7 @@ export default function SettingsPage() {
                 className="w-full rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
                 onClick={() => {
                   if (plan?.max_users && (members?.length || 0) >= plan.max_users) {
-                    alert(`Has alcanzado el limite de ${plan.max_users} usuarios en tu plan. Mejora tu plan para invitar mas usuarios.`)
+                    toast.error(`Has alcanzado el límite de ${plan.max_users} usuarios en tu plan. Mejora tu plan para invitar más usuarios.`)
                   } else {
                     setInviteEmail('')
                     setInviteRole('member')

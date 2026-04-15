@@ -49,12 +49,14 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
       return results
     }
 
-    // Query 1: Get companies with contact count and contacts list
+    // Query 1: Get companies with contact count and contacts list.
+    // Exclude leads — they belong to the Clientes Potenciales section, never mix with real clients.
     const { data: companies, error: compError } = await supabase
       .from('companies')
-      .select('id, name, industry, website, health_score, contacts(id, first_name, last_name)')
+      .select('id, name, industry, website, health_score, custom_fields, account_type, contacts(id, first_name, last_name)')
       .eq('workspace_id', workspaceId)
       .is('deleted_at', null)
+      .not('account_type', 'eq', 'lead')
       .order('created_at', { ascending: false })
       .range(0, 1999)
 
@@ -257,7 +259,15 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
 
       let status: 'active' | 'overdue' | 'closed'
 
-      if (allDealsClosed && !hasUpcomingActivity) {
+      // Manual override (set from the detail modal, stored in custom_fields.manual_status)
+      const manualStatus = (company as any).custom_fields?.manual_status as string | undefined
+      if (manualStatus === 'active') {
+        status = 'active'
+      } else if (manualStatus === 'inactive') {
+        status = 'overdue'
+      } else if (manualStatus === 'closed') {
+        status = 'closed'
+      } else if (allDealsClosed && !hasUpcomingActivity) {
         // All deals closed AND no future activity planned = truly closed
         status = 'closed'
       } else if (hasRecentContact || hasUpcomingActivity) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useDeferredValue } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ import { getActivities, createActivity } from '@/lib/actions/activities'
 import { getContacts, createContact } from '@/lib/actions/contacts'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
 import { linkContactToCompany, unlinkContactFromCompany } from '@/lib/actions/client-detail'
+import { toast } from 'sonner'
 
 export default function CompaniesPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
@@ -126,8 +127,9 @@ export default function CompaniesPage() {
     loadDetail()
   }, [selectedCompany, workspaceId, allDeals])
 
+  const deferredCompanySearch = useDeferredValue(searchQuery)
   const filteredCompanies = (companies || []).filter(company => {
-    const query = searchQuery.toLowerCase()
+    const query = deferredCompanySearch.toLowerCase()
     return (
       company.name?.toLowerCase().includes(query) ||
       company.industry?.toLowerCase().includes(query)
@@ -172,7 +174,7 @@ export default function CompaniesPage() {
     })
     setCreatingContact(false)
     if (result.error) {
-      alert(`Error: ${result.error}`)
+      toast.error(result.error)
       return
     }
     if (result.data) {
@@ -221,7 +223,7 @@ export default function CompaniesPage() {
       },
     })
     if (result.error) {
-      alert(`Error: ${result.error}`)
+      toast.error(result.error)
       return
     }
     // Update contacts to associate with this company
@@ -252,7 +254,7 @@ export default function CompaniesPage() {
       metadata: newActivity.followUpType ? { follow_up_type: newActivity.followUpType } : undefined,
     })
     if (result.error) {
-      alert(`Error: ${result.error}`)
+      toast.error(result.error)
       return
     }
     // Reload activities for this company
@@ -283,7 +285,7 @@ export default function CompaniesPage() {
     })
     setUpdatingCompany(false)
     if (result.error) {
-      alert(`Error: ${result.error}`)
+      toast.error(result.error)
       return
     }
     setEditingCompany(null)
@@ -474,8 +476,8 @@ export default function CompaniesPage() {
 
       {/* Modal Nueva Empresa - Completo */}
       {showNewCompanyModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowNewCompanyModal(false)}>
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700">
               <CardTitle className="text-gray-900 dark:text-white">Nueva Empresa</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => { setShowNewCompanyModal(false); resetNewCompanyForm() }} className="rounded-xl">
@@ -817,8 +819,8 @@ export default function CompaniesPage() {
         }
 
         return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedCompany(null)}>
+            <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <CardHeader className="border-b border-gray-200 dark:border-gray-700 pb-4">
                 <div className="flex items-start justify-between">
@@ -1579,7 +1581,7 @@ export default function CompaniesPage() {
                         <select value={newActivity.contactId} onChange={(e) => setNewActivity({...newActivity, contactId: e.target.value})}
                           className="w-full rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                           <option value="">Seleccionar</option>
-                          {contacts.map((c: any) => (
+                          {[...contacts].sort((a: any, b: any) => `${a.first_name || ''} ${a.last_name || ''}`.localeCompare(`${b.first_name || ''} ${b.last_name || ''}`, 'es')).map((c: any) => (
                             <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
                           ))}
                         </select>
@@ -1623,8 +1625,8 @@ export default function CompaniesPage() {
 
       {/* Modal Editar Empresa - Completo */}
       {editingCompany && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingCompany(null)}>
+          <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10 border-b dark:border-gray-700">
               <CardTitle className="text-gray-900 dark:text-white">Editar Empresa</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setEditingCompany(null)} className="rounded-xl">
@@ -1781,8 +1783,8 @@ export default function CompaniesPage() {
 
       {/* Modal Eliminar Empresa */}
       {deletingCompanyId && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDeletingCompanyId(null)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">Eliminar Empresa</CardTitle>
             </CardHeader>
