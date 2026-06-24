@@ -13,6 +13,11 @@ const cache = new Map<string, CacheEntry<unknown>>()
 // Pending prefetch requests to avoid duplicates
 const pendingPrefetch = new Set<string>()
 
+// In-flight requests per key — dedupe simultaneous fetchData calls from multiple
+// components subscribing to the same key (typical when sibling components mount
+// together and request the same dataset).
+const inflight = new Map<string, Promise<{ data: unknown; error: string | null }>>()
+
 // Stale time in ms (30 seconds)
 const STALE_TIME = 30 * 1000
 
@@ -55,38 +60,35 @@ export function useCachedData<T>(
   const fetchData = useCallback(async (showLoading = true) => {
     if (!enabled) return
 
-    // Check if we have fresh cached data
+    // Stale-while-revalidate: muestra caché al instante si existe,
+    // pero SIEMPRE dispara un refetch en background para refrescar.
     const cached = cache.get(key) as CacheEntry<T> | undefined
-    const now = Date.now()
 
     if (cached) {
-      const age = now - cached.timestamp
-      if (age < staleTime) {
-        // Data is fresh, use cache
-        setData(cached.data)
-        setLoading(false)
-        setIsStale(false)
-        return
-      }
-      // Data is stale but usable
       setData(cached.data)
+      setLoading(false)
       setIsStale(true)
     }
 
-    // Only show loading spinner if no cached data
+    // Solo mostrar spinner si no había caché (primera carga)
     if (showLoading && !cached) {
       setLoading(true)
     }
 
     try {
-      const result = await fetcherRef.current()
+      // Dedupe concurrent fetches for the same key across components
+      let promise = inflight.get(key) as Promise<{ data: T | null; error: string | null }> | undefined
+      if (!promise) {
+        promise = fetcherRef.current()
+        inflight.set(key, promise as Promise<{ data: unknown; error: string | null }>)
+        promise.finally(() => inflight.delete(key))
+      }
+      const result = await promise
 
       if (result.error) {
         setError(result.error)
-        // Keep stale data on error
         if (!cached) setLoading(false)
       } else if (result.data !== null) {
-        // Update cache
         cache.set(key, { data: result.data, timestamp: Date.now() })
         setData(result.data)
         setError(null)
@@ -97,13 +99,27 @@ export function useCachedData<T>(
     } finally {
       setLoading(false)
     }
-  }, [key, enabled, staleTime])
+  }, [key, enabled])
 
   // Fetch on mount and when dependencies change
   useEffect(() => {
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, enabled, ...deps])
+
+  // Refrescar al volver a la pestaña/app
+  useEffect(() => {
+    if (!enabled) return
+    const handler = () => {
+      if (document.visibilityState === 'visible') fetchData(false)
+    }
+    document.addEventListener('visibilitychange', handler)
+    window.addEventListener('focus', handler)
+    return () => {
+      document.removeEventListener('visibilitychange', handler)
+      window.removeEventListener('focus', handler)
+    }
+  }, [enabled, fetchData])
 
   const refetch = useCallback(async () => {
     // Force refetch, invalidating cache
@@ -141,15 +157,17 @@ export async function prefetchData<T>(
     return
   }
 
-  // Skip if already prefetching
-  if (pendingPrefetch.has(key)) {
+  // Skip if already prefetching, or if a live fetch for the same key is already in flight
+  if (pendingPrefetch.has(key) || inflight.has(key)) {
     return
   }
 
   pendingPrefetch.add(key)
 
   try {
-    const result = await fetcher()
+    const promise = fetcher()
+    inflight.set(key, promise as Promise<{ data: unknown; error: string | null }>)
+    const result = await promise
     if (result.data !== null) {
       cache.set(key, { data: result.data, timestamp: Date.now() })
     }
@@ -157,6 +175,7 @@ export async function prefetchData<T>(
     // Silent fail - prefetch is best effort
   } finally {
     pendingPrefetch.delete(key)
+    inflight.delete(key)
   }
 }
 

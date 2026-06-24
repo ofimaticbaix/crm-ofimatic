@@ -18,6 +18,7 @@ export interface FullMetrics {
     total: number
     active: number
     inactive: number
+    potential: number
   }
   activities: {
     total: number
@@ -28,9 +29,29 @@ export interface FullMetrics {
     pending: number
     overdue: number
     completed: number
-    highPriority: number
+    today: number
     byType: Record<string, number>
   }
+}
+
+// Helper: pagina la tabla companies hasta no haber más filas. PostgREST trunca a
+// 1000 por defecto y `.range(0, 9999)` no basta — hay que ir lote por lote.
+async function loadAllCompanies(supabase: any, workspaceId: string) {
+  const PAGE = 1000
+  const out: any[] = []
+  for (let i = 0; i < 20; i++) {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('id, account_type, custom_fields, updated_at')
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
+      .range(i * PAGE, (i + 1) * PAGE - 1)
+    if (error) return { data: out, error: error.message }
+    if (!data || data.length === 0) break
+    out.push(...data)
+    if (data.length < PAGE) break
+  }
+  return { data: out, error: null }
 }
 
 export async function getFullMetrics(workspaceId: string): Promise<{ data: FullMetrics; error: string | null }> {
@@ -44,11 +65,6 @@ export async function getFullMetrics(workspaceId: string): Promise<{ data: FullM
       contactLifecycleRes,
       companiesRes,
       activitiesRes,
-      tasksAllRes,
-      tasksPendingRes,
-      tasksOverdueRes,
-      tasksCompletedRes,
-      tasksHighPriorityRes,
     ] = await Promise.all([
       // Deals with stages
       supabase
@@ -71,54 +87,15 @@ export async function getFullMetrics(workspaceId: string): Promise<{ data: FullM
         .eq('workspace_id', workspaceId)
         .is('deleted_at', null),
 
-      // Companies
+      // Companies — paginated to avoid PostgREST's 1000-row default truncation.
+      loadAllCompanies(supabase, workspaceId),
+
+      // All activities — single source of truth for activities + tasks counts.
       supabase
-        .from('companies')
-        .select('id, updated_at')
+        .from('activities')
+        .select('type, is_completed, due_date, scheduled_at, completed_at, metadata')
         .eq('workspace_id', workspaceId)
-        .is('deleted_at', null),
-
-      // All activities (for activity breakdown)
-      supabase
-        .from('activities')
-        .select('type, is_completed, due_date, metadata')
-        .eq('workspace_id', workspaceId),
-
-      // Task counts - total
-      supabase
-        .from('activities')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', workspaceId),
-
-      // Tasks pending
-      supabase
-        .from('activities')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', workspaceId)
-        .eq('is_completed', false),
-
-      // Tasks overdue
-      supabase
-        .from('activities')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', workspaceId)
-        .eq('is_completed', false)
-        .lt('due_date', new Date().toISOString().split('T')[0]),
-
-      // Tasks completed
-      supabase
-        .from('activities')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', workspaceId)
-        .eq('is_completed', true),
-
-      // Tasks high priority (stored in metadata)
-      supabase
-        .from('activities')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', workspaceId)
-        .eq('is_completed', false)
-        .contains('metadata', { priority: 'high' }),
+        .range(0, 9999),
     ])
 
     // --- Pipeline metrics ---
@@ -166,24 +143,60 @@ export async function getFullMetrics(workspaceId: string): Promise<{ data: FullM
     }
 
     // --- Company metrics ---
+    // "Estado de Clientes" cuenta SOLO customers reales (mismo criterio que Vista
+    // General y Clientes Activos/Inactivos). Activo/Inactivo viene del flag manual.
     const companies = companiesRes.data || []
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const activeCompanies = companies.filter((c: any) =>
-      c.updated_at && new Date(c.updated_at) >= sevenDaysAgo
-    ).length
-    const inactiveCompanies = companies.length - activeCompanies
+    const customersOnly = companies.filter((c: any) => c.account_type === 'customer')
+    const inactiveCompanies = customersOnly.filter((c: any) => c.custom_fields?.manual_status === 'inactive').length
+    const activeCompanies = customersOnly.length - inactiveCompanies
+    const potentialCompanies = companies.filter((c: any) => c.account_type === 'lead').length
 
-    // --- Activity metrics ---
+    // --- Activity & task metrics (single pass over the dataset) ---
     const allActivities = activitiesRes.data || []
     const activityByType = { call: 0, email: 0, meeting: 0, task: 0, note: 0 }
     const taskByType: Record<string, number> = {}
-    for (const a of allActivities) {
+
+    // "Tasks" = activities the user actually has to do — those with a date set.
+    // Logged contacts (calls/emails/etc. registered after-the-fact) without dates
+    // count as activities but not as pending tasks.
+    let totalTasks = 0
+    let pending = 0
+    let overdue = 0
+    let completed = 0
+    let today = 0
+
+    const now = new Date()
+    const todayStr = now.toISOString().slice(0, 10)
+    const todayStart = new Date(todayStr + 'T00:00:00').getTime()
+    const tomorrowStart = todayStart + 24 * 60 * 60 * 1000
+
+    for (const a of allActivities as any[]) {
       const t = a.type as keyof typeof activityByType
       if (t in activityByType) activityByType[t]++
-      // Count by type for task breakdown
-      const typeKey = a.type || 'other'
-      taskByType[typeKey] = (taskByType[typeKey] || 0) + 1
+
+      const hasDate = !!(a.due_date || a.scheduled_at)
+      const isTask = hasDate || a.type === 'task'
+
+      if (isTask) {
+        totalTasks++
+        const typeKey = a.type || 'other'
+        taskByType[typeKey] = (taskByType[typeKey] || 0) + 1
+
+        if (a.is_completed === true) {
+          completed++
+        } else {
+          pending++
+          // Compute the relevant date for this task
+          const dateRaw = a.scheduled_at || a.due_date
+          if (dateRaw) {
+            const ts = new Date(dateRaw).getTime()
+            if (!isNaN(ts)) {
+              if (ts < todayStart) overdue++
+              else if (ts < tomorrowStart) today++
+            }
+          }
+        }
+      }
     }
 
     return {
@@ -200,20 +213,22 @@ export async function getFullMetrics(workspaceId: string): Promise<{ data: FullM
           byLifecycle,
         },
         companies: {
-          total: companies.length,
+          // total = solo customers reales, NO leads ni prospects (consistente con Vista General)
+          total: customersOnly.length,
           active: activeCompanies,
           inactive: inactiveCompanies,
+          potential: potentialCompanies,
         },
         activities: {
           total: allActivities.length,
           byType: activityByType,
         },
         tasks: {
-          total: tasksAllRes.count || 0,
-          pending: tasksPendingRes.count || 0,
-          overdue: tasksOverdueRes.count || 0,
-          completed: tasksCompletedRes.count || 0,
-          highPriority: tasksHighPriorityRes.count || 0,
+          total: totalTasks,
+          pending,
+          overdue,
+          completed,
+          today,
           byType: taskByType,
         },
       },
@@ -225,9 +240,9 @@ export async function getFullMetrics(workspaceId: string): Promise<{ data: FullM
       data: {
         pipeline: { totalValue: 0, weightedValue: 0, avgDealSize: 0, conversionRate: 0, dealsByStage: [] },
         contacts: { total: 0, byLifecycle: { customer: 0, prospect: 0, lead: 0 } },
-        companies: { total: 0, active: 0, inactive: 0 },
+        companies: { total: 0, active: 0, inactive: 0, potential: 0 },
         activities: { total: 0, byType: { call: 0, email: 0, meeting: 0, task: 0, note: 0 } },
-        tasks: { total: 0, pending: 0, overdue: 0, completed: 0, highPriority: 0, byType: {} },
+        tasks: { total: 0, pending: 0, overdue: 0, completed: 0, today: 0, byType: {} },
       },
       error: String(err),
     }

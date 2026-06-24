@@ -10,13 +10,15 @@ import { formatCurrency } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getFullMetrics, type FullMetrics } from '@/lib/actions/metrics'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { useAllCompanies, useAllDeals, useAllContacts } from '@/lib/hooks/use-shared-data'
+import { countCompanies, countDeals } from '@/lib/counts'
 
 const emptyMetrics: FullMetrics = {
   pipeline: { totalValue: 0, weightedValue: 0, avgDealSize: 0, conversionRate: 0, dealsByStage: [] },
   contacts: { total: 0, byLifecycle: { customer: 0, prospect: 0, lead: 0 } },
-  companies: { total: 0, active: 0, inactive: 0 },
+  companies: { total: 0, active: 0, inactive: 0, potential: 0 },
   activities: { total: 0, byType: { call: 0, email: 0, meeting: 0, task: 0, note: 0 } },
-  tasks: { total: 0, pending: 0, overdue: 0, completed: 0, highPriority: 0, byType: {} },
+  tasks: { total: 0, pending: 0, overdue: 0, completed: 0, today: 0, byType: {} },
 }
 
 export default function MetricsPage() {
@@ -30,6 +32,11 @@ export default function MetricsPage() {
     { enabled: !!workspaceId, staleTime: 30000 }
   )
 
+  // SHARED source of truth — same dataset every page reads.
+  const { data: allCompaniesData } = useAllCompanies()
+  const { data: allDealsData } = useAllDeals()
+  const { data: allContactsData } = useAllContacts()
+
   // Overall loading - only block if no cached data
   const loading = wsLoading || (metricsLoading && !metrics)
 
@@ -41,7 +48,61 @@ export default function MetricsPage() {
     )
   }
 
-  const { pipeline, contacts, companies, activities, tasks } = metrics || emptyMetrics
+  const { activities, tasks } = metrics || emptyMetrics
+
+  // Counts derive from shared datasets, NOT from the metrics endpoint, so every
+  // page is always synchronized. Fallback to metrics endpoint while datasets load.
+  const sharedCounts = countCompanies(allCompaniesData || [])
+  const companies = allCompaniesData
+    ? {
+        total: sharedCounts.customers,
+        active: sharedCounts.customersActive,
+        inactive: sharedCounts.customersInactive,
+        potential: sharedCounts.leads,
+      }
+    : (metrics?.companies || emptyMetrics.companies)
+
+  // Pipeline metrics from shared deals dataset
+  const dealCounts = countDeals(allDealsData || [])
+  const stagesMap = new Map<string, { id: string; name: string; position: number; count: number; value: number }>()
+  for (const d of (allDealsData || []) as any[]) {
+    const stage = d.stages
+    if (!stage) continue
+    const existing = stagesMap.get(stage.id)
+    if (existing) {
+      existing.count++
+      existing.value += d.value || 0
+    } else {
+      stagesMap.set(stage.id, { id: stage.id, name: stage.name, position: stage.position ?? 0, count: 1, value: d.value || 0 })
+    }
+  }
+  const dealsByStage = Array.from(stagesMap.values()).sort((a, b) => a.position - b.position)
+  const totalDeals = dealCounts.total || 1
+  const pipeline = allDealsData
+    ? {
+        totalValue: dealCounts.totalValue,
+        weightedValue: dealCounts.weightedValue,
+        avgDealSize: dealCounts.total > 0 ? dealCounts.totalValue / dealCounts.total : 0,
+        conversionRate: dealCounts.total > 0 ? Math.round((dealCounts.closedWon / totalDeals) * 100) : 0,
+        dealsByStage: dealsByStage.map(({ id, name, count, value }) => ({ id, name, count, value })),
+      }
+    : (metrics?.pipeline || emptyMetrics.pipeline)
+
+  // Contacts breakdown from shared contacts dataset
+  let contactsTotal = 0
+  const byLifecycle = { customer: 0, prospect: 0, lead: 0 }
+  if (allContactsData) {
+    contactsTotal = allContactsData.length
+    for (const c of allContactsData as any[]) {
+      const stage = (c.lifecycle_stage || '').toLowerCase()
+      if (stage === 'customer') byLifecycle.customer++
+      else if (stage === 'prospect') byLifecycle.prospect++
+      else if (stage === 'lead') byLifecycle.lead++
+    }
+  }
+  const contacts = allContactsData
+    ? { total: contactsTotal, byLifecycle }
+    : (metrics?.contacts || emptyMetrics.contacts)
 
   return (
     <div className="space-y-6">
@@ -124,15 +185,19 @@ export default function MetricsPage() {
             <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-amber-500" />
-                <div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">Inactivos</span>
-                  <span className="text-[10px] text-gray-400 ml-2">+7 días sin actividad</span>
-                </div>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Inactivos</span>
               </div>
               <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{companies.inactive}</span>
             </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-yellow-50/50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/30">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Potenciales</span>
+              </div>
+              <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{companies.potential}</span>
+            </div>
             <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total empresas</span>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total clientes (Activos + Inactivos)</span>
               <span className="text-lg font-bold text-gray-900 dark:text-white">{companies.total}</span>
             </div>
           </CardContent>
@@ -235,8 +300,8 @@ export default function MetricsPage() {
                 <p className="text-[10px] text-gray-500 dark:text-gray-400">Vencidas</p>
               </div>
               <div className="text-center p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30">
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{tasks.highPriority}</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400">Alta Prioridad</p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{tasks.today}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">Para Hoy</p>
               </div>
             </div>
             <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
@@ -251,35 +316,6 @@ export default function MetricsPage() {
           </CardContent>
         </Card>
 
-        {/* Actividades */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-gray-900 dark:text-white text-base flex items-center gap-2">
-              <Clock className="h-4 w-4" /> Resumen de Actividades
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-center p-4 rounded-xl bg-purple-50/50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/30">
-              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{activities.total}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Total Actividades</p>
-            </div>
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Por tipo</p>
-              {[
-                { key: 'call', label: 'Llamadas', color: 'text-green-500' },
-                { key: 'email', label: 'Emails', color: 'text-blue-500' },
-                { key: 'meeting', label: 'Reuniones', color: 'text-purple-500' },
-                { key: 'task', label: 'Tareas', color: 'text-orange-500' },
-                { key: 'note', label: 'Notas', color: 'text-yellow-500' },
-              ].map(({ key, label, color }) => (
-                <div key={key} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-300">{label}</span>
-                  <span className={`font-bold ${color}`}>{activities.byType[key as keyof typeof activities.byType]}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

@@ -268,6 +268,105 @@ export async function removeMember(workspaceId: string, memberUserId: string) {
   }
 }
 
+// Cambiar el rol de un miembro del workspace.
+// - Solo owner/admin pueden cambiar roles.
+// - Solo el owner puede promover a alguien a owner: hace una transferencia de
+//   propiedad (el owner actual queda degradado a admin automáticamente).
+// - No se puede cambiar el rol del owner sin transferencia.
+export async function updateMemberRole(
+  workspaceId: string,
+  memberUserId: string,
+  newRole: 'owner' | 'admin' | 'member' | 'viewer',
+) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return { data: null, error: 'No autenticado' }
+    }
+
+    const { data: currentMembership } = await supabase
+      .from('memberships')
+      .select('role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (!currentMembership) {
+      return { data: null, error: 'No perteneces a este workspace' }
+    }
+
+    const { data: targetMembership } = await supabase
+      .from('memberships')
+      .select('role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', memberUserId)
+      .single()
+
+    if (!targetMembership) {
+      return { data: null, error: 'Miembro no encontrado' }
+    }
+
+    // Caso 1: transferencia de propiedad
+    if (newRole === 'owner') {
+      if (currentMembership.role !== 'owner') {
+        return { data: null, error: 'Solo el propietario puede transferir la propiedad' }
+      }
+      if (memberUserId === user.id) {
+        return { data: null, error: 'Ya eres propietario' }
+      }
+
+      // Promover destino a owner
+      const { error: e1 } = await supabase
+        .from('memberships')
+        .update({ role: 'owner' })
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', memberUserId)
+      if (e1) return { data: null, error: e1.message }
+
+      // Degradar al owner actual a admin
+      const { error: e2 } = await supabase
+        .from('memberships')
+        .update({ role: 'admin' })
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', user.id)
+      if (e2) return { data: null, error: e2.message }
+
+      return { data: { transferred: true }, error: null }
+    }
+
+    // Caso 2: cambio de rol normal
+    if (targetMembership.role === 'owner') {
+      return { data: null, error: 'No puedes cambiar el rol del propietario sin transferir la propiedad' }
+    }
+
+    if (!['owner', 'admin'].includes(currentMembership.role)) {
+      return { data: null, error: 'No tienes permisos para cambiar roles' }
+    }
+
+    if (memberUserId === user.id) {
+      return { data: null, error: 'No puedes cambiar tu propio rol' }
+    }
+
+    const { error } = await supabase
+      .from('memberships')
+      .update({ role: newRole })
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', memberUserId)
+
+    if (error) {
+      console.error('updateMemberRole error:', error.message)
+      return { data: null, error: error.message }
+    }
+
+    return { data: { transferred: false }, error: null }
+  } catch (err) {
+    console.error('updateMemberRole error:', err)
+    return { data: null, error: String(err) }
+  }
+}
+
 // Aceptar una invitacion por token
 export async function acceptInvitation(token: string) {
   try {

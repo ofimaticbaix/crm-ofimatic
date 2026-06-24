@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useDeferredValue } from 'react'
+import { useState, useDeferredValue, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -12,12 +12,13 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getClientsList, type ClientListItem } from '@/lib/actions/client-detail'
-import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { type ClientListItem } from '@/lib/actions/client-detail'
+import { useAllCompanies } from '@/lib/hooks/use-shared-data'
+import { isInactiveCustomer, isActiveCustomer, isCustomer } from '@/lib/counts'
 import { CompanyDetailModal } from '@/components/company-detail-modal'
 
-type FilterType = 'todos' | 'customer' | 'prospect' | 'partner' | 'supplier'
-type SortField = 'name' | 'vat_number' | 'phone' | 'city' | 'type'
+type FilterType = 'todos' | 'activo' | 'inactivo'
+type SortField = 'name' | 'vat_number' | 'phone' | 'city' | 'estado'
 type SortDirection = 'asc' | 'desc' | null
 
 export default function ClientsPage() {
@@ -30,27 +31,50 @@ export default function ClientsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const { data: clients, loading: dataLoading, error, refetch } = useCachedData<ClientListItem[]>(
-    `clients-list-${workspaceId}`,
-    () => getClientsList(workspaceId),
-    [workspaceId],
-    { enabled: !!workspaceId }
+  const { data: companies, loading: dataLoading, error, refetch } = useAllCompanies()
+  // Adapter: shared dataset has the same shape we need (id, name, account_type,
+  // custom_fields, vat_number, phone, email, billing_address, contacts, industry, created_at).
+  // We just expose `city` for sort compatibility.
+  const clients = useMemo<ClientListItem[]>(
+    () => (companies || []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      vat_number: c.vat_number,
+      phone: c.phone,
+      email: c.email,
+      industry: c.industry,
+      account_type: c.account_type,
+      account_status: c.account_status,
+      city: c.billing_address?.city || null,
+      contact_count: c.contacts?.[0]?.count || c.contacts?.length || 0,
+      created_at: c.created_at,
+      custom_fields: c.custom_fields,
+    })),
+    [companies],
   )
 
-  const loading = wsLoading || (dataLoading && !clients)
+  const loading = wsLoading || (dataLoading && !clients.length)
 
-  // Leads belong to their own section ("Clientes Potenciales") — never mix them here.
-  const allClients: ClientListItem[] = (clients || []).filter(c => c.account_type !== 'lead')
-  const filtered = allClients.filter((c) => {
+  // Only real customers live in Clientes (Activos + Inactivos).
+  const allClients = useMemo<ClientListItem[]>(() => clients.filter(isCustomer), [clients])
+
+  const isInactive = isInactiveCustomer
+
+  const filtered = useMemo(() => allClients.filter((c) => {
     const matchesSearch = !deferredSearch || [
       c.name, c.vat_number, c.email, c.phone, c.city, c.industry,
       c.custom_fields?.codigo_cliente
     ].some(v => v?.toLowerCase().includes(deferredSearch.toLowerCase()))
 
-    const matchesType = filterType === 'todos' || c.account_type === filterType
+    const matchesStatus =
+      filterType === 'todos'
+        ? true
+        : filterType === 'inactivo'
+          ? isInactive(c)
+          : !isInactive(c)
 
-    return matchesSearch && matchesType
-  })
+    return matchesSearch && matchesStatus
+  }), [allClients, deferredSearch, filterType])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -62,9 +86,7 @@ export default function ClientsPage() {
     }
   }
 
-  const TYPE_ORDER: Record<string, number> = { customer: 0, prospect: 1, lead: 2, partner: 3, supplier: 4 }
-
-  const sorted = [...filtered].sort((a: any, b: any) => {
+  const sorted = useMemo(() => [...filtered].sort((a: any, b: any) => {
     if (!sortField || !sortDirection) return 0
     let valA = ''
     let valB = ''
@@ -72,31 +94,20 @@ export default function ClientsPage() {
     else if (sortField === 'vat_number') { valA = a.vat_number || ''; valB = b.vat_number || '' }
     else if (sortField === 'phone') { valA = a.phone || ''; valB = b.phone || '' }
     else if (sortField === 'city') { valA = a.city || ''; valB = b.city || '' }
-    else if (sortField === 'type') {
-      const orderA = TYPE_ORDER[a.account_type || ''] ?? 99
-      const orderB = TYPE_ORDER[b.account_type || ''] ?? 99
+    else if (sortField === 'estado') {
+      // Activos antes que inactivos
+      const orderA = isInactive(a) ? 1 : 0
+      const orderB = isInactive(b) ? 1 : 0
       return sortDirection === 'asc' ? orderA - orderB : orderB - orderA
     }
     const cmp = valA.localeCompare(valB, 'es', { sensitivity: 'base' })
     return sortDirection === 'asc' ? cmp : -cmp
-  })
+  }), [filtered, sortField, sortDirection])
 
-  // Stats (leads ya excluidos del dataset)
+  // Stats — solo customers reales, separados por estado
   const totalClients = allClients.length
-  const customers = allClients.filter(c => c.account_type === 'customer').length
-  const prospects = allClients.filter(c => c.account_type === 'prospect').length
-  const otros = allClients.filter(c => c.account_type && !['customer', 'prospect'].includes(c.account_type)).length
-
-  const accountTypeLabels: Record<string, string> = {
-    customer: 'Cliente', prospect: 'Prospecto', lead: 'Lead', partner: 'Partner', supplier: 'Proveedor'
-  }
-  const accountTypeBadge: Record<string, string> = {
-    customer: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    prospect: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    lead: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    partner: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    supplier: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
-  }
+  const inactivos = allClients.filter(isInactive).length
+  const activos = totalClients - inactivos
 
   if (loading) {
     return (
@@ -112,41 +123,41 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Clientes</h1>
-          <p className="text-xs md:text-sm text-gray-300 mt-1">
-            {totalClients} clientes reales · {customers} clientes · {prospects} prospectos
-          </p>
+          <p className="text-xs md:text-sm text-gray-400 mt-1">Vista global de tu cartera</p>
         </div>
         <Button size="sm" onClick={() => router.push('/companies')} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-1" /> Nuevo Cliente
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2">
-        <button onClick={() => setFilterType('todos')} className="text-left">
-          <Card className={`hover:shadow-xl transition-all ${filterType === 'todos' ? 'ring-2 ring-blue-500' : ''}`}>
-            <CardContent className="p-3">
-              <div className="text-xl font-bold text-gray-900 dark:text-white">{totalClients}</div>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Total</p>
-            </CardContent>
-          </Card>
-        </button>
-        <button onClick={() => setFilterType('customer')} className="text-left">
-          <Card className={`hover:shadow-xl transition-all ${filterType === 'customer' ? 'ring-2 ring-green-500' : ''}`}>
-            <CardContent className="p-3">
-              <div className="text-xl font-bold text-green-400">{customers}</div>
-              <p className="text-[10px] text-gray-400 mt-0.5">Clientes</p>
-            </CardContent>
-          </Card>
-        </button>
-        <button onClick={() => setFilterType('prospect')} className="text-left">
-          <Card className={`hover:shadow-xl transition-all ${filterType === 'prospect' ? 'ring-2 ring-blue-500' : ''}`}>
-            <CardContent className="p-3">
-              <div className="text-xl font-bold text-blue-400">{prospects}</div>
-              <p className="text-[10px] text-gray-400 mt-0.5">Prospectos</p>
-            </CardContent>
-          </Card>
-        </button>
+      {/* Filtros — segmented control */}
+      <div className="inline-flex w-full md:w-auto p-1 rounded-xl bg-gray-900/40 dark:bg-black/30 border border-gray-700/40 backdrop-blur-sm">
+        {([
+          { key: 'todos' as const,    label: 'Todos',     count: totalClients, Icon: Users,      activeBg: 'bg-blue-500',  dot: 'bg-blue-400' },
+          { key: 'activo' as const,   label: 'Activos',   count: activos,      Icon: UserCheck,  activeBg: 'bg-green-500', dot: 'bg-green-400' },
+          { key: 'inactivo' as const, label: 'Inactivos', count: inactivos,    Icon: UserMinus,  activeBg: 'bg-amber-500', dot: 'bg-amber-400' },
+        ]).map(({ key, label, count, Icon, activeBg, dot }) => {
+          const isActive = filterType === key
+          return (
+            <button
+              key={key}
+              onClick={() => setFilterType(key)}
+              className={`flex-1 md:flex-initial relative flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive
+                  ? `${activeBg} text-white shadow-md`
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">{label}</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-bold tabular-nums ${
+                isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-gray-300'
+              }`}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Search */}
@@ -180,9 +191,9 @@ export default function ClientsPage() {
             Ciudad
             {sortField === 'city' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
           </button>
-          <button onClick={() => handleSort('type')} className="col-span-1 flex items-center gap-1 hover:text-white transition-colors">
-            Tipo
-            {sortField === 'type' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          <button onClick={() => handleSort('estado')} className="col-span-1 flex items-center gap-1 hover:text-white transition-colors">
+            Estado
+            {sortField === 'estado' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
           </button>
           <div className="col-span-1 text-center">Cont.</div>
           <div className="col-span-1"></div>
@@ -242,11 +253,17 @@ export default function ClientsPage() {
                   )}
                 </div>
 
-                {/* Type badge */}
+                {/* Estado badge */}
                 <div className="col-span-1 flex items-center">
-                  <Badge className={`${accountTypeBadge[client.account_type || 'prospect']} rounded-full text-[9px] px-1.5`}>
-                    {accountTypeLabels[client.account_type || 'prospect']}
-                  </Badge>
+                  {isInactive(client) ? (
+                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-[9px] px-1.5">
+                      Inactivo
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-[9px] px-1.5">
+                      Activo
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Contact count */}

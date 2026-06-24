@@ -60,6 +60,11 @@
 }
 
 @layer utilities {
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-10deg); }
+    50% { transform: rotate(10deg); }
+  }
+
   /* Glassmorphism utilities
      Light mode: solid white backgrounds with subtle borders for readability
      Dark mode: frosted glass effect with blur */

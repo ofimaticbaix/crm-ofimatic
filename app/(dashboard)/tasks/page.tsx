@@ -100,9 +100,18 @@ export default function TasksPage() {
 
   const allTasks = tasks || []
   const pendingTasks = allTasks.filter(t => !t.is_completed)
-  const overdueTasks = pendingTasks.filter(t => t.due_date && new Date(t.due_date) < new Date(new Date().toISOString().split('T')[0]))
   const todayStr = new Date().toISOString().split('T')[0]
-  const todayTasks = pendingTasks.filter(t => t.due_date === todayStr)
+  // Fecha efectiva: due_date o scheduled_at (lo que esté)
+  const getTaskDate = (t: any): string | null => {
+    if (t.due_date) return t.due_date
+    if (t.scheduled_at) return new Date(t.scheduled_at).toISOString().slice(0, 10)
+    return null
+  }
+  const overdueTasks = pendingTasks.filter(t => {
+    const d = getTaskDate(t)
+    return d && d < todayStr
+  })
+  const todayTasks = pendingTasks.filter(t => getTaskDate(t) === todayStr)
 
   const filteredContactsForNewTask = newTask.companyId
     ? (contacts || []).filter(c => c.company_id === newTask.companyId)
@@ -312,7 +321,11 @@ export default function TasksPage() {
   const tasksByDateMap = useMemo(() => {
     const map: Record<string, Task[]> = {}
     allTasks.forEach(t => {
-      const date = t.due_date
+      // Usar due_date o scheduled_at (lo que esté disponible) para mostrar en calendario
+      let date = t.due_date
+      if (!date && t.scheduled_at) {
+        date = new Date(t.scheduled_at).toISOString().slice(0, 10)
+      }
       if (!date) return
       if (!map[date]) map[date] = []
       map[date].push(t)
@@ -378,11 +391,14 @@ export default function TasksPage() {
               <Clock className="h-3 w-3" /> {dueTime}
             </span>
           )}
-          {task.due_date && (
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" /> {task.due_date}
-            </span>
-          )}
+          {(() => {
+            const d = getTaskDate(task)
+            return d ? (
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> {d}
+              </span>
+            ) : null
+          })()}
         </div>
         <button
           onClick={() => openEditModal(task)}
@@ -510,8 +526,12 @@ export default function TasksPage() {
             <CardContent>
               <div className="space-y-1">
                 {pendingTasks
-                  .filter(t => t.due_date && new Date(t.due_date) > new Date())
-                  .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+                  .filter(t => { const d = getTaskDate(t); return d && new Date(d) > new Date() })
+                  .sort((a, b) => {
+                    const da = getTaskDate(a) || ''
+                    const db = getTaskDate(b) || ''
+                    return new Date(da).getTime() - new Date(db).getTime()
+                  })
                   .map((task) => <TaskRow key={task.id} task={task} />)}
               </div>
             </CardContent>

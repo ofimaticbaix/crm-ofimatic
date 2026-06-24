@@ -27,20 +27,34 @@ export interface CompanyInput {
   email?: string
 }
 
-// Listar empresas del workspace (con conteo de contactos)
-export async function getCompanies(workspaceId: string) {
+// Listar empresas del workspace (con conteo de contactos).
+// PostgREST trunca las queries a 1000 filas por defecto, así que paginamos en lotes
+// hasta que un lote venga vacío. Esto garantiza que se cargan TODAS las empresas.
+export async function getCompanies(workspaceId: string, accountType?: string) {
   const supabase = await createClient()
+  const PAGE_SIZE = 1000
+  const MAX_PAGES = 10 // cortafuegos: hasta 10.000 empresas
+  const all: any[] = []
 
-  const { data, error } = await supabase
-    .from('companies')
-    .select('*, contacts(count)')
-    .eq('workspace_id', workspaceId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .range(0, 1999)
+  for (let page = 0; page < MAX_PAGES; page++) {
+    let q = supabase
+      .from('companies')
+      .select('*, contacts(count)')
+      .eq('workspace_id', workspaceId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
-  if (error) return { data: null, error: error.message }
-  return { data, error: null }
+    if (accountType) q = q.eq('account_type', accountType)
+
+    const { data, error } = await q
+    if (error) return { data: null, error: error.message }
+    if (!data || data.length === 0) break
+    all.push(...data)
+    if (data.length < PAGE_SIZE) break
+  }
+
+  return { data: all, error: null }
 }
 
 // Obtener una empresa con sus contactos.

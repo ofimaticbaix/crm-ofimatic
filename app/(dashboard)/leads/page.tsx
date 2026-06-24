@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useDeferredValue } from 'react'
+import { useState, useEffect, useDeferredValue, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,14 +10,20 @@ import {
   Search, Globe, X, Building2, Target,
   Mail, Phone, MapPin, User, Calendar, Loader2, Trash2,
   ChevronDown, ChevronUp, ArrowUpDown, Tag, Pencil, Save, Briefcase,
-  PhoneCall, Users as UsersIcon, StickyNote, Check
+  PhoneCall, Users as UsersIcon, StickyNote, Check, Linkedin, DollarSign,
+  FileText, History, AlertCircle, Upload, Download
 } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getCompanies, getCompany, deleteCompany, updateCompany } from '@/lib/actions/companies'
-import { logContact } from '@/lib/actions/activities'
+import { logContact, getActivities } from '@/lib/actions/activities'
+import { uploadPresupuesto, getPresupuestoUrl, replacePresupuestoAttachment, deletePresupuestoActivity, updatePresupuestoSentDate } from '@/lib/actions/documents'
+import { toast } from 'sonner'
+import { CompanyActivityWidget } from '@/components/company-activity-widget'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { useAllCompanies } from '@/lib/hooks/use-shared-data'
+import { filterLeads } from '@/lib/counts'
 
-type LeadTag = 'visitar' | 'no_interesa' | 'cliente' | null
+type LeadTag = 'visitar' | 'no_interesa' | 'cliente' | 'descartado' | null
 type SortField = 'name' | 'vat_number' | 'phone' | 'city' | 'tag'
 type SortDirection = 'asc' | 'desc' | null
 
@@ -25,21 +31,31 @@ const TAG_CONFIG: Record<string, { label: string; bg: string; text: string; dot:
   visitar: { label: 'Visitar', bg: 'bg-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-400', rowBg: 'bg-orange-500/15 hover:bg-orange-500/25', rowBorder: 'border-l-4 border-l-orange-400' },
   no_interesa: { label: 'No Interesa', bg: 'bg-green-500/20', text: 'text-green-400', dot: 'bg-green-400', rowBg: 'bg-green-500/15 hover:bg-green-500/25', rowBorder: 'border-l-4 border-l-green-400' },
   cliente: { label: 'Cliente', bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400', rowBg: 'bg-yellow-500/15 hover:bg-yellow-500/25', rowBorder: 'border-l-4 border-l-yellow-400' },
+  descartado: { label: 'Descartado', bg: 'bg-gray-500/20', text: 'text-gray-400', dot: 'bg-gray-400', rowBg: 'bg-gray-500/15 hover:bg-gray-500/25', rowBorder: 'border-l-4 border-l-gray-400' },
 }
 
 interface EditForm {
   name: string
   street: string
+  postal_code: string
   city: string
+  province: string
   vat_number: string
   phone: string
   telefono_2: string
+  telefono_3: string
   email: string
   email_2: string
   website: string
   contacto: string
+  contacto_2: string
+  contacto_3: string
   fecha_actualizacion: string
   description: string
+  industry: string
+  company_size: string
+  linkedin_url: string
+  annual_revenue: string
 }
 
 export default function LeadsPage() {
@@ -63,25 +79,145 @@ export default function LeadsPage() {
   const [logging, setLogging] = useState<string | null>(null)
   const [logNote, setLogNote] = useState('')
   const [showLogNote, setShowLogNote] = useState(false)
-  const [pendingType, setPendingType] = useState<'call' | 'meeting' | 'email' | 'note' | null>(null)
+  const [pendingType, setPendingType] = useState<'call' | 'meeting' | 'email' | 'note' | 'presupuesto' | null>(null)
+  const [history, setHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [showAllHistory, setShowAllHistory] = useState(false)
+  const [descartadoReason, setDescartadoReason] = useState('')
+  const [savingReason, setSavingReason] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [presupuestoDate, setPresupuestoDate] = useState('')
+  const [presupuestosOpen, setPresupuestosOpen] = useState(false)
+  const [replacingId, setReplacingId] = useState<string | null>(null)
+  const [deletingPresupuestoId, setDeletingPresupuestoId] = useState<string | null>(null)
+  const [editingDateId, setEditingDateId] = useState<string | null>(null)
+  const [editingDateValue, setEditingDateValue] = useState('')
   const [justLogged, setJustLogged] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
-  const doLog = async (type: 'call' | 'meeting' | 'email' | 'note', note?: string) => {
+  const loadHistory = async (compId: string) => {
+    if (!workspaceId) return
+    setHistoryLoading(true)
+    const { data } = await getActivities(workspaceId, { companyId: compId })
+    const sorted = (data || []).slice().sort((a: any, b: any) => {
+      const ta = new Date(a.completed_at || a.created_at).getTime()
+      const tb = new Date(b.completed_at || b.created_at).getTime()
+      return tb - ta
+    })
+    setHistory(sorted)
+    setHistoryLoading(false)
+  }
+
+  const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result.includes(',') ? result.split(',')[1] : result)
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+
+  const doLog = async (type: 'call' | 'meeting' | 'email' | 'note' | 'presupuesto', note?: string) => {
     const base = detailData || selectedLead
     if (!base || !workspaceId) return
     setLogging(type)
-    await logContact(workspaceId, {
-      type,
-      company_id: base.id,
-      description: note || undefined,
-    })
+    let metadata: Record<string, any> | undefined = undefined
+    try {
+      if (type === 'presupuesto' && selectedFile) {
+        setUploadingFile(true)
+        const base64 = await fileToBase64(selectedFile)
+        const up = await uploadPresupuesto(workspaceId, base.id, {
+          name: selectedFile.name, type: selectedFile.type, size: selectedFile.size, base64,
+        })
+        setUploadingFile(false)
+        if (up.error || !up.data) {
+          setLogging(null); alert(up.error || 'No se pudo subir el archivo'); return
+        }
+        metadata = { attachment: up.data }
+      }
+      if (type === 'presupuesto' && presupuestoDate) {
+        metadata = { ...(metadata || {}), sent_at: presupuestoDate }
+      }
+      const newActivity = await logContact(workspaceId, {
+        type, company_id: base.id, description: note || undefined, metadata,
+      })
+      if (type === 'presupuesto' && presupuestoDate && newActivity.data?.id) {
+        await updatePresupuestoSentDate(newActivity.data.id, presupuestoDate)
+      }
+    } finally {
+      setUploadingFile(false)
+    }
     setLogging(null)
     setShowLogNote(false)
     setLogNote('')
     setPendingType(null)
+    setSelectedFile(null)
+    setPresupuestoDate('')
     setJustLogged(true)
     setTimeout(() => setJustLogged(false), 2000)
+    loadHistory(base.id)
+    refetch()
+  }
+
+  const downloadAttachment = async (path: string) => {
+    const { url, error } = await getPresupuestoUrl(path)
+    if (error || !url) { alert(error || 'No se pudo generar el enlace'); return }
+    window.open(url, '_blank')
+  }
+
+  const handleReplaceFile = async (activityId: string, file: File) => {
+    const base = detailData || selectedLead
+    if (!base || !workspaceId) return
+    setReplacingId(activityId)
+    try {
+      const base64 = await fileToBase64(file)
+      const res = await replacePresupuestoAttachment(activityId, workspaceId, base.id, {
+        name: file.name, type: file.type, size: file.size, base64,
+      })
+      if (res.error) { alert(res.error); return }
+      await loadHistory(base.id)
+    } finally {
+      setReplacingId(null)
+    }
+  }
+
+  const handleDeletePresupuesto = async (activityId: string) => {
+    const base = detailData || selectedLead
+    if (!base) return
+    if (!confirm('¿Eliminar este presupuesto? Se borrará también el archivo adjunto.')) return
+    setDeletingPresupuestoId(activityId)
+    const res = await deletePresupuestoActivity(activityId)
+    setDeletingPresupuestoId(null)
+    if (res.error) { alert(res.error); return }
+    await loadHistory(base.id)
+  }
+
+  const handleChangeSentDate = async (activityId: string, newDate: string) => {
+    const base = detailData || selectedLead
+    if (!base || !newDate) return
+    const res = await updatePresupuestoSentDate(activityId, newDate)
+    if (res.error) { alert(res.error); return }
+    setEditingDateId(null)
+    setEditingDateValue('')
+    await loadHistory(base.id)
+  }
+
+  const saveDescartadoReason = async () => {
+    const base = detailData || selectedLead
+    if (!base) return
+    const current = base.custom_fields?.descartado_reason || ''
+    if (descartadoReason === current) return
+    setSavingReason(true)
+    const cf = { ...(base.custom_fields || {}) }
+    if (descartadoReason.trim()) cf.descartado_reason = descartadoReason.trim()
+    else delete cf.descartado_reason
+    const { updateCompany } = await import('@/lib/actions/companies')
+    await updateCompany(base.id, { custom_fields: cf })
+    if (detailData) setDetailData({ ...detailData, custom_fields: cf })
+    if (selectedLead) setSelectedLead({ ...selectedLead, custom_fields: cf })
+    setSavingReason(false)
     refetch()
   }
 
@@ -110,19 +246,15 @@ export default function LeadsPage() {
     refetch()
   }
 
-  const { data: allCompanies, loading: dataLoading, refetch } = useCachedData<any[]>(
-    `companies-${workspaceId}`,
-    () => getCompanies(workspaceId),
-    [workspaceId],
-    { enabled: !!workspaceId }
-  )
+  // SHARED dataset (idéntico al usado en activos/inactivos/companies/metrics).
+  const { data: allCompanies, loading: dataLoading, refetch } = useAllCompanies()
 
   const loading = wsLoading || (dataLoading && !allCompanies)
 
-  // Filter only leads (account_type = 'lead')
-  const leads = (allCompanies || []).filter((c: any) => c.account_type === 'lead')
+  // Leads = source-of-truth filter from lib/counts
+  const leads = useMemo(() => filterLeads(allCompanies || []), [allCompanies])
 
-  const filtered = leads.filter((c: any) => {
+  const filtered = useMemo(() => leads.filter((c: any) => {
     if (filterTag !== 'todos') {
       const tag = c.custom_fields?.lead_tag || null
       if (filterTag === 'sin_tag' && tag) return false
@@ -132,7 +264,7 @@ export default function LeadsPage() {
     const q = deferredSearch.toLowerCase()
     return [c.name, c.vat_number, c.email, c.phone, c.billing_address?.city, c.custom_fields?.contacto]
       .some(v => v?.toLowerCase().includes(q))
-  })
+  }), [leads, filterTag, deferredSearch])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -144,9 +276,9 @@ export default function LeadsPage() {
     }
   }
 
-  const TAG_ORDER: Record<string, number> = { visitar: 0, cliente: 1, no_interesa: 2 }
+  const TAG_ORDER: Record<string, number> = { visitar: 0, cliente: 1, no_interesa: 2, descartado: 3 }
 
-  const sorted = [...filtered].sort((a: any, b: any) => {
+  const sorted = useMemo(() => [...filtered].sort((a: any, b: any) => {
     if (!sortField || !sortDirection) return 0
     let valA = ''
     let valB = ''
@@ -163,25 +295,34 @@ export default function LeadsPage() {
     }
     const cmp = valA.localeCompare(valB, 'es', { sensitivity: 'base' })
     return sortDirection === 'asc' ? cmp : -cmp
-  })
+  }), [filtered, sortField, sortDirection])
 
   // Tag counts
   const tagCounts = {
     visitar: leads.filter((c: any) => c.custom_fields?.lead_tag === 'visitar').length,
     no_interesa: leads.filter((c: any) => c.custom_fields?.lead_tag === 'no_interesa').length,
     cliente: leads.filter((c: any) => c.custom_fields?.lead_tag === 'cliente').length,
+    descartado: leads.filter((c: any) => c.custom_fields?.lead_tag === 'descartado').length,
   }
 
   // Load detail when selecting
   useEffect(() => {
-    if (!selectedLead) { setDetailData(null); setIsEditing(false); setEditForm(null); return }
+    if (!selectedLead) {
+      setDetailData(null); setIsEditing(false); setEditForm(null)
+      setHistory([]); setDescartadoReason('')
+      return
+    }
     async function loadDetail() {
+      if (!selectedLead) return
       setDetailLoading(true)
       const { data } = await getCompany(selectedLead.id)
       setDetailData(data)
+      setDescartadoReason(data?.custom_fields?.descartado_reason || '')
       setDetailLoading(false)
+      loadHistory(selectedLead.id)
     }
     loadDetail()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLead])
 
   const handleDelete = async (id: string) => {
@@ -194,14 +335,35 @@ export default function LeadsPage() {
   }
 
   const handleSetTag = async (leadId: string, tag: LeadTag) => {
-    const company = leads.find((c: any) => c.id === leadId)
-    if (!company) return
+    // Always fetch the FRESHEST record from DB before writing — avoids stale
+    // custom_fields from cached lists overwriting newer data (e.g. descartado_reason).
+    const fresh = await getCompany(leadId)
+    if (fresh.error || !fresh.data) {
+      toast.error(fresh.error || 'No se encontró el cliente')
+      return
+    }
+    const currentCf = fresh.data.custom_fields || {}
+    const newCf: Record<string, any> = { ...currentCf }
+    if (tag) newCf.lead_tag = tag
+    else delete newCf.lead_tag
+    // Remove the "descartado_reason" whenever the tag is no longer "descartado".
+    if (tag !== 'descartado') delete newCf.descartado_reason
 
-    const currentCf = company.custom_fields || {}
-    const newCf = { ...currentCf, lead_tag: tag || undefined }
-    if (!tag) delete newCf.lead_tag
+    const result = await updateCompany(leadId, { custom_fields: newCf })
+    if (result.error) {
+      toast.error(`No se pudo cambiar la etiqueta: ${result.error}`)
+      return
+    }
 
-    await updateCompany(leadId, { custom_fields: newCf })
+    // Keep modal state in sync so the UI reflects the change immediately.
+    if (detailData?.id === leadId) {
+      setDetailData({ ...detailData, custom_fields: newCf })
+      if (tag !== 'descartado') setDescartadoReason('')
+    }
+    if (selectedLead?.id === leadId) {
+      setSelectedLead({ ...selectedLead, custom_fields: newCf })
+    }
+
     setTagDropdownId(null)
     refetch()
   }
@@ -211,16 +373,25 @@ export default function LeadsPage() {
     setEditForm({
       name: data.name || '',
       street: data.billing_address?.street || '',
+      postal_code: data.billing_address?.postal_code || '',
       city: data.billing_address?.city || '',
+      province: data.billing_address?.state || '',
       vat_number: data.vat_number || '',
       phone: data.phone || '',
       telefono_2: cf.telefono_2 || '',
+      telefono_3: cf.telefono_3 || '',
       email: data.email || '',
       email_2: cf.email_2 || '',
       website: data.website || '',
       contacto: cf.contacto || '',
+      contacto_2: cf.contacto_2 || '',
+      contacto_3: cf.contacto_3 || '',
       fecha_actualizacion: cf.fecha_actualizacion || '',
       description: data.description || '',
+      industry: data.industry || '',
+      company_size: data.company_size || '',
+      linkedin_url: data.linkedin_url || '',
+      annual_revenue: data.annual_revenue != null ? String(data.annual_revenue) : '',
     })
     setIsEditing(true)
   }
@@ -231,8 +402,11 @@ export default function LeadsPage() {
 
     const cf = { ...(detailData.custom_fields || {}) }
     cf.telefono_2 = editForm.telefono_2 || undefined
+    cf.telefono_3 = editForm.telefono_3 || undefined
     cf.email_2 = editForm.email_2 || undefined
     cf.contacto = editForm.contacto || undefined
+    cf.contacto_2 = editForm.contacto_2 || undefined
+    cf.contacto_3 = editForm.contacto_3 || undefined
     cf.fecha_actualizacion = editForm.fecha_actualizacion || undefined
 
     // Clean undefined keys
@@ -247,9 +421,15 @@ export default function LeadsPage() {
       email: editForm.email || undefined,
       website: editForm.website || undefined,
       description: editForm.description || undefined,
+      industry: editForm.industry || undefined,
+      company_size: editForm.company_size || undefined,
+      linkedin_url: editForm.linkedin_url || undefined,
+      annual_revenue: editForm.annual_revenue ? parseFloat(editForm.annual_revenue) : undefined,
       billing_address: {
         street: editForm.street || undefined,
+        postal_code: editForm.postal_code || undefined,
         city: editForm.city || undefined,
+        state: editForm.province || undefined,
       },
       custom_fields: cf,
     })
@@ -286,7 +466,7 @@ export default function LeadsPage() {
             Clientes Potenciales
           </h1>
           <p className="text-xs md:text-sm text-gray-300 mt-1">
-            {leads.length} registrados · {tagCounts.visitar} visitar · {tagCounts.cliente} clientes · {tagCounts.no_interesa} no interesa
+            {leads.length} registrados · {tagCounts.visitar} visitar · {tagCounts.cliente} clientes · {tagCounts.no_interesa} no interesa · {tagCounts.descartado} descartados
           </p>
         </div>
       </div>
@@ -298,7 +478,8 @@ export default function LeadsPage() {
           { id: 'visitar', label: 'Visitar', count: tagCounts.visitar },
           { id: 'cliente', label: 'Cliente', count: tagCounts.cliente },
           { id: 'no_interesa', label: 'No Interesa', count: tagCounts.no_interesa },
-          { id: 'sin_tag', label: 'Sin etiqueta', count: leads.length - tagCounts.visitar - tagCounts.cliente - tagCounts.no_interesa },
+          { id: 'descartado', label: 'Descartado', count: tagCounts.descartado },
+          { id: 'sin_tag', label: 'Sin etiqueta', count: leads.length - tagCounts.visitar - tagCounts.cliente - tagCounts.no_interesa - tagCounts.descartado },
         ].map((f) => (
           <button
             key={f.id}
@@ -495,7 +676,17 @@ export default function LeadsPage() {
                     {(detailData || selectedLead).name?.[0] || '?'}
                   </div>
                   <div>
-                    <CardTitle className="text-gray-900 dark:text-white text-xl">{(detailData || selectedLead).name}</CardTitle>
+                    {isEditing && editForm ? (
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="text-xl font-semibold w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-1 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Nombre de la empresa"
+                      />
+                    ) : (
+                      <CardTitle className="text-gray-900 dark:text-white text-xl">{(detailData || selectedLead).name}</CardTitle>
+                    )}
                     <div className="flex items-center gap-2 mt-1">
                       {(detailData || selectedLead).custom_fields?.lead_tag && TAG_CONFIG[(detailData || selectedLead).custom_fields.lead_tag] ? (
                         <Badge className={`${TAG_CONFIG[(detailData || selectedLead).custom_fields.lead_tag].bg} ${TAG_CONFIG[(detailData || selectedLead).custom_fields.lead_tag].text} rounded-full text-xs`}>
@@ -551,14 +742,13 @@ export default function LeadsPage() {
                             <option value="">Automático (según actividad)</option>
                             <option value="active">Activo</option>
                             <option value="inactive">Inactivo</option>
-                            <option value="closed">Cerrado</option>
                           </select>
                           {statusSaving && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
                         </div>
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 pl-7">
                           {manual
                             ? 'Estado forzado manualmente. El sistema respetará este estado.'
-                            : 'El sistema clasifica este cliente en Activos, Inactivos o Cerrados según su actividad reciente.'}
+                            : 'El sistema clasifica este cliente en Activos o Inactivos según su actividad reciente.'}
                         </p>
                       </div>
                     )}
@@ -567,17 +757,23 @@ export default function LeadsPage() {
               })()}
 
               {/* Tag selector in modal */}
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-2 mt-3 flex-wrap">
                 {Object.entries(TAG_CONFIG).map(([key, config]) => {
                   const currentTag = (detailData || selectedLead).custom_fields?.lead_tag
                   return (
                     <button
                       key={key}
                       onClick={() => {
-                        handleSetTag((detailData || selectedLead).id, currentTag === key ? null : key as LeadTag)
+                        const nextTag = currentTag === key ? null : key as LeadTag
+                        handleSetTag((detailData || selectedLead).id, nextTag)
                         if (detailData) {
-                          const newCf = { ...detailData.custom_fields, lead_tag: currentTag === key ? undefined : key }
-                          if (currentTag === key) delete newCf.lead_tag
+                          const newCf = { ...detailData.custom_fields, lead_tag: nextTag || undefined }
+                          if (!nextTag) delete newCf.lead_tag
+                          // Clear reason when the tag leaves "descartado"
+                          if (nextTag !== 'descartado') {
+                            delete newCf.descartado_reason
+                            setDescartadoReason('')
+                          }
                           setDetailData({ ...detailData, custom_fields: newCf })
                         }
                       }}
@@ -593,6 +789,7 @@ export default function LeadsPage() {
                   )
                 })}
               </div>
+
             </CardHeader>
 
             <CardContent className="pt-6 space-y-6">
@@ -616,14 +813,19 @@ export default function LeadsPage() {
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       {([
-                        { type: 'call' as const,    label: 'Llamada',  Icon: PhoneCall },
-                        { type: 'meeting' as const, label: 'Reunión',  Icon: UsersIcon },
-                        { type: 'email' as const,   label: 'Email',    Icon: Mail },
-                        { type: 'note' as const,    label: 'Nota',     Icon: StickyNote },
+                        { type: 'call' as const,        label: 'Llamada',    Icon: PhoneCall },
+                        { type: 'meeting' as const,     label: 'Reunión',    Icon: UsersIcon },
+                        { type: 'email' as const,       label: 'Email',      Icon: Mail },
+                        { type: 'note' as const,        label: 'Nota',       Icon: StickyNote },
+                        { type: 'presupuesto' as const, label: 'Presupuesto', Icon: FileText },
                       ]).map(({ type, label, Icon }) => (
                         <button
                           key={type}
-                          onClick={() => { setPendingType(type); setShowLogNote(true) }}
+                          onClick={() => {
+                            setPendingType(type)
+                            setShowLogNote(true)
+                            if (type === 'presupuesto') setPresupuestoDate(new Date().toISOString().slice(0, 10))
+                          }}
                           disabled={logging !== null}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-400 transition-colors disabled:opacity-50"
                         >
@@ -633,27 +835,288 @@ export default function LeadsPage() {
                       ))}
                     </div>
                     {showLogNote && pendingType && (
-                      <div className="mt-3 flex gap-2 items-start">
-                        <Input
-                          autoFocus
-                          placeholder="Breve nota (opcional)..."
-                          value={logNote}
-                          onChange={(e) => setLogNote(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') doLog(pendingType, logNote) }}
-                          className="flex-1 h-8 text-sm bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                        />
-                        <Button size="sm" onClick={() => doLog(pendingType, logNote)} disabled={logging !== null} className="bg-blue-600 hover:bg-blue-700 text-white h-8">
-                          {logging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Guardar'}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => { setShowLogNote(false); setLogNote(''); setPendingType(null) }} className="h-8">
-                          Cancelar
-                        </Button>
+                      <div className="mt-3 space-y-2">
+                        <div className="flex gap-2 items-start">
+                          <Input
+                            autoFocus
+                            placeholder={pendingType === 'presupuesto' ? 'Ej: Presupuesto baranda (opcional)' : 'Breve nota (opcional)...'}
+                            value={logNote}
+                            onChange={(e) => setLogNote(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && pendingType !== 'presupuesto') doLog(pendingType, logNote) }}
+                            className="flex-1 h-8 text-sm bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                          />
+                          <Button size="sm" onClick={() => doLog(pendingType, logNote)} disabled={logging !== null || uploadingFile} className="bg-blue-600 hover:bg-blue-700 text-white h-8">
+                            {logging || uploadingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Guardar'}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => { setShowLogNote(false); setLogNote(''); setPendingType(null); setSelectedFile(null) }} className="h-8">
+                            Cancelar
+                          </Button>
+                        </div>
+                        {pendingType === 'presupuesto' && (
+                          <div className="p-2 rounded-lg bg-indigo-50/60 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-800/40 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                              <span className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Fecha de envío:</span>
+                              <input
+                                type="date"
+                                value={presupuestoDate}
+                                onChange={(e) => setPresupuestoDate(e.target.value)}
+                                className="h-7 text-xs rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-2"
+                              />
+                            </div>
+                            <label className="flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-300 font-medium cursor-pointer">
+                              <FileText className="h-3.5 w-3.5" />
+                              {selectedFile ? selectedFile.name : 'Adjuntar presupuesto (PDF, Word, Excel, imagen)'}
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp"
+                                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                                className="hidden"
+                              />
+                              {selectedFile && (
+                                <button type="button" onClick={(e) => { e.preventDefault(); setSelectedFile(null) }} className="ml-auto text-gray-400 hover:text-red-500">
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </label>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400">Máx. 20 MB.</p>
+                          </div>
+                        )}
                       </div>
                     )}
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
                       Un click queda registrado como contacto de hoy.
                     </p>
                   </div>
+
+                  {/* Widget de actividad */}
+                  {workspaceId && (detailData || selectedLead) && (
+                    <CompanyActivityWidget workspaceId={workspaceId} companyId={(detailData || selectedLead).id} accentColor="orange" />
+                  )}
+
+                  {/* Motivo de Descarte — sólo si el tag actual es "descartado" */}
+                  {((detailData || selectedLead).custom_fields?.lead_tag === 'descartado') && (
+                    <div className="rounded-xl border-2 border-gray-400/40 dark:border-gray-600/50 bg-gray-500/5 dark:bg-gray-800/30 p-4">
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-gray-500" />
+                        Motivo de Descarte
+                        {savingReason && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400 ml-auto" />}
+                      </h3>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
+                        Explica brevemente por qué este cliente potencial ha sido descartado. Se guarda automáticamente al salir del campo.
+                      </p>
+                      <textarea
+                        value={descartadoReason}
+                        onChange={(e) => setDescartadoReason(e.target.value)}
+                        onBlur={saveDescartadoReason}
+                        rows={3}
+                        placeholder="Ej: No tiene presupuesto, no encaja con nuestra oferta, compite con proveedor existente..."
+                        className="w-full text-sm rounded-lg bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white p-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Historial de Contacto */}
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/40 p-4">
+                    <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <History className="h-3.5 w-3.5" /> Historial de Contacto
+                      <span className="ml-auto text-[10px] font-normal text-gray-400">
+                        {history.length === 0 ? 'sin contactos' : `${history.length} ${history.length === 1 ? 'contacto' : 'contactos'}`}
+                      </span>
+                    </h3>
+                    {historyLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+                      </div>
+                    ) : history.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-3">Todavía no has registrado ningún contacto con este cliente potencial.</p>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          {(showAllHistory ? history : history.slice(0, 5)).map((act) => {
+                            const meta: Record<string, { icon: any; label: string; color: string; bg: string }> = {
+                              call:        { icon: PhoneCall,   label: 'Llamada',     color: 'text-green-600 dark:text-green-400',   bg: 'bg-green-50 dark:bg-green-900/20' },
+                              meeting:     { icon: UsersIcon,   label: 'Reunión',     color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+                              email:       { icon: Mail,        label: 'Email',       color: 'text-blue-600 dark:text-blue-400',     bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                              note:        { icon: StickyNote,  label: 'Nota',        color: 'text-amber-600 dark:text-amber-400',   bg: 'bg-amber-50 dark:bg-amber-900/20' },
+                              presupuesto: { icon: FileText,    label: 'Presupuesto', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+                            }
+                            const m = meta[act.type] || meta.note
+                            const when = act.completed_at || act.scheduled_at || act.due_date || act.created_at
+                            const dateStr = new Date(when).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                            const timeStr = act.scheduled_at ? ` · ${new Date(act.scheduled_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` : ''
+                            const Icon = m.icon
+                            const statusChip = act.is_completed
+                              ? { label: 'Hecho', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' }
+                              : { label: 'Pendiente', cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' }
+                            return (
+                              <div key={act.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50/50 dark:bg-gray-800/40">
+                                <div className={`${m.bg} ${m.color} w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{m.label}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusChip.cls}`}>{statusChip.label}</span>
+                                    <span className="text-[11px] text-gray-500 dark:text-gray-400">· {dateStr}{timeStr}</span>
+                                  </div>
+                                  {act.subject && act.subject !== m.label && (
+                                    <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 font-medium">{act.subject}</p>
+                                  )}
+                                  {act.description && (
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 break-words">{act.description}</p>
+                                  )}
+                                  {act.metadata?.attachment?.path && (
+                                    <button
+                                      onClick={() => downloadAttachment(act.metadata.attachment.path)}
+                                      className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                                    >
+                                      <FileText className="h-3 w-3" />
+                                      {act.metadata.attachment.name || 'Descargar archivo'}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {history.length > 5 && (
+                          <button
+                            onClick={() => setShowAllHistory(v => !v)}
+                            className="mt-3 text-xs text-orange-600 dark:text-orange-400 hover:underline"
+                          >
+                            {showAllHistory ? 'Mostrar menos' : `Ver los ${history.length - 5} restantes`}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Historial de Presupuestos — desplegable */}
+                  {(() => {
+                    const presupuestos = history
+                      .filter(a => a.type === 'presupuesto')
+                      .sort((a: any, b: any) => {
+                        const ta = new Date(a.completed_at || a.created_at).getTime()
+                        const tb = new Date(b.completed_at || b.created_at).getTime()
+                        return tb - ta
+                      })
+                    if (presupuestos.length === 0) return null
+                    const fmt = (b: number) => !b ? '' : b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(1)} MB`
+                    return (
+                      <div className="rounded-xl border border-indigo-200 dark:border-indigo-800/40 bg-indigo-50/40 dark:bg-indigo-950/10">
+                        <button
+                          onClick={() => setPresupuestosOpen(v => !v)}
+                          className="w-full flex items-center gap-2 p-4 text-left"
+                        >
+                          <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                          <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Presupuestos</span>
+                          <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-medium">
+                            {presupuestos.length}
+                          </span>
+                          <ChevronDown className={`h-4 w-4 ml-auto text-gray-400 transition-transform ${presupuestosOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {presupuestosOpen && (
+                          <div className="px-4 pb-4 space-y-2">
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
+                              Ordenados del más reciente al más antiguo. Puedes reemplazar el archivo o eliminar cualquier presupuesto.
+                            </p>
+                            {presupuestos.map((p) => {
+                              const sentIso = p.metadata?.sent_at || (p.completed_at ? p.completed_at.slice(0, 10) : null)
+                              const sentStr = sentIso ? new Date(sentIso + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+                              const att = p.metadata?.attachment
+                              const isReplacing = replacingId === p.id
+                              const isDeleting = deletingPresupuestoId === p.id
+                              const isEditingDate = editingDateId === p.id
+                              return (
+                                <div key={p.id} className="flex items-start gap-3 p-3 rounded-lg bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/40 hover:shadow-sm transition-shadow">
+                                  <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
+                                    <FileText className="h-5 w-5" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.subject || 'Presupuesto'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      {isEditingDate ? (
+                                        <>
+                                          <input
+                                            type="date"
+                                            value={editingDateValue}
+                                            onChange={(e) => setEditingDateValue(e.target.value)}
+                                            className="h-6 text-[11px] rounded bg-white dark:bg-gray-900 border border-indigo-300 dark:border-indigo-700 text-gray-900 dark:text-white px-1.5"
+                                          />
+                                          <button onClick={() => handleChangeSentDate(p.id, editingDateValue)}
+                                            className="text-[11px] text-green-600 dark:text-green-400 hover:underline font-medium">Guardar</button>
+                                          <button onClick={() => { setEditingDateId(null); setEditingDateValue('') }}
+                                            className="text-[11px] text-gray-500 hover:underline">Cancelar</button>
+                                        </>
+                                      ) : (
+                                        <button
+                                          onClick={() => {
+                                            setEditingDateId(p.id)
+                                            setEditingDateValue(sentIso || new Date().toISOString().slice(0, 10))
+                                          }}
+                                          className="inline-flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 group"
+                                          title="Cambiar fecha de envío"
+                                        >
+                                          <Calendar className="h-3 w-3" />
+                                          <span>Enviado el <span className="font-medium text-gray-800 dark:text-gray-200">{sentStr}</span></span>
+                                          <Pencil className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </button>
+                                      )}
+                                    </div>
+                                    {p.description && (
+                                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 break-words">{p.description}</p>
+                                    )}
+                                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                      {att?.path ? (
+                                        <button
+                                          onClick={() => downloadAttachment(att.path)}
+                                          className="inline-flex items-center gap-1.5 text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/40 hover:bg-indigo-200 dark:hover:bg-indigo-900/60 px-2.5 py-1 rounded-md font-medium transition-colors"
+                                          title="Descargar archivo"
+                                        >
+                                          <Download className="h-3 w-3" />
+                                          <span className="max-w-[200px] truncate">{att.name || 'Descargar'}</span>
+                                          {att.size && <span className="text-gray-400 font-normal">· {fmt(att.size)}</span>}
+                                        </button>
+                                      ) : (
+                                        <span className="text-[11px] text-gray-400 italic">Sin archivo adjunto</span>
+                                      )}
+                                      <label className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${isReplacing ? 'bg-gray-100 dark:bg-gray-800 text-gray-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                        {isReplacing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                                        {att ? 'Reemplazar' : 'Subir archivo'}
+                                        <input
+                                          type="file"
+                                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp"
+                                          disabled={isReplacing}
+                                          onChange={(e) => {
+                                            const f = e.target.files?.[0]
+                                            if (f) handleReplaceFile(p.id, f)
+                                            e.currentTarget.value = ''
+                                          }}
+                                          className="hidden"
+                                        />
+                                      </label>
+                                      <button
+                                        onClick={() => handleDeletePresupuesto(p.id)}
+                                        disabled={isDeleting}
+                                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
+                                        title="Eliminar presupuesto"
+                                      >
+                                        {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                        Eliminar
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
 
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -668,29 +1131,57 @@ export default function LeadsPage() {
                       )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {[
+                      {([
                         { icon: Building2, iconColor: 'text-orange-500', label: 'Empresa', value: (detailData || selectedLead).name, field: 'name' as keyof EditForm },
                         { icon: MapPin, iconColor: 'text-red-500', label: 'Direccion', value: (detailData || selectedLead).billing_address?.street, field: 'street' as keyof EditForm },
+                        { icon: MapPin, iconColor: 'text-blue-400', label: 'Código Postal', value: (detailData || selectedLead).billing_address?.postal_code, field: 'postal_code' as keyof EditForm },
                         { icon: MapPin, iconColor: 'text-orange-400', label: 'Poblacion', value: (detailData || selectedLead).billing_address?.city, field: 'city' as keyof EditForm },
+                        { icon: MapPin, iconColor: 'text-indigo-400', label: 'Provincia', value: (detailData || selectedLead).billing_address?.state, field: 'province' as keyof EditForm },
                         { icon: Building2, iconColor: 'text-purple-500', label: 'NIF', value: (detailData || selectedLead).vat_number, field: 'vat_number' as keyof EditForm },
                         { icon: Phone, iconColor: 'text-green-500', label: 'Telefono', value: (detailData || selectedLead).phone, field: 'phone' as keyof EditForm },
                         { icon: Phone, iconColor: 'text-green-400', label: 'Telefono 2', value: (detailData || selectedLead).custom_fields?.telefono_2, field: 'telefono_2' as keyof EditForm },
+                        { icon: Phone, iconColor: 'text-green-300', label: 'Movil 2', value: (detailData || selectedLead).custom_fields?.telefono_3, field: 'telefono_3' as keyof EditForm },
                         { icon: Mail, iconColor: 'text-blue-500', label: 'Mail Compras', value: (detailData || selectedLead).email, field: 'email' as keyof EditForm },
                         { icon: Mail, iconColor: 'text-blue-400', label: 'Mail Empresa', value: (detailData || selectedLead).custom_fields?.email_2, field: 'email_2' as keyof EditForm },
                         { icon: Globe, iconColor: 'text-indigo-500', label: 'Web', value: (detailData || selectedLead).website, field: 'website' as keyof EditForm },
                         { icon: User, iconColor: 'text-cyan-500', label: 'Contacto', value: (detailData || selectedLead).custom_fields?.contacto, field: 'contacto' as keyof EditForm },
+                        { icon: User, iconColor: 'text-cyan-400', label: 'Contacto 2', value: (detailData || selectedLead).custom_fields?.contacto_2, field: 'contacto_2' as keyof EditForm },
+                        { icon: User, iconColor: 'text-cyan-300', label: 'Contacto 3', value: (detailData || selectedLead).custom_fields?.contacto_3, field: 'contacto_3' as keyof EditForm },
                         { icon: Calendar, iconColor: 'text-amber-500', label: 'Fecha Actualizacion', value: (detailData || selectedLead).custom_fields?.fecha_actualizacion, field: 'fecha_actualizacion' as keyof EditForm },
-                      ].map((f) => (
+                        { icon: Briefcase, iconColor: 'text-amber-600', label: 'Sector', value: (detailData || selectedLead).industry, field: 'industry' as keyof EditForm },
+                        { icon: UsersIcon, iconColor: 'text-gray-500', label: 'Tamaño', value: (detailData || selectedLead).company_size, field: 'company_size' as keyof EditForm, type: 'select', options: ['1-10','11-50','51-200','201-500','501+'] },
+                        { icon: Linkedin, iconColor: 'text-blue-600', label: 'LinkedIn', value: (detailData || selectedLead).linkedin_url, field: 'linkedin_url' as keyof EditForm },
+                        { icon: DollarSign, iconColor: 'text-emerald-500', label: 'Facturación Anual', value: (detailData || selectedLead).annual_revenue != null ? `${Number((detailData || selectedLead).annual_revenue).toLocaleString('es-ES')} €` : null, field: 'annual_revenue' as keyof EditForm, type: 'number' },
+                      ] as any[]).map((f: any) => (
                         <div key={f.field} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
                           <f.icon className={`h-5 w-5 ${f.iconColor} mt-0.5 flex-shrink-0`} />
                           <div className="min-w-0 flex-1">
                             <p className="text-xs text-gray-500 dark:text-gray-400">{f.label}</p>
                             {isEditing && editForm ? (
-                              <Input
-                                value={editForm[f.field]}
-                                onChange={(e) => updateField(f.field, e.target.value)}
-                                className="mt-1 h-8 text-sm bg-white/10 border-gray-600 text-white"
-                              />
+                              f.type === 'select' ? (
+                                <select
+                                  value={editForm[f.field as keyof EditForm]}
+                                  onChange={(e) => updateField(f.field, e.target.value)}
+                                  className="mt-1 flex h-8 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                >
+                                  <option value="">— Seleccionar —</option>
+                                  {(f.options || []).map((o: string) => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                              ) : f.type === 'number' ? (
+                                <input
+                                  type="number"
+                                  value={editForm[f.field as keyof EditForm]}
+                                  onChange={(e) => updateField(f.field, e.target.value)}
+                                  className="mt-1 flex h-8 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={editForm[f.field as keyof EditForm]}
+                                  onChange={(e) => updateField(f.field, e.target.value)}
+                                  className="mt-1 flex h-8 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                              )
                             ) : f.value ? (
                               <p className="text-sm font-medium text-gray-900 dark:text-white">{f.value}</p>
                             ) : (
@@ -710,7 +1201,7 @@ export default function LeadsPage() {
                         value={editForm.description}
                         onChange={(e) => updateField('description', e.target.value)}
                         rows={3}
-                        className="w-full text-sm rounded-xl p-3 bg-white/10 border border-gray-600 text-white resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="w-full text-sm rounded-xl p-3 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     ) : (
                       <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">

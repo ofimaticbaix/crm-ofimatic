@@ -37,26 +37,35 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
       extraFilters?: (q: any) => any
     ): Promise<T[]> {
       if (ids.length === 0) return []
+      // BATCH kept at 200 — larger batches risk overflowing Supabase's URL length limit.
+      // Perf win comes from running batches in parallel (was sequential with await-in-loop).
       const BATCH = 200
-      const results: T[] = []
+      const batches: string[][] = []
       for (let i = 0; i < ids.length; i += BATCH) {
-        const batch = ids.slice(i, i + BATCH)
+        batches.push(ids.slice(i, i + BATCH))
+      }
+      const responses = await Promise.all(batches.map(batch => {
         let q = supabase.from(table).select(selectFields).in(filterCol, batch)
         if (extraFilters) q = extraFilters(q)
-        const { data } = await q
+        return q
+      }))
+      const results: T[] = []
+      for (const { data } of responses) {
         if (data) results.push(...data as T[])
       }
       return results
     }
 
-    // Query 1: Get companies with contact count and contacts list.
-    // Exclude leads — they belong to the Clientes Potenciales section, never mix with real clients.
+    // Query 1: Get REAL customers only (account_type='customer').
+    // Prospects, partners, suppliers and unclassified stay out of the Clientes sections —
+    // they only show up in the Empresas view under "Sin clasificar". This keeps
+    // Activos + Inactivos = Vista General always consistent.
     const { data: companies, error: compError } = await supabase
       .from('companies')
       .select('id, name, industry, website, health_score, custom_fields, account_type, contacts(id, first_name, last_name)')
       .eq('workspace_id', workspaceId)
       .is('deleted_at', null)
-      .not('account_type', 'eq', 'lead')
+      .eq('account_type', 'customer')
       .order('created_at', { ascending: false })
       .range(0, 1999)
 
@@ -66,25 +75,6 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
     }
 
     const companyIds = companies.map(c => c.id)
-
-    // Query 2: Get deals grouped by company (value, status, stage info)
-    const deals = await batchIn<any>(
-      'deals',
-      'id, company_id, value, status, stages(is_closed_won, is_closed_lost)',
-      'company_id',
-      companyIds,
-      (q: any) => q.is('deleted_at', null)
-    )
-
-    // Query 3: Get activities per company (direct company_id)
-    const directActivities = await batchIn<any>(
-      'activities',
-      'company_id, created_at, scheduled_at, due_date, completed_at, is_completed',
-      'company_id',
-      companyIds
-    )
-
-    // Query 4: Get activities via contacts (for companies without direct activities)
     const allContactIds = companies.flatMap(c =>
       (c.contacts as { id: string }[])?.map(contact => contact.id) || []
     )
@@ -100,12 +90,31 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
       is_completed: boolean
     }
 
-    const contactActivities = await batchIn<ActivityWithCompletion>(
-      'activities',
-      'contact_id, created_at, scheduled_at, due_date, completed_at, is_completed',
-      'contact_id',
-      allContactIds
-    )
+    // Queries 2, 3, 4 are independent — run them in parallel.
+    // Query 2: Get deals grouped by company (value, status, stage info)
+    // Query 3: Get activities per company (direct company_id)
+    // Query 4: Get activities via contacts (for companies without direct activities)
+    const [deals, directActivities, contactActivities] = await Promise.all([
+      batchIn<any>(
+        'deals',
+        'id, company_id, value, status, stages(is_closed_won, is_closed_lost)',
+        'company_id',
+        companyIds,
+        (q: any) => q.is('deleted_at', null)
+      ),
+      batchIn<any>(
+        'activities',
+        'company_id, created_at, scheduled_at, due_date, completed_at, is_completed',
+        'company_id',
+        companyIds
+      ),
+      batchIn<ActivityWithCompletion>(
+        'activities',
+        'contact_id, created_at, scheduled_at, due_date, completed_at, is_completed',
+        'contact_id',
+        allContactIds
+      ),
+    ])
 
     // Query 5: Get activities via deals (for tasks associated with deals)
     const allDealIds = deals.map((d: any) => d.id)
@@ -149,16 +158,32 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
     const nextActivityByCompany = new Map<string, string>()
 
     const now = new Date()
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-    const sevenDaysAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-    // Helper to update last contact date (only from completed activities)
-    const updateLastContact = (companyId: string, act: ActivityWithCompletion) => {
-      // Only count completed activities as real contacts
+    // Cache parsed timestamps to avoid repeated new Date() parsing (perf win on big datasets)
+    const lastContactTs = new Map<string, number>()
+    const nextActivityTs = new Map<string, number>()
+    const nowTs = now.getTime()
+
+    const processActivity = (companyId: string, act: ActivityWithCompletion) => {
+      // Track last real contact: completed_at from completed tasks only
       if (act.is_completed && act.completed_at) {
-        const existing = lastContactByCompany.get(companyId)
-        if (!existing || new Date(act.completed_at) > new Date(existing)) {
+        const ts = new Date(act.completed_at).getTime()
+        const existing = lastContactTs.get(companyId)
+        if (existing === undefined || ts > existing) {
+          lastContactTs.set(companyId, ts)
           lastContactByCompany.set(companyId, act.completed_at)
+        }
+      }
+      // Track next scheduled activity: earliest future date
+      const futureDate = act.scheduled_at || act.due_date
+      if (futureDate) {
+        const ts = new Date(futureDate).getTime()
+        if (ts >= nowTs) {
+          const existing = nextActivityTs.get(companyId)
+          if (existing === undefined || ts < existing) {
+            nextActivityTs.set(companyId, ts)
+            nextActivityByCompany.set(companyId, futureDate)
+          }
         }
       }
     }
@@ -166,19 +191,7 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
     // Process direct company activities
     for (const act of directActivities || []) {
       if (!act.company_id) continue
-      // Track last real contact (completed_at from completed tasks)
-      updateLastContact(act.company_id, act as ActivityWithCompletion)
-      // Track next scheduled activity (check both scheduled_at and due_date)
-      const futureDate = act.scheduled_at || act.due_date
-      if (futureDate) {
-        const scheduledDate = new Date(futureDate)
-        if (scheduledDate >= now) {
-          const existing = nextActivityByCompany.get(act.company_id)
-          if (!existing || new Date(existing) > scheduledDate) {
-            nextActivityByCompany.set(act.company_id, futureDate)
-          }
-        }
-      }
+      processActivity(act.company_id, act as ActivityWithCompletion)
     }
 
     // Process contact activities (for companies without direct activities)
@@ -186,20 +199,7 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
       if (!act.contact_id) continue
       const companyId = contactToCompany.get(act.contact_id)
       if (!companyId) continue
-
-      // Track last real contact (completed_at from completed tasks)
-      updateLastContact(companyId, act)
-      // Track next scheduled activity (check both scheduled_at and due_date)
-      const futureDate = act.scheduled_at || act.due_date
-      if (futureDate) {
-        const scheduledDate = new Date(futureDate)
-        if (scheduledDate >= now) {
-          const existing = nextActivityByCompany.get(companyId)
-          if (!existing || new Date(existing) > scheduledDate) {
-            nextActivityByCompany.set(companyId, futureDate)
-          }
-        }
-      }
+      processActivity(companyId, act)
     }
 
     // Process deal activities (for tasks associated with deals)
@@ -207,20 +207,7 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
       if (!act.deal_id) continue
       const companyId = dealToCompany.get(act.deal_id)
       if (!companyId) continue
-
-      // Track last real contact (completed_at from completed tasks)
-      updateLastContact(companyId, act)
-      // Track next scheduled activity (check both scheduled_at and due_date)
-      const futureDate = act.scheduled_at || act.due_date
-      if (futureDate) {
-        const scheduledDate = new Date(futureDate)
-        if (scheduledDate >= now) {
-          const existing = nextActivityByCompany.get(companyId)
-          if (!existing || new Date(existing) > scheduledDate) {
-            nextActivityByCompany.set(companyId, futureDate)
-          }
-        }
-      }
+      processActivity(companyId, act)
     }
 
     const result: CompaniesGrouped = { active: [], overdue: [], closed: [] }
@@ -239,44 +226,10 @@ export async function getCompaniesWithStatus(workspaceId: string): Promise<{ dat
         daysSinceContact = Math.floor((now.getTime() - new Date(lastContactDate).getTime()) / (1000 * 60 * 60 * 24))
       }
 
-      // Determine status - User-friendly logic:
-      // - Active: Has recent activity (7 days) OR upcoming scheduled activity
-      // - Overdue: No recent activity AND no upcoming activity (needs attention)
-      // - Closed: All deals are closed AND no upcoming activity
-
-      const hasOpenDeals = companyDeals.some(d => {
-        const stage = d.stages as any
-        return d.status === 'open' && stage && !stage.is_closed_won && !stage.is_closed_lost
-      })
-
-      const allDealsClosed = dealCount > 0 && !hasOpenDeals
-
-      // Check if there's recent contact (completed task in last 7 days)
-      const hasRecentContact = lastContactDate && new Date(lastContactDate) >= sevenDaysAgo
-
-      // Check if there's a scheduled activity in the next 7 days
-      const hasUpcomingActivity = nextActivityDate && new Date(nextActivityDate) <= sevenDaysAhead
-
-      let status: 'active' | 'overdue' | 'closed'
-
-      // Manual override (set from the detail modal, stored in custom_fields.manual_status)
+      // Status classification is manual-only: a client is inactive ONLY when the
+      // user explicitly marks it as such from the detail modal. No auto-rules.
       const manualStatus = (company as any).custom_fields?.manual_status as string | undefined
-      if (manualStatus === 'active') {
-        status = 'active'
-      } else if (manualStatus === 'inactive') {
-        status = 'overdue'
-      } else if (manualStatus === 'closed') {
-        status = 'closed'
-      } else if (allDealsClosed && !hasUpcomingActivity) {
-        // All deals closed AND no future activity planned = truly closed
-        status = 'closed'
-      } else if (hasRecentContact || hasUpcomingActivity) {
-        // Has recent real contact OR upcoming activity = active (regardless of deals)
-        status = 'active'
-      } else {
-        // No recent contact AND no upcoming activity = needs attention
-        status = 'overdue'
-      }
+      const status: 'active' | 'overdue' | 'closed' = manualStatus === 'inactive' ? 'overdue' : 'active'
 
       const companyWithStatus: CompanyWithStatus = {
         id: company.id,

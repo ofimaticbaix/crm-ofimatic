@@ -16,7 +16,7 @@ export async function getWorkspaceWithProfile() {
     const [membershipResult, profileResult] = await Promise.all([
       supabase
         .from('memberships')
-        .select('workspace_id, role, workspaces(id, name, slug, plan_id, subscription_status, subscription_tier, trial_ends_at, plans(*))')
+        .select('workspace_id, role, workspaces(id, name, slug, plan_id, subscription_status, subscription_tier, trial_ends_at, logo_url, background_url, background_color, app_subtitle, plans(*))')
         .eq('user_id', user.id)
         .limit(1)
         .single(),
@@ -66,6 +66,78 @@ export async function updateWorkspaceName(workspaceId: string, name: string) {
     const { error } = await supabase
       .from('workspaces')
       .update({ name })
+      .eq('id', workspaceId)
+    if (error) return { data: null, error: error.message }
+    return { data: true, error: null }
+  } catch (err) {
+    return { data: null, error: String(err) }
+  }
+}
+
+// Cambiar el color/modo de fondo
+export async function updateWorkspaceBackgroundColor(
+  workspaceId: string,
+  mode: 'white' | 'black' | 'image' | 'default'
+) {
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase
+      .from('workspaces')
+      .update({ background_color: mode })
+      .eq('id', workspaceId)
+    if (error) return { data: null, error: error.message }
+    return { data: true, error: null }
+  } catch (err) {
+    return { data: null, error: String(err) }
+  }
+}
+
+// Actualizar subtítulo / tagline del workspace
+export async function updateWorkspaceSubtitle(workspaceId: string, subtitle: string) {
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase
+      .from('workspaces')
+      .update({ app_subtitle: subtitle || null })
+      .eq('id', workspaceId)
+    if (error) return { data: null, error: error.message }
+    return { data: true, error: null }
+  } catch (err) {
+    return { data: null, error: String(err) }
+  }
+}
+
+// Guardar la URL del logo/fondo en workspaces (la subida la hace el cliente)
+export async function setWorkspaceBrandingUrl(
+  workspaceId: string,
+  kind: 'logo' | 'background',
+  publicUrl: string
+) {
+  try {
+    const supabase = await createClient()
+    const updateField = kind === 'logo' ? 'logo_url' : 'background_url'
+    const { error } = await supabase
+      .from('workspaces')
+      .update({ [updateField]: publicUrl })
+      .eq('id', workspaceId)
+    if (error) return { data: null, error: error.message }
+    return { data: publicUrl, error: null }
+  } catch (err) {
+    return { data: null, error: String(err) }
+  }
+}
+
+// Quitar logo o fondo (vuelve al default de la app)
+export async function removeWorkspaceBranding(
+  workspaceId: string,
+  kind: 'logo' | 'background'
+) {
+  try {
+    const supabase = await createClient()
+    const updateField = kind === 'logo' ? 'logo_url' : 'background_url'
+    const { error } = await supabase
+      .from('workspaces')
+      .update({ [updateField]: null })
       .eq('id', workspaceId)
     if (error) return { data: null, error: error.message }
     return { data: true, error: null }

@@ -5,11 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(value: number, currency = 'EUR'): string {
+export function formatCurrency(value: number | null | undefined, currency = 'EUR'): string {
+  const n = typeof value === 'number' && isFinite(value) ? value : Number(value)
+  const safe = isFinite(n) ? n : 0
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency,
-  }).format(value)
+    maximumFractionDigits: 0,
+  }).format(safe)
 }
 
 export function formatDate(date: string | Date): string {

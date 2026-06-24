@@ -5,21 +5,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Settings, Users, CreditCard, Bell, Check, Loader2, Zap, Crown, Building2, X, Copy, Mail, UserMinus, Clock, Plug } from 'lucide-react'
+import { Settings, Users, CreditCard, Bell, Check, Loader2, Zap, Crown, Building2, X, Copy, Mail, UserMinus, Clock, Plug, Image as ImageIcon, Upload, Trash2 } from 'lucide-react'
 import { ApiKeysSection } from '@/components/settings/api-keys-section'
 import { WebhooksSection } from '@/components/settings/webhooks-section'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { updateWorkspaceName } from '@/lib/actions/workspace'
+import { updateWorkspaceName, updateWorkspaceSubtitle, setWorkspaceBrandingUrl, removeWorkspaceBranding, updateWorkspaceBackgroundColor } from '@/lib/actions/workspace'
+import { createClient } from '@/lib/supabase/client'
 import { getPlans, getWorkspaceUsage } from '@/lib/actions/plans'
 import { useCachedData, invalidateCache } from '@/lib/hooks/use-cached-data'
 import { toast } from 'sonner'
 
 import type { Plan } from '@/lib/actions/plans'
-import { getWorkspaceMembers, getWorkspaceInvitations, inviteUser, revokeInvitation, removeMember } from '@/lib/actions/invitations'
+import { getWorkspaceMembers, getWorkspaceInvitations, inviteUser, revokeInvitation, removeMember, updateMemberRole } from '@/lib/actions/invitations'
 import type { Member, Invitation } from '@/lib/actions/invitations'
 
 export default function SettingsPage() {
-  const { workspaceId, workspaceName, userName, userEmail, userId, role, planId, plan, loading: wsLoading } = useWorkspace()
+  const { workspaceId, workspaceName, userName, userEmail, userId, role, planId, plan, loading: wsLoading, logoUrl, backgroundUrl, appSubtitle, backgroundColor, refresh: refreshWorkspace } = useWorkspace()
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingBg, setUploadingBg] = useState(false)
+  const [subtitle, setSubtitle] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
@@ -66,17 +70,85 @@ export default function SettingsPage() {
   const loading = wsLoading || (plansLoading && !plans) || (membersLoading && !members)
 
   useEffect(() => {
+    if (!wsLoading) {
+      setSubtitle(appSubtitle || '')
+    }
     if (!wsLoading && workspaceName) {
       setCompanyName(workspaceName)
     }
-  }, [wsLoading, workspaceName])
+  }, [wsLoading, workspaceName, appSubtitle])
 
   const handleSaveWorkspace = async () => {
     if (!workspaceId || !companyName.trim()) return
-    const result = await updateWorkspaceName(workspaceId, companyName.trim())
-    if (!result.error) {
+    const r1 = await updateWorkspaceName(workspaceId, companyName.trim())
+    const r2 = await updateWorkspaceSubtitle(workspaceId, subtitle.trim())
+    if (!r1.error && !r2.error) {
       setShowSaveSuccess(true)
       setTimeout(() => setShowSaveSuccess(false), 3000)
+      await refreshWorkspace()
+    }
+  }
+
+  const handleBrandingUpload = async (kind: 'logo' | 'background', file: File) => {
+    if (!workspaceId) return
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error('La imagen debe pesar menos de 3 MB')
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Solo se aceptan imágenes')
+      return
+    }
+    if (kind === 'logo') setUploadingLogo(true); else setUploadingBg(true)
+    try {
+      // Subir directo a Supabase Storage desde el cliente (evita límite de server actions)
+      const supabase = createClient()
+      const extByMime: Record<string, string> = {
+        'image/png': 'png', 'image/jpeg': 'jpg', 'image/jpg': 'jpg',
+        'image/webp': 'webp', 'image/svg+xml': 'svg',
+      }
+      const ext = extByMime[file.type] || 'png'
+      const path = `${workspaceId}/${kind}-${Date.now()}.${ext}`
+
+      const { error: upErr } = await supabase.storage
+        .from('workspace-branding')
+        .upload(path, file, { contentType: file.type, upsert: true })
+      if (upErr) { toast.error(`Error subiendo: ${upErr.message}`); return }
+
+      const { data: pub } = supabase.storage.from('workspace-branding').getPublicUrl(path)
+      // Cache-busting con timestamp
+      const url = `${pub.publicUrl}?v=${Date.now()}`
+
+      const result = await setWorkspaceBrandingUrl(workspaceId, kind, url)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(kind === 'logo' ? 'Logo actualizado' : 'Fondo actualizado')
+        await refreshWorkspace()
+      }
+    } catch (err: any) {
+      toast.error(`Error: ${err?.message || err}`)
+    } finally {
+      if (kind === 'logo') setUploadingLogo(false); else setUploadingBg(false)
+    }
+  }
+
+  const handleBackgroundMode = async (mode: 'white' | 'black' | 'image' | 'default') => {
+    if (!workspaceId) return
+    const r = await updateWorkspaceBackgroundColor(workspaceId, mode)
+    if (r.error) toast.error(r.error)
+    else { toast.success('Fondo actualizado'); await refreshWorkspace() }
+  }
+
+  const handleBrandingRemove = async (kind: 'logo' | 'background') => {
+    if (!workspaceId) return
+    if (kind === 'logo') setUploadingLogo(true); else setUploadingBg(true)
+    try {
+      const result = await removeWorkspaceBranding(workspaceId, kind)
+      if (result.error) toast.error(result.error)
+      else { toast.success('Restaurado al original'); await refreshWorkspace() }
+    } finally {
+      if (kind === 'logo') setUploadingLogo(false); else setUploadingBg(false)
     }
   }
 
@@ -129,6 +201,19 @@ export default function SettingsPage() {
               onChange={(e) => setCompanyName(e.target.value)}
               className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
             />
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Aparece en el sidebar y en la cabecera de la app.</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
+              Subtítulo / Tagline
+            </label>
+            <Input
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              placeholder="Ej: CRM Platform · Ventas · Gestión Comercial"
+              className="rounded-xl dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+            />
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Línea pequeña debajo del nombre en el sidebar.</p>
           </div>
           <Button
             onClick={handleSaveWorkspace}
@@ -143,6 +228,122 @@ export default function SettingsPage() {
               'Guardar Cambios'
             )}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Personalización: logo + fondo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+            <ImageIcon className="h-5 w-5 text-pink-500 dark:text-pink-400" />
+            Personalización
+          </CardTitle>
+          <CardDescription className="text-gray-500 dark:text-gray-400">
+            Pon tu logo y tu imagen de fondo. Solo se aplica a tu workspace.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Logo */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Logo</label>
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="h-7 w-7 text-gray-400" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white cursor-pointer w-fit transition-colors disabled:opacity-50">
+                  {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {logoUrl ? 'Cambiar logo' : 'Subir logo'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="hidden"
+                    disabled={uploadingLogo}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBrandingUpload('logo', f); e.target.value = '' }}
+                  />
+                </label>
+                {logoUrl && (
+                  <button onClick={() => handleBrandingRemove('logo')} disabled={uploadingLogo}
+                    className="inline-flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 hover:underline w-fit">
+                    <Trash2 className="h-3 w-3" /> Restaurar al original
+                  </button>
+                )}
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">PNG, JPG, WEBP o SVG. Máximo 3 MB. Cuadrado recomendado.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Modo de fondo */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Tipo de fondo</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {([
+                { key: 'default' as const, label: 'Predeterminado', preview: 'bg-gradient-to-br from-blue-500 to-indigo-700' },
+                { key: 'image'   as const, label: 'Imagen propia',  preview: 'bg-gradient-to-br from-pink-500 to-orange-500' },
+                { key: 'white'   as const, label: 'Blanco',         preview: 'bg-white border border-gray-300' },
+                { key: 'black'   as const, label: 'Negro',          preview: 'bg-black' },
+              ]).map(opt => {
+                const isActive = (backgroundColor || 'default') === opt.key
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleBackgroundMode(opt.key)}
+                    className={`relative flex flex-col items-center gap-1.5 p-2 rounded-xl border-2 transition-all ${
+                      isActive
+                        ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    <div className={`w-full h-12 rounded-lg ${opt.preview}`} />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{opt.label}</span>
+                    {isActive && <Check className="absolute top-1 right-1 h-3.5 w-3.5 text-blue-500" />}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">Si eliges "Imagen propia", sube tu archivo abajo.</p>
+          </div>
+
+          {/* Fondo */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Imagen de fondo</label>
+            <div className="space-y-2">
+              <div className="w-full h-32 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
+                {backgroundUrl ? (
+                  <img src={backgroundUrl} alt="Fondo" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center">
+                    <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-1" />
+                    <p className="text-xs text-gray-500">Sin fondo personalizado (usa el predeterminado)</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-colors disabled:opacity-50">
+                  {uploadingBg ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {backgroundUrl ? 'Cambiar fondo' : 'Subir fondo'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    disabled={uploadingBg}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBrandingUpload('background', f); e.target.value = '' }}
+                  />
+                </label>
+                {backgroundUrl && (
+                  <button onClick={() => handleBrandingRemove('background')} disabled={uploadingBg}
+                    className="inline-flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 hover:underline">
+                    <Trash2 className="h-3 w-3" /> Restaurar al original
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">PNG, JPG o WEBP. Máximo 3 MB. Recomendado horizontal (16:9 o similar).</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -167,6 +368,9 @@ export default function SettingsPage() {
               const isOwner = member.role === 'owner'
               const isCurrentUser = member.userId === userId
               const canRemove = ['owner', 'admin'].includes(role) && !isOwner && !isCurrentUser
+              // Solo el owner puede cambiar roles. Y no puede cambiar su propio rol
+              // (debe transferir propiedad para soltarlo).
+              const canChangeRole = role === 'owner' && !isCurrentUser
               const roleLabel = member.role === 'owner' ? 'Propietario' : member.role === 'admin' ? 'Admin' : 'Miembro'
               const initials = member.fullName.split(' ').length >= 2
                 ? `${member.fullName.split(' ')[0][0]}${member.fullName.split(' ')[1][0]}`.toUpperCase()
@@ -187,15 +391,53 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`rounded-full ${
-                      isOwner
-                        ? 'dark:border-amber-500/30 dark:text-amber-400 border-amber-300 text-amber-600'
-                        : member.role === 'admin'
-                          ? 'dark:border-purple-500/30 dark:text-purple-400 border-purple-300 text-purple-600'
-                          : 'dark:border-blue-500/30 dark:text-blue-400 border-blue-300 text-blue-600'
-                    }`}>
-                      {member.role === 'owner' ? 'Owner' : member.role}
-                    </Badge>
+                    {canChangeRole ? (
+                      <select
+                        value={member.role}
+                        onChange={async (e) => {
+                          const newRole = e.target.value as 'owner' | 'admin' | 'member'
+                          if (newRole === member.role) return
+                          if (newRole === 'owner') {
+                            const ok = confirm(
+                              `¿Transferir la PROPIEDAD del workspace a ${member.fullName}?\n\n` +
+                              `Tú pasarás a ser Admin. Solo ${member.fullName} podrá volver a transferirla.\n\n` +
+                              `Esta acción es difícil de revertir.`,
+                            )
+                            if (!ok) { e.target.value = member.role; return }
+                          }
+                          const result = await updateMemberRole(workspaceId, member.userId, newRole)
+                          if (result.error) {
+                            toast.error(result.error)
+                            e.target.value = member.role
+                          } else {
+                            toast.success(
+                              newRole === 'owner'
+                                ? `Propiedad transferida a ${member.fullName}`
+                                : `Rol actualizado a ${newRole === 'admin' ? 'Admin' : 'Miembro'}`,
+                            )
+                            refetchMembers()
+                            // Si fue transferencia, refrescar el contexto para que el usuario vea su nuevo rol
+                            if (newRole === 'owner') await refreshWorkspace()
+                          }
+                        }}
+                        className="text-xs rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-2.5 py-1 font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
+                        title="Cambiar rol"
+                      >
+                        <option value="member">Miembro</option>
+                        <option value="admin">Admin</option>
+                        <option value="owner">Propietario (transferir)</option>
+                      </select>
+                    ) : (
+                      <Badge variant="outline" className={`rounded-full ${
+                        isOwner
+                          ? 'dark:border-amber-500/30 dark:text-amber-400 border-amber-300 text-amber-600'
+                          : member.role === 'admin'
+                            ? 'dark:border-purple-500/30 dark:text-purple-400 border-purple-300 text-purple-600'
+                            : 'dark:border-blue-500/30 dark:text-blue-400 border-blue-300 text-blue-600'
+                      }`}>
+                        {isOwner ? 'Propietario' : member.role === 'admin' ? 'Admin' : 'Miembro'}
+                      </Badge>
+                    )}
                     {canRemove && (
                       <button
                         onClick={async () => {

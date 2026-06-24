@@ -4,12 +4,14 @@ import { createClient } from '@/lib/supabase/server'
 // Webhooks are now triggered via Supabase database triggers (see migrations/008_webhook_triggers.sql)
 
 export interface ActivityInput {
-  type: 'call' | 'meeting' | 'email' | 'note' | 'task'
+  type: 'call' | 'meeting' | 'email' | 'note' | 'task' | 'presupuesto'
   subject?: string
   description?: string
   outcome?: string
   scheduled_at?: string
   due_date?: string
+  completed_at?: string
+  is_completed?: boolean
   assigned_to_id?: string
   contact_id?: string | null
   company_id?: string | null
@@ -30,7 +32,7 @@ export async function getActivities(workspaceId: string, filters?: {
 
     let query = supabase
       .from('activities')
-      .select('*, contacts(id, first_name, last_name), companies(id, name), deals(id, name)')
+      .select('*, contacts(id, first_name, last_name), companies(id, name, billing_address), deals(id, name)')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false })
 
@@ -40,7 +42,9 @@ export async function getActivities(workspaceId: string, filters?: {
     if (filters?.dealId) query = query.eq('deal_id', filters.dealId)
     if (filters?.onlyPending) query = query.eq('is_completed', false)
 
-    const { data, error } = await query.limit(50)
+    // .range para evitar el truncado a 1000 filas de PostgREST. El Historial de
+    // Tareas necesita el dataset completo para que el "Top empresas" sea correcto.
+    const { data, error } = await query.range(0, 4999)
 
     if (error) {
       console.error('getActivities error:', error.message)
@@ -79,23 +83,27 @@ export async function createActivity(workspaceId: string, input: ActivityInput) 
 export async function logContact(
   workspaceId: string,
   input: {
-    type: 'call' | 'meeting' | 'email' | 'note'
+    type: 'call' | 'meeting' | 'email' | 'note' | 'presupuesto'
     company_id?: string | null
     contact_id?: string | null
     deal_id?: string | null
     subject?: string
     description?: string
+    metadata?: Record<string, any>
+    // Optional: pass when registering a contact that happened in the past
+    completed_at?: string
   }
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const now = new Date().toISOString()
+  const now = input.completed_at || new Date().toISOString()
 
   const subjectDefaults: Record<string, string> = {
     call: 'Llamada',
     meeting: 'Reunión',
     email: 'Email',
     note: 'Nota',
+    presupuesto: 'Presupuesto enviado',
   }
 
   const { data, error } = await supabase
@@ -112,6 +120,7 @@ export async function logContact(
       completed_at: now,
       created_by_id: user!.id,
       assigned_to_id: user!.id,
+      metadata: input.metadata || {},
     })
     .select()
     .single()

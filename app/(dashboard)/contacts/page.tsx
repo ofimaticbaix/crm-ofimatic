@@ -249,7 +249,12 @@ export default function ContactsPage() {
     if (!result.error) {
       setDeletingContactId(null)
       setSelectedContactId(null)
+      setEditingContact(null)
+      setContactEditMode(false)
       refetchContacts()
+      toast.success('Contacto eliminado')
+    } else {
+      toast.error(result.error)
     }
   }
 
@@ -372,6 +377,9 @@ export default function ContactsPage() {
                       {sortField === 'lifecycle' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                     </button>
                   </th>
+                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-[1%]">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -414,6 +422,15 @@ export default function ContactsPage() {
                         {getLifecycleLabel(contact.lifecycle_stage)}
                       </Badge>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeletingContactId(contact.id) }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Eliminar contacto"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -436,6 +453,13 @@ export default function ContactsPage() {
                       {getLifecycleLabel(contact.lifecycle_stage)}
                     </Badge>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeletingContactId(contact.id) }}
+                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0"
+                    title="Eliminar contacto"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
                 <div className="space-y-1.5 text-xs ml-12">
                   <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
@@ -1028,7 +1052,7 @@ export default function ContactsPage() {
               </fieldset>
 
               {/* BOTONES */}
-              <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
+              <div className="flex gap-3 pt-4 border-t dark:border-gray-700 flex-wrap">
                 {contactEditMode ? (
                   <>
                     <Button onClick={async () => { await handleUpdateContact(); setContactEditMode(false) }} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all"
@@ -1044,6 +1068,10 @@ export default function ContactsPage() {
                   <>
                     <Button onClick={() => setContactEditMode(true)} className="flex-1 rounded-xl shadow-lg hover:shadow-xl transition-all">
                       <Pencil className="h-4 w-4 mr-2" /> Editar
+                    </Button>
+                    <Button variant="outline" onClick={() => setDeletingContactId(editingContact.id)}
+                      className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">
+                      <Trash2 className="h-4 w-4 mr-2" /> Eliminar
                     </Button>
                     <Button variant="outline" onClick={() => setEditingContact(null)}
                       className="rounded-xl dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50">

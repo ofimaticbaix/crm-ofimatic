@@ -11,6 +11,7 @@ import { useWorkspace } from '@/lib/context/workspace-context'
 import { getTasks, getDashboardMetrics, createTask } from '@/lib/actions/tasks'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
+import { getCompanies } from '@/lib/actions/companies'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
 
 export default function DashboardPage() {
@@ -45,10 +46,26 @@ export default function DashboardPage() {
     { enabled: !!workspaceId, staleTime: 60000 }
   )
 
+  const { data: customers } = useCachedData<any[]>(
+    `companies-customers-${workspaceId}`,
+    () => getCompanies(workspaceId, 'customer'),
+    [workspaceId],
+    { enabled: !!workspaceId }
+  )
+
   // Overall loading - only block if no cached data
   const loading = wsLoading || (tasksLoading && !tasks)
 
-  const safeMetrics = metrics || { totalValue: 0, weightedValue: 0, conversionRate: 0, totalDeals: 0, wonDeals: 0, contactCount: 0, companyCount: 0 }
+  const rawMetrics: any = metrics || {}
+  const safeMetrics = {
+    totalValue: Number(rawMetrics.totalValue) || 0,
+    weightedValue: Number(rawMetrics.weightedValue) || 0,
+    conversionRate: Number(rawMetrics.conversionRate) || 0,
+    totalDeals: Number(rawMetrics.totalDeals) || 0,
+    wonDeals: Number(rawMetrics.wonDeals) || 0,
+    contactCount: Number(rawMetrics.contactCount) || 0,
+    companyCount: Number(rawMetrics.companyCount) || 0,
+  }
   const upcomingTasks = (tasks || []).filter(t => !t.is_completed).slice(0, 5)
   const recentActivity = (activities || []).slice(0, 5)
   const closingThisWeek = (deals || []).filter(d => {
@@ -59,6 +76,8 @@ export default function DashboardPage() {
     return closeDate >= today && closeDate <= nextWeek && !d.stages?.is_closed_won && !d.stages?.is_closed_lost
   })
   const overdueTasks = (tasks || []).filter(t => !t.is_completed && t.due_date && new Date(t.due_date) < new Date())
+  const hoyDia = new Date().getDate()
+  const cobrosHoy = (customers || []).filter((c: any) => Number(c.custom_fields?.dia_cobro) === hoyDia)
 
   const firstName = userName?.split(' ')[0] || 'Usuario'
 
@@ -92,8 +111,9 @@ export default function DashboardPage() {
                 <TrendingUp className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
             </div>
-            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Ventas</p>
+            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Valor del pipeline</p>
             <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(safeMetrics.totalValue)}</div>
+            <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500 mt-1">Total de oportunidades abiertas</p>
           </CardContent>
         </Card>
 
@@ -107,8 +127,9 @@ export default function DashboardPage() {
                 {safeMetrics.totalDeals}
               </span>
             </div>
-            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Previsión</p>
+            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Previsto cerrar</p>
             <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(safeMetrics.weightedValue)}</div>
+            <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500 mt-1">Estimación por probabilidad</p>
           </CardContent>
         </Card>
 
@@ -119,8 +140,9 @@ export default function DashboardPage() {
                 <CheckCircle2 className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
             </div>
-            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Éxito</p>
+            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Tasa de cierre</p>
             <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white">{safeMetrics.conversionRate}%</div>
+            <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500 mt-1">{safeMetrics.wonDeals} ganadas de {safeMetrics.totalDeals}</p>
           </CardContent>
         </Card>
 
@@ -132,15 +154,40 @@ export default function DashboardPage() {
               </div>
               {overdueTasks.length > 0 && (
                 <span className="text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                  {overdueTasks.length}
+                  {overdueTasks.length} vencidas
                 </span>
               )}
             </div>
-            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Tareas</p>
+            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Tareas por hacer</p>
             <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white">{upcomingTasks.length}</div>
+            <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500 mt-1">{overdueTasks.length > 0 ? `${overdueTasks.length} atrasadas — ¡atención!` : 'Todo al día'}</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Widget cobros de hoy */}
+      {cobrosHoy.length > 0 && (
+        <Link href="/clients/activos" className="block">
+          <Card className="hover:shadow-xl transition-shadow border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-emerald-50/30 dark:from-green-900/20 dark:to-emerald-900/10">
+            <CardContent className="p-4 md:p-5 flex items-center gap-4">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                <Calendar className="h-6 w-6 md:h-7 md:w-7 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs md:text-sm font-semibold text-green-700 dark:text-green-300">💰 Cobros de hoy (día {hoyDia})</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
+                  {cobrosHoy.length} {cobrosHoy.length === 1 ? 'cliente' : 'clientes'}
+                </p>
+                <p className="text-[11px] md:text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
+                  {cobrosHoy.slice(0, 3).map((c: any) => c.name).join(' · ')}
+                  {cobrosHoy.length > 3 ? ` · y ${cobrosHoy.length - 3} más` : ''}
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">

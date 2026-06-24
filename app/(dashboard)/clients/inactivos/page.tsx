@@ -1,33 +1,78 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Users, DollarSign, Calendar, Clock, AlertTriangle, Loader2, CalendarCheck } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { useState, useDeferredValue, useMemo, useEffect } from 'react'
+import { Input } from '@/components/ui/input'
+import { Search, AlertTriangle, Loader2, ChevronUp, ChevronDown, ArrowUpDown, UserMinus } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getCompaniesWithStatus, type CompanyWithStatus, type CompaniesGrouped } from '@/lib/actions/clients'
-import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { useAllCompanies } from '@/lib/hooks/use-shared-data'
+import { filterInactiveCustomers } from '@/lib/counts'
 import { CompanyDetailModal } from '@/components/company-detail-modal'
+
+type SortField = 'name' | 'vat_number' | 'phone' | 'city'
+type SortDirection = 'asc' | 'desc' | null
 
 export default function ClientesInactivosPage() {
   const { workspaceId, loading: wsLoading } = useWorkspace()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const deferredSearch = useDeferredValue(searchQuery)
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
 
-  // Cached data - shares cache with main clients page
-  const { data, loading: dataLoading, error, refetch } = useCachedData<CompaniesGrouped>(
-    `clients-status-${workspaceId}`,
-    () => getCompaniesWithStatus(workspaceId),
-    [workspaceId],
-    { enabled: !!workspaceId }
+  // SHARED dataset (used by activos, inactivos, /clients, /metrics, etc.).
+  const { data: allCompanies, loading: dataLoading, refetch } = useAllCompanies()
+
+  // Force refetch on mount so the page always shows fresh numbers.
+  useEffect(() => {
+    if (workspaceId) refetch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId])
+
+  const initialLoading = wsLoading || (dataLoading && !allCompanies)
+  const isRevalidating = !!allCompanies && dataLoading
+
+  const inactives = useMemo(
+    () => filterInactiveCustomers(allCompanies || []),
+    [allCompanies],
   )
 
-  const companies = data?.overdue || []
+  const filtered = useMemo(() => {
+    if (!deferredSearch) return inactives
+    const q = deferredSearch.toLowerCase()
+    return inactives.filter((c: any) => {
+      const cf = c.custom_fields || {}
+      return [
+        c.name, c.vat_number, c.email, c.phone,
+        c.billing_address?.city, c.billing_address?.state,
+        cf.contacto, cf.codigo_cliente, cf.forma_pago,
+        cf.telefono_2, cf.email_2,
+      ].some(v => v?.toLowerCase().includes(q))
+    })
+  }, [inactives, deferredSearch])
 
-  // Overall loading - only block if no cached data
-  const loading = wsLoading || (dataLoading && !data)
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') setSortDirection('desc')
+      else if (sortDirection === 'desc') { setSortField(null); setSortDirection(null) }
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
 
-  if (loading) {
+  const sorted = useMemo(() => [...filtered].sort((a: any, b: any) => {
+    if (!sortField || !sortDirection) return 0
+    let valA = ''
+    let valB = ''
+    if (sortField === 'name') { valA = a.name || ''; valB = b.name || '' }
+    else if (sortField === 'vat_number') { valA = a.vat_number || ''; valB = b.vat_number || '' }
+    else if (sortField === 'phone') { valA = a.phone || ''; valB = b.phone || '' }
+    else if (sortField === 'city') { valA = a.billing_address?.city || ''; valB = b.billing_address?.city || '' }
+    const cmp = valA.localeCompare(valB, 'es', { sensitivity: 'base' })
+    return sortDirection === 'asc' ? cmp : -cmp
+  }), [filtered, sortField, sortDirection])
+
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -35,91 +80,118 @@ export default function ClientesInactivosPage() {
     )
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-sm text-red-400">Error al cargar clientes: {error}</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
           <AlertTriangle className="h-7 w-7 text-amber-500" /> Clientes Inactivos
+          {isRevalidating && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
         </h1>
-        <p className="text-xs md:text-sm text-gray-300 mt-1">{companies.length} clientes sin contacto en mas de 7 dias</p>
+        <p className="text-xs md:text-sm text-gray-300 mt-1">
+          {inactives.length} {inactives.length === 1 ? 'cliente marcado' : 'clientes marcados'} como inactivos
+          {isRevalidating && <span className="text-gray-500 ml-2">· actualizando...</span>}
+        </p>
       </div>
 
-      {companies.length > 0 && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 backdrop-blur-sm">
-          <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-amber-200">Accion requerida</p>
-            <p className="text-xs text-amber-300/80 mt-0.5">
-              Estos clientes llevan mas de 7 dias sin actividad. Contacta con ellos lo antes posible.
-            </p>
-          </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Buscar por nombre, NIF, email, teléfono, ciudad, contacto, código..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 dark:bg-white dark:border-gray-300 dark:text-gray-900 dark:placeholder:text-gray-400"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="rounded-xl border border-gray-700/30 overflow-hidden bg-[#0d1b2a]/60 backdrop-blur-sm">
+        <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2.5 bg-[#1b2838]/80 text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-700/30">
+          <button onClick={() => handleSort('name')} className="col-span-3 flex items-center gap-1 hover:text-white transition-colors">
+            Empresa
+            {sortField === 'name' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
+          <button onClick={() => handleSort('city')} className="col-span-2 flex items-center gap-1 hover:text-white transition-colors">
+            Población
+            {sortField === 'city' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
+          <button onClick={() => handleSort('phone')} className="col-span-2 flex items-center gap-1 hover:text-white transition-colors">
+            Teléfono
+            {sortField === 'phone' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
+          <div className="col-span-2">Contacto</div>
+          <div className="col-span-2">Email</div>
+          <button onClick={() => handleSort('vat_number')} className="col-span-1 flex items-center gap-1 hover:text-white transition-colors">
+            NIF
+            {sortField === 'vat_number' ? (sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+          </button>
         </div>
-      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        {companies.map((company) => (
-          <Card key={company.id} onClick={() => setSelectedId(company.id)} className="border-amber-300 dark:border-amber-700/50 hover:shadow-xl transition-all bg-amber-50/5 cursor-pointer">
-            <CardContent className="p-4 md:p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-lg shadow-lg flex-shrink-0">
-                    {company.name[0]}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">{company.name}</h3>
-                    <p className="text-xs text-gray-700 dark:text-gray-300 font-medium">{company.industry}</p>
-                  </div>
-                </div>
-                <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-[10px] flex-shrink-0">
-                  Inactivo
-                </Badge>
-              </div>
-              <div className="space-y-2 mb-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium"><Users className="h-3.5 w-3.5" /> Contactos</span>
-                  <span className="text-gray-900 dark:text-white font-bold">{company.contact_count}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium"><DollarSign className="h-3.5 w-3.5" /> Valor deals</span>
-                  <span className="text-gray-900 dark:text-white font-bold">{formatCurrency(company.total_deal_value)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold"><AlertTriangle className="h-3.5 w-3.5" /> Dias sin contacto</span>
-                  <span className="text-amber-600 dark:text-amber-400 font-bold">{company.days_since_activity ?? '?'}d</span>
-                </div>
-                {company.last_activity_date && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 font-medium"><Calendar className="h-3.5 w-3.5" /> Ultima actividad</span>
-                    <span className="text-gray-900 dark:text-white font-bold text-xs">
-                      {new Date(company.last_activity_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                    </span>
-                  </div>
-                )}
-              </div>
-              {company.contacts.length > 0 && (
-                <div className="flex items-center gap-1 pt-2 border-t border-amber-200 dark:border-amber-700/30">
-                  {company.contacts.slice(0, 4).map((c) => (
-                    <div key={c.id} className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-medium" title={`${c.first_name} ${c.last_name}`}>
-                      {c.first_name[0]}{c.last_name[0]}
+        {sorted.length === 0 ? (
+          <div className="text-center py-16">
+            {isRevalidating ? (
+              <>
+                <Loader2 className="h-8 w-8 text-amber-500 mx-auto mb-3 animate-spin" />
+                <p className="text-sm text-gray-400">Cargando clientes inactivos…</p>
+              </>
+            ) : (
+              <>
+                <UserMinus className="h-12 w-12 text-gray-600 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">
+                  {searchQuery
+                    ? 'No se encontraron resultados'
+                    : 'No hay clientes inactivos. Marca un cliente como inactivo desde su ficha.'}
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-700/20">
+            {sorted.map((client: any) => {
+              const cf = client.custom_fields || {}
+              return (
+                <div
+                  key={client.id}
+                  onClick={() => setSelectedId(client.id)}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-1 md:gap-2 px-4 py-2.5 cursor-pointer transition-colors group bg-amber-500/5 hover:bg-amber-500/10 border-l-4 border-l-amber-500/60"
+                >
+                  {/* Company */}
+                  <div className="col-span-3 flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 bg-gradient-to-br from-amber-500 to-orange-600">
+                      {client.name[0]}
                     </div>
-                  ))}
-                  {company.contacts.length > 4 && <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">+{company.contacts.length - 4}</span>}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white truncate group-hover:text-amber-400 transition-colors">{client.name}</p>
+                      {cf.codigo_cliente && <p className="text-[10px] text-gray-500">#{cf.codigo_cliente}</p>}
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 flex items-center">
+                    <span className="text-xs text-gray-300 truncate">{client.billing_address?.city || '—'}</span>
+                  </div>
+                  <div className="col-span-2 flex items-center">
+                    <span className="text-xs text-gray-300 truncate">{client.phone || '—'}</span>
+                  </div>
+                  <div className="col-span-2 flex items-center">
+                    <span className="text-xs text-gray-300 truncate">{cf.contacto || '—'}</span>
+                  </div>
+                  <div className="col-span-2 flex items-center">
+                    <span className="text-xs text-gray-300 truncate">{client.email || cf.email_2 || '—'}</span>
+                  </div>
+                  <div className="col-span-1 flex items-center">
+                    <span className="text-xs text-gray-400 truncate">{client.vat_number || '—'}</span>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+              )
+            })}
+          </div>
+        )}
       </div>
-      {companies.length === 0 && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No hay clientes inactivos. Todos estan al dia.</p>
+
+      {sorted.length > 0 && (
+        <p className="text-[10px] text-gray-500 text-center">
+          Mostrando {sorted.length} de {inactives.length} clientes inactivos
+        </p>
       )}
 
       {selectedId && (

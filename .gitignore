@@ -37,3 +37,11 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Android keystore (nunca commitear)
+*.keystore
+android/keystore.properties
+
+# Build artifacts pesados (no commitear)
+*.apk
+*.aab
