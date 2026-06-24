@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Informe de servicios — CRM Ofimatic Baix</title>
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 18mm 20mm 18mm;
+    @bottom-center {
+      content: "Página " counter(page) " de " counter(pages);
+      font-family: -apple-system, system-ui, sans-serif;
+      font-size: 9pt;
+      color: #888;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #1f2937;
+    background: #fff;
+  }
+  .cover {
+    page-break-after: always;
+    padding-top: 28mm;
+  }
+  .cover .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 36mm;
+  }
+  .cover .brand .mark {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 22pt;
+    letter-spacing: -1px;
+  }
+  .cover .brand .name {
+    font-size: 13pt;
+    font-weight: 600;
+    color: #1f2937;
+    letter-spacing: -0.2px;
+  }
+  .cover .brand .tagline {
+    font-size: 9.5pt;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  .cover h1 {
+    font-size: 28pt;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    line-height: 1.1;
+    color: #111827;
+    margin: 0 0 6mm 0;
+  }
+  .cover .subtitle {
+    font-size: 13pt;
+    color: #6b7280;
+    margin-bottom: 22mm;
+    max-width: 75%;
+    line-height: 1.4;
+  }
+  .cover .meta {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8mm;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6mm 12mm;
+    font-size: 10pt;
+  }
+  .cover .meta dt {
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-size: 8pt;
+    color: #9ca3af;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .cover .meta dd {
+    margin: 0;
+    color: #111827;
+    font-weight: 500;
+  }
+  .cover .footer-note {
+    position: absolute;
+    bottom: 25mm;
+    font-size: 8.5pt;
+    color: #9ca3af;
+    line-height: 1.4;
+  }
+
+  h1, h2, h3 {
+    color: #111827;
+    letter-spacing: -0.3px;
+  }
+  h2 {
+    font-size: 15pt;
+    margin-top: 10mm;
+    margin-bottom: 3mm;
+    padding-bottom: 2mm;
+    border-bottom: 2px solid #d97706;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt;
+    margin-top: 6mm;
+    margin-bottom: 2mm;
+    color: #b45309;
+    font-weight: 600;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 3mm 0; }
+  strong { color: #111827; font-weight: 600; }
+  em { color: #4b5563; }
+
+  ul, ol { margin: 2mm 0 4mm 0; padding-left: 5mm; }
+  li { margin-bottom: 1.5mm; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 3mm 0 5mm 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  table th {
+    text-align: left;
+    background: #f9fafb;
+    color: #374151;
+    font-weight: 600;
+    padding: 2mm 3mm;
+    border-bottom: 1.5px solid #d1d5db;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  table td {
+    padding: 2mm 3mm;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  table tr:last-child td { border-bottom: none; }
+
+  code {
+    font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 9pt;
+    background: #f3f4f6;
+    padding: 0.5mm 1.2mm;
+    border-radius: 2px;
+    color: #b45309;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 8mm 0;
+  }
+
+  .section { page-break-inside: avoid; }
+  .phase {
+    margin-bottom: 5mm;
+    page-break-inside: avoid;
+  }
+  .phase .motivo {
+    background: #fef3c7;
+    border-left: 3px solid #d97706;
+    padding: 2mm 3mm;
+    margin: 2mm 0 2mm 0;
+    font-size: 10pt;
+    color: #78350f;
+  }
+  .phase .motivo strong { color: #78350f; }
+
+  .footer-doc {
+    margin-top: 10mm;
+    padding-top: 4mm;
+    border-top: 1px solid #e5e7eb;
+    font-size: 8.5pt;
+    color: #6b7280;
+    font-style: italic;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="cover">
+  <div class="brand">
+    <div class="mark">O</div>
+    <div>
+      <div class="name">Ofimatic Baix S.L.</div>
+      <div class="tagline">Servicios de desarrollo de software</div>
+    </div>
+  </div>
+
+  <h1>Informe de servicios<br>de desarrollo</h1>
+  <div class="subtitle">CRM Ofimatic Baix — plataforma SaaS<br>de gestión comercial multi-empresa</div>
+
+  <dl class="meta">
+    <div><dt>Destinatario</dt><dd>Ofimatic Baix S.L.</dd></div>
+    <div><dt>Periodo cubierto</dt><dd>9 marzo – 15 abril 2026</dd></div>
+    <div><dt>Versión entregada</dt><dd>1.0 (producción)</dd></div>
+    <div><dt>Documento emitido</dt><dd>18 de mayo de 2026</dd></div>
+    <div><dt>Entregas de código</dt><dd>140 commits</dd></div>
+    <div><dt>Fases funcionales</dt><dd>13</dd></div>
+  </dl>
+
+  <div class="footer-note">
+    Documento generado a partir del historial de control de versiones del repositorio
+    <code>crm-ai-native</code> y del estado del proyecto a 15 de abril de 2026.<br>
+    Dirección técnica: Alex Saumell · a.saumellortuno98@gmail.com
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="section">
+<h2>1. Resumen ejecutivo</h2>
+<p>Durante el periodo del 9 de marzo al 15 de abril de 2026 se ha diseñado, desarrollado y desplegado en producción la <strong>versión 1.0 del CRM Ofimatic Baix</strong>, un sistema de gestión comercial multi-empresa pensado para pymes españolas. El sistema cubre la totalidad del ciclo comercial: captación de leads, cualificación de prospectos, gestión de clientes activos, oportunidades de venta, actividades de seguimiento, visitas presenciales con geolocalización, importación masiva de datos heredados, y notificaciones nativas en móvil.</p>
+
+<p>El proyecto se ha llevado a cabo aplicando una arquitectura SaaS moderna sobre infraestructura serverless (Vercel) y base de datos PostgreSQL gestionada (Supabase), con aislamiento estricto de datos entre empresas mediante seguridad a nivel de fila (RLS) y un sistema de planes de suscripción con límites configurables. Adicionalmente se ha empaquetado la aplicación como <strong>aplicación Android nativa</strong> mediante Capacitor, firmada y lista para distribución.</p>
+
+<p>A lo largo del periodo se han registrado <strong>140 entregas de código</strong> organizadas en <strong>trece fases funcionales</strong>, descritas en detalle a continuación. El producto resultante está actualmente en producción en <code>crm-ofimaticbaix.vercel.app</code> y es la herramienta de gestión comercial utilizada por Ofimatic Baix.</p>
+</section>
+
+<!-- 2 -->
+<section class="section">
+<h2>2. Arquitectura y stack tecnológico</h2>
+<table>
+<thead><tr><th style="width:18%">Capa</th><th style="width:32%">Tecnología</th><th>Justificación</th></tr></thead>
+<tbody>
+<tr><td>Frontend</td><td>Next.js 16 + React 19 + TypeScript estricto + Tailwind CSS</td><td>Stack de referencia 2026 para SaaS; máxima velocidad y mantenibilidad.</td></tr>
+<tr><td>Backend</td><td>Server Actions de Next.js</td><td>Sin servidor dedicado: reducción de superficie de mantenimiento.</td></tr>
+<tr><td>Base de datos</td><td>Supabase PostgreSQL con Row-Level Security</td><td>Aislamiento de datos garantizado a nivel de motor, no de aplicación.</td></tr>
+<tr><td>Autenticación</td><td>Supabase Auth con onboarding automático</td><td>Alta de usuario crea su espacio, plan de prueba y pipeline por defecto.</td></tr>
+<tr><td>Pagos</td><td>Stripe Checkout + Billing Portal</td><td>Estándar de mercado, certificación PCI delegada.</td></tr>
+<tr><td>Inteligencia artificial</td><td>Anthropic Claude vía API propia</td><td>Asistente conversacional embebido (acceso Ctrl+K).</td></tr>
+<tr><td>Observabilidad</td><td>Sentry (errores) + PostHog (analítica)</td><td>Detección proactiva y métricas de uso por empresa cliente.</td></tr>
+<tr><td>Móvil</td><td>Capacitor 8 (Android)</td><td>App nativa firmada con notificaciones push locales.</td></tr>
+<tr><td>Despliegue</td><td>Vercel</td><td>Despliegues automáticos por push; sin gestión de infraestructura.</td></tr>
+</tbody>
+</table>
+</section>
+
+<!-- 3 -->
+<section>
+<h2>3. Fases del proyecto</h2>
+
+<div class="phase">
+<h3>Fase 1 — Fundación técnica y diseño visual (9 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> establecer una base sólida sobre la que iterar rápido durante las semanas siguientes, evitando deuda técnica desde el día uno.</div>
+<ul>
+<li>Inicialización del proyecto en Next.js 16 con TypeScript estricto y Tailwind CSS.</li>
+<li>Diseño del esquema de base de datos PostgreSQL completo (16+ tablas).</li>
+<li>Sistema de tipos TypeScript generados a partir del esquema.</li>
+<li>Castellanización completa de la interfaz (etapas, lifecycle, mensajes de error).</li>
+<li>Diseño visual con efecto glassmorphism, soporte dark/light mode y branding inicial.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 2 — Interfaz inicial y módulos visuales (10 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> validar la propuesta de valor visual antes de conectar a BD real, asegurando que el producto se sintiera moderno frente a Salesforce/HubSpot.</div>
+<ul>
+<li>Rediseño completo del sidebar y dashboard (estilo minimalista tecnológico).</li>
+<li>Página de configuración con persistencia en localStorage.</li>
+<li>Optimización responsive móvil profesional (varias iteraciones).</li>
+<li>Modales de creación: empresas, contactos, oportunidades, tareas.</li>
+<li>Versión inicial de importación inteligente desde CSV/Excel.</li>
+<li>Sub-páginas de clientes: activos, atrasados, cerrados.</li>
+<li>KPIs en sidebar, página de métricas dedicada y mini-calendario interactivo.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 3 — Backend real, autenticación y multi-tenancy (11–12 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> pasar de prototipo con datos simulados a sistema multi-empresa real con autenticación segura y aislamiento garantizado entre clientes.</div>
+<ul>
+<li>Integración completa con Supabase Auth: registro, login, middleware de protección.</li>
+<li>Páginas de login y signup con diseño SaaS profesional (glassmorphism + logo Ofimatic Baix).</li>
+<li>Server Actions CRUD para contactos, empresas, oportunidades, pipeline y actividades.</li>
+<li>Sistema multi-empresa (workspaces) con roles: propietario, administrador, miembro.</li>
+<li>Onboarding automático: alta crea espacio, plan de prueba 14 días, pipeline + 7 etapas.</li>
+<li>Panel super-admin para gestión global de suscripciones.</li>
+<li>Correos privilegiados que ignoran restricciones de suscripción (Ofimatic Baix).</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 4 — Geolocalización, mapas y visitas comerciales (13 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> dotar al equipo comercial de Ofimatic Baix de herramientas en campo para planificación de rutas y registro de visitas.</div>
+<ul>
+<li>Geocodificación automática vía OpenStreetMap/Nominatim con expansión de abreviaturas españolas (c/, ctra., pol., etc.) y cinco estrategias de reintento.</li>
+<li>Tabla <code>visits</code> con check-in/out georreferenciados (lat, lon, dirección).</li>
+<li>Tipos de visita: presencial, videollamada, llamada. Resultado: positivo, neutral, negativo, no show.</li>
+<li>Duración calculada automáticamente en BD.</li>
+<li>Tabla <code>routes</code> para planificación de rutas con múltiples empresas.</li>
+<li>Página de mapa interactivo (Leaflet) con marcadores geocodificados.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 5 — Webhooks e integraciones externas (13 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> permitir conectar el CRM con sistemas externos del cliente (n8n, ERPs, sistemas contables) sin polling manual.</div>
+<ul>
+<li>Webhooks salientes configurables por empresa cliente.</li>
+<li>Eventos: alta/modificación/baja de contactos, empresas, oportunidades y tareas; ganancia/pérdida/cambio de etapa; finalización de tarea.</li>
+<li>Implementación robusta vía triggers PostgreSQL con <code>pg_net</code>: entrega garantizada aunque la web esté caída.</li>
+<li>Logs auditables (<code>webhook_logs</code>) con código, cuerpo y duración; retención últimas 100 entradas por webhook.</li>
+<li>Claves de API SHA-256 para consumidores externos.</li>
+<li>API REST pública v1 (contactos, empresas, oportunidades).</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 6 — Rendimiento y experiencia de navegación (13 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> que la herramienta se percibiera tan rápida como Linear o Notion, no como un CRM tradicional.</div>
+<ul>
+<li>Carga consolidada del contexto de espacio de trabajo en una sola consulta.</li>
+<li>Caché cliente con invalidación selectiva en todas las páginas del dashboard.</li>
+<li>Prefetching de rutas al pasar el cursor por la navegación.</li>
+<li>Resultado: cambios de página percibidos &lt; 100 ms tras la primera carga.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 7 — Formularios completos, calendario y manual de usuario (13–14 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> llevar la captura de datos a nivel comercial y dotar al cliente final de documentación para autonomía.</div>
+<ul>
+<li>Formularios completos de creación/edición de empresas y contactos.</li>
+<li>Edición de tareas; corrección del bug de zona horaria del calendario.</li>
+<li>"Días sin contacto" calculado con fecha real de finalización de actividad.</li>
+<li>Clasificación automática mejorada (activo / atrasado / cerrado).</li>
+<li><strong>Manual de usuario completo en español</strong> para clientes finales.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 8 — Importación inteligente avanzada (24 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> las pymes españolas llegan al CRM con datos en Excel, Access o exportaciones de ERPs antiguos. Sin importación robusta, no hay adopción.</div>
+<ul>
+<li>Asistente de seis pasos: subida → detección → mapeo → limpieza → validación → inserción.</li>
+<li>Formatos soportados: CSV, XLSX, XLS, MDB/ACCDB, JSON.</li>
+<li>Detección inteligente de cabeceras en Excel con filas de título.</li>
+<li>Auto-mapeo de columnas en tres capas: exacto, substring, patrón en valores.</li>
+<li><strong>Perfiles de importación reutilizables</strong> (guarda el mapeo).</li>
+<li>Limpiadores por tipo: emails, teléfonos (corrige flotantes Excel), NIF/CIF, fechas (DD/MM/YYYY, seriales Excel), números formato europeo.</li>
+<li>Tres estrategias de deduplicación: omitir, actualizar, importar igualmente.</li>
+<li>Detección de duplicados por NIF, email o nombre con normalización Unicode.</li>
+<li>Página dedicada de <strong>Clientes Potenciales</strong>.</li>
+<li>Procesado por lotes de 50 con barra de progreso y descarga de errores en CSV.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 9 — Unificación de Clientes y vinculación automática (24 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> los datos importados tenían contactos y empresas separados. Restablecer relaciones manualmente habría sido inviable.</div>
+<ul>
+<li>Unificación de navegación: Contactos + Empresas agrupados bajo <strong>Clientes</strong>.</li>
+<li><strong>Algoritmo de vinculación automática</strong> con seis estrategias en cascada: nombre exacto, nombre parcial, email exacto, dominio de email, teléfono, coincidencia parcial.</li>
+<li>API interna <code>/api/internal/fix-contacts</code> para diagnóstico y corrección masiva.</li>
+<li>Recreación de contactos desde empresas para relaciones rotas.</li>
+<li>Restauración de empresas eliminadas por error.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 10 — Detalle de cliente y panel único (24 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> el flujo original obligaba a abrir varias páginas para ver un cliente; el cliente final solicitó vista 360° en un solo lugar.</div>
+<ul>
+<li>Rediseño como <strong>panel único</strong> con todos los datos visibles.</li>
+<li>Vinculación inline de contactos desde el propio panel.</li>
+<li>Edición in situ sin modal aparte.</li>
+<li>Campos solicitados expresamente: Población, Provincia, CIF, Código cliente, Forma de pago, Persona de contacto, Email 2-5, Teléfono secundario.</li>
+<li>Botones de registro rápido (llamada, reunión, email, nota) con nota inline.</li>
+<li>Confirmación visual "Registrado" tras cada acción.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 11 — Vista general, navegación y experiencia de tablas (24 marzo)</h3>
+<div class="motivo"><strong>Motivo:</strong> con cientos de clientes cargados, navegar y ordenar la información se volvió la prioridad de uso diario.</div>
+<ul>
+<li>Vista General con fondo azul marino translúcido y buscador blanco contrastado.</li>
+<li><strong>Cabeceras de columna ordenables</strong> (asc / desc / sin orden) en todas las tablas.</li>
+<li>Empresas ordenadas alfabéticamente por defecto.</li>
+<li>Corrección de errores HTTP "Bad Request" en consultas grandes mediante división en lotes (máx. 200 por lote).</li>
+<li>Click en fila completa abre el detalle; modal robusto frente a clicks neutros.</li>
+<li>Sidebar reorganizado: Contactos y Empresas elevados al menú principal.</li>
+<li>Límite de consulta elevado a 2.000 registros por defecto.</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 12 — Observabilidad y formularios de contacto (1–2 abril)</h3>
+<div class="motivo"><strong>Motivo:</strong> preparar el sistema para producción real exige detección proactiva de errores y métricas reales.</div>
+<ul>
+<li>Integración completa de <strong>Sentry</strong> (errores + rendimiento) con DSN configurado y rutas tunelizadas (<code>/monitoring</code>).</li>
+<li>Integración de <strong>PostHog</strong> (instancia europea, conforme con RGPD) para analítica de producto.</li>
+<li>Edición inline en panel de detalle de empresa (eliminación del modal aparte).</li>
+<li>Crear contacto directamente desde el panel de empresa.</li>
+<li>Rediseño del formulario de contacto con iconos, etiquetas y campo LinkedIn.</li>
+<li>Unificación visual de formularios: notas, indicador de decisor, diseño coherente.</li>
+<li>"Forma de pago" como desplegable con métodos B2B comunes (transferencia, domiciliación, pagaré, contado, confirming, etc.).</li>
+</ul>
+</div>
+
+<div class="phase">
+<h3>Fase 13 — Sobrevuelo pre-demo, Android y notificaciones (15 abril)</h3>
+<div class="motivo"><strong>Motivo:</strong> preparar la demo comercial y entregar aplicación móvil real lista para distribución.</div>
+<ul>
+<li>Pulido de UX general en todas las páginas del dashboard.</li>
+<li><strong>Drag-and-drop del pipeline</strong> con <code>@dnd-kit</code>, optimizado para escritorio (PointerSensor) y móvil (TouchSensor, umbral 6 px).</li>
+<li>Acciones rápidas "Ganado / Perdido" en cada oportunidad.</li>
+<li>Mejora del flujo de cambios de etapa del ciclo de vida del cliente.</li>
+<li><strong>Aplicación Android nativa</strong> con Capacitor 8, firmada con keystore propio (<code>CRM-Ofimatic-v1.0.apk</code>, app id <code>com.ofimaticbaix.crm</code>).</li>
+<li>Sistema de <strong>notificaciones unificado</strong>: Web Notifications en navegador, <code>@capacitor/local-notifications</code> en APK.</li>
+<li>Memoria anti-spam con limpieza automática a los 7 días.</li>
+<li>Campanilla de notificaciones con buckets temporales (vencidas, &lt; 1h, hoy, mañana, semana, después).</li>
+<li>Banner superior de alertas de tareas urgentes con descarte por sesión.</li>
+<li>Sonido de alerta generado por Web Audio API (sin archivos externos).</li>
+</ul>
+</div>
+</section>
+
+<!-- 4 -->
+<section class="section">
+<h2>4. Documentación complementaria entregada</h2>
+<p>Además del código fuente y la base de datos en producción, se han entregado:</p>
+<ul>
+<li><code>README.md</code> — documentación técnica para el equipo de desarrollo.</li>
+<li><code>IMPLEMENTATION.md</code> — historial de fases técnicas con estado.</li>
+<li><code>DEMO-READY.md</code> y <code>DEMO-SCRIPT.md</code> — guion comercial de demo de 8 a 12 minutos con respuestas preparadas a nueve preguntas difíciles.</li>
+<li><code>LEEME-MAÑANA.md</code> — checklist operativo previo a presentación comercial.</li>
+<li><strong><code>docs/MANUAL_USUARIO_CRM.md</code></strong> — manual de usuario completo en español para clientes finales sin formación técnica.</li>
+</ul>
+</section>
+
+<!-- 5 -->
+<section class="section">
+<h2>5. Estado actual y próximos pasos sugeridos</h2>
+<p><strong>Producción:</strong> la versión 1.0 está desplegada y operativa en <code>crm-ofimaticbaix.vercel.app</code>. La aplicación Android v1.0 está firmada y lista para distribuir.</p>
+<p><strong>Áreas identificadas para próximas fases</strong> (no incluidas en este periodo):</p>
+<ol>
+<li>Conexión efectiva con Stripe en modo <em>live</em> (integración ya implementada en <em>test</em>).</li>
+<li>Activación de envío transaccional de correo mediante Resend (dependencia prevista, falta cableado).</li>
+<li>Programador de trabajos en segundo plano con Trigger.dev (recordatorios automáticos, sincronizaciones nocturnas).</li>
+<li>Módulo de facturas: tabla <code>invoices</code> y la importación ya están en BD; falta interfaz de gestión.</li>
+<li>Asignación de oportunidades y tareas a miembros del equipo (columna en BD, falta exposición en UI).</li>
+<li>Timeline unificado de actividad por cliente.</li>
+</ol>
+</section>
+
+<!-- 6 -->
+<section class="section">
+<h2>6. Resumen cuantitativo</h2>
+<table>
+<thead><tr><th>Métrica</th><th>Valor</th></tr></thead>
+<tbody>
+<tr><td>Periodo de desarrollo</td><td>9 marzo – 15 abril 2026 (≈ 5,5 semanas)</td></tr>
+<tr><td>Entregas de código (commits)</td><td>140</td></tr>
+<tr><td>Fases funcionales</td><td>13</td></tr>
+<tr><td>Tablas de base de datos diseñadas</td><td>25+</td></tr>
+<tr><td>Migraciones SQL aplicadas</td><td>11</td></tr>
+<tr><td>Acciones de servidor implementadas</td><td>≈ 4.500 líneas en 18 módulos</td></tr>
+<tr><td>Páginas de aplicación entregadas</td><td>15 (dashboard) + 4 (auth/admin) + 9 endpoints API</td></tr>
+<tr><td>Plataformas de despliegue</td><td>Web (Vercel) + Android (APK firmada)</td></tr>
+<tr><td>Integraciones externas</td><td>Supabase, Stripe, Anthropic Claude, Sentry, PostHog, OpenStreetMap, Capacitor</td></tr>
+</tbody>
+</table>
+</section>
+
+<div class="footer-doc">
+Documento generado a partir del historial de control de versiones del repositorio <code>crm-ai-native</code> y del estado del proyecto a 15 de abril de 2026.<br>
+Emisor: Ofimatic Baix S.L. · Dirección técnica: Alex Saumell · a.saumellortuno98@gmail.com
+</div>
+
+</body>
+</html>

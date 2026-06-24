@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Informe de funcionalidades — CRM Ofimatic</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 18mm 18mm;
+    @bottom-center {
+      content: "Página " counter(page) " de " counter(pages);
+      font-family: -apple-system, system-ui, sans-serif;
+      font-size: 9pt;
+      color: #888;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 10pt;
+    line-height: 1.5;
+    color: #1f2937;
+    background: #fff;
+  }
+
+  /* Header brand */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 5mm;
+    border-bottom: 2px solid #d97706;
+    margin-bottom: 7mm;
+  }
+  .header .mark {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 18pt;
+  }
+  .header .title-block { flex: 1; }
+  .header .name { font-size: 12pt; font-weight: 600; color: #1f2937; line-height: 1.2; }
+  .header .doc { font-size: 9pt; color: #6b7280; margin-top: 1px; }
+  .header .meta { text-align: right; font-size: 8.5pt; color: #6b7280; line-height: 1.4; }
+  .header .meta strong { color: #1f2937; }
+
+  /* Document title */
+  h1 {
+    font-size: 22pt;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #111827;
+    margin: 0 0 3mm 0;
+    line-height: 1.15;
+  }
+  .subtitle {
+    font-size: 11pt;
+    color: #6b7280;
+    margin-bottom: 8mm;
+    font-weight: 400;
+  }
+
+  h2 {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #111827;
+    margin: 9mm 0 3mm 0;
+    padding-bottom: 1.5mm;
+    border-bottom: 1.5px solid #d97706;
+    letter-spacing: -0.2px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #b45309;
+    margin: 5mm 0 2mm 0;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 3mm 0; text-align: justify; hyphens: auto; }
+  strong { color: #111827; font-weight: 600; }
+  em { color: #4b5563; }
+
+  ul, ol { margin: 2mm 0 4mm 0; padding-left: 5mm; }
+  li { margin-bottom: 1.5mm; }
+
+  .module {
+    margin-bottom: 4mm;
+    page-break-inside: avoid;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 3mm 0 5mm 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+  table th {
+    text-align: left;
+    background: #fef3c7;
+    color: #78350f;
+    font-weight: 700;
+    padding: 2mm 3mm;
+    border-bottom: 1.5px solid #d97706;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  table td {
+    padding: 2mm 3mm;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  table tr:last-child td { border-bottom: none; }
+  table td:first-child { font-weight: 600; color: #111827; }
+
+  code {
+    font-family: "SF Mono", Menlo, Monaco, monospace;
+    font-size: 9pt;
+    background: #f3f4f6;
+    padding: 0.5mm 1.2mm;
+    border-radius: 2px;
+    color: #b45309;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 8mm 0;
+  }
+
+  .footer {
+    margin-top: 8mm;
+    padding-top: 3mm;
+    border-top: 1px solid #e5e7eb;
+    font-size: 8pt;
+    color: #9ca3af;
+    text-align: center;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="mark">O</div>
+  <div class="title-block">
+    <div class="name">CRM Ofimatic Baix</div>
+    <div class="doc">Informe de funcionalidades</div>
+  </div>
+  <div class="meta">
+    <strong>Versión 1.0 en producción</strong><br>
+    crm-ofimaticbaix.vercel.app<br>
+    18 de mayo de 2026
+  </div>
+</div>
+
+<h1>Plataforma de gestión<br>comercial para pymes</h1>
+<div class="subtitle">Informe descriptivo de las funcionalidades en producción, basado en inspección directa de la aplicación desplegada.</div>
+
+<h2>Visión del producto</h2>
+<p>CRM Ofimatic es una plataforma de gestión comercial diseñada específicamente para pymes y equipos de venta españoles. Combina la facilidad de uso de herramientas modernas como Notion o Linear con la profundidad funcional de un CRM tradicional, eliminando las dos barreras habituales del sector: la curva de aprendizaje y el coste por usuario.</p>
+<p>La plataforma está construida sobre una <strong>arquitectura multi-empresa real</strong> con aislamiento de datos a nivel de base de datos, planes de suscripción configurables y una versión móvil nativa Android lista para distribuir. Cubre el ciclo comercial completo: captación, cualificación, gestión de cuentas, oportunidades, actividades, métricas e integraciones con sistemas externos.</p>
+
+<h2>Módulos en producción</h2>
+
+<div class="module">
+<h3>1. Panel de control</h3>
+<p>Vista 360° del negocio en una sola pantalla. Reúne en tiempo real:</p>
+<ul>
+<li>Indicadores clave de rendimiento (valor del pipeline, forecast ponderado, tasa de conversión).</li>
+<li>Tareas pendientes del usuario agrupadas por urgencia (vencidas, hoy, próximas).</li>
+<li>Oportunidades que cierran esta semana.</li>
+<li>Calendario interactivo mensual con creación de tareas <em>in situ</em>.</li>
+<li>Línea temporal con la actividad reciente del equipo.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>2. Gestión de contactos y empresas</h3>
+<p>Sistema unificado bajo la sección <strong>Clientes</strong> que sustituye a las pantallas separadas de contactos y empresas habituales en CRMs tradicionales.</p>
+<ul>
+<li>Vista general con tabla ordenable por todas las columnas, búsqueda en tiempo real y filtros por estado.</li>
+<li>Sub-secciones de clientes <strong>activos</strong>, <strong>inactivos</strong> y <strong>cerrados</strong> con clasificación automática.</li>
+<li>Sistema de <strong>etiquetas de color</strong> (al día, VIP, revisar) con ordenación visual inmediata.</li>
+<li>Vinculación automática de contactos a empresas mediante seis estrategias en cascada.</li>
+<li>Panel de detalle unificado con edición <em>inline</em> sin abrir modales: NIF, código de cliente, dirección completa, forma de pago, hasta cinco emails y dos teléfonos por empresa.</li>
+<li><strong>Registro rápido de actividad</strong> con un clic: llamada, reunión, email o nota con observación opcional y confirmación visual inmediata.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>3. Captación de leads (clientes potenciales)</h3>
+<ul>
+<li>Sección dedicada a la prospección comercial, separada de los clientes activos.</li>
+<li>Importación independiente para listados que aún no son clientes.</li>
+<li>Sistema de etiquetas visuales para priorizar seguimiento.</li>
+<li>Migración a cliente activo con un único cambio de estado, conservando el histórico.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>4. Pipeline de oportunidades</h3>
+<p>Tablero <strong>kanban</strong> profesional con vista alternativa de lista.</p>
+<ul>
+<li>Etapas personalizables por empresa (siete por defecto: Prospecto, Contactado, Cualificado, Propuesta, Negociación, Ganado, Perdido).</li>
+<li><strong>Drag-and-drop</strong> funcional en escritorio y móvil (umbral táctil de 6 px para evitar arrastres accidentales).</li>
+<li>Acciones rápidas "Ganado / Perdido" en cada tarjeta.</li>
+<li>Tarjetas con valor, empresa, contactos, fecha de cierre prevista e indicadores visuales de riesgo por inactividad.</li>
+<li>Estadísticas por etapa: número de oportunidades y valor total acumulado.</li>
+<li>Cálculo automático de <strong>pipeline ponderado</strong> (valor × probabilidad) para forecast comercial.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>5. Tareas, calendario e historial</h3>
+<ul>
+<li>Tareas vinculadas a contactos, empresas u oportunidades concretas.</li>
+<li>Vista de calendario con detalle por día y creación rápida sin salir de pantalla.</li>
+<li>Niveles de prioridad (Alta, Media, Baja) y destacado visual de tareas vencidas.</li>
+<li><strong>Historial de tareas completadas</strong> independiente, para revisión y auditoría.</li>
+<li>Alertas urgentes en cabecera y campanilla de notificaciones con clasificación temporal (vencidas, &lt; 1 h, hoy, mañana, semana).</li>
+<li>Notificaciones nativas en la aplicación Android.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>6. Mapa comercial y geolocalización</h3>
+<p>Pensado para equipos comerciales en campo.</p>
+<ul>
+<li>Mapa interactivo con todas las empresas geolocalizadas como marcadores.</li>
+<li>Geocodificación automática a partir de la dirección postal con corrección de abreviaturas españolas (c/, ctra., pol., etc.).</li>
+<li><strong>Registro de visitas comerciales</strong> con check-in y check-out georreferenciados.</li>
+<li>Tipos de visita: presencial, videollamada, llamada.</li>
+<li>Resultado estructurado por visita: positivo, neutral, negativo, no show, con próximos pasos.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>7. Métricas y reporting</h3>
+<p>Cuadro de mando ejecutivo con visión consolidada del negocio.</p>
+<ul>
+<li>KPIs en tiempo real: pipeline total, forecast ponderado, tasa de conversión, deals ganados/perdidos.</li>
+<li>Análisis por etapa del embudo.</li>
+<li>Estado del ciclo de vida de contactos (lead → prospecto → cliente).</li>
+<li>Distribución de actividad por tipo (llamadas, reuniones, emails, notas).</li>
+<li>Estadísticas de tareas pendientes y vencidas.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>8. Importación de datos</h3>
+<p>Herramienta diferenciadora frente a CRMs tradicionales, especialmente importante para pymes que migran desde Excel o sistemas heredados.</p>
+<ul>
+<li>Asistente guiado de <strong>seis pasos</strong>: subida → detección → mapeo → limpieza → validación → inserción.</li>
+<li>Formatos soportados: <strong>CSV, Excel (XLSX/XLS), Microsoft Access (MDB/ACCDB) y JSON</strong>.</li>
+<li>Detección inteligente de cabeceras en Excel con filas de título previas.</li>
+<li><strong>Auto-mapeo de columnas</strong> con tres niveles: exacto, parcial y detección por patrón de valores.</li>
+<li><strong>Perfiles reutilizables</strong>: el mapeo se guarda para futuras importaciones.</li>
+<li>Limpieza automática por tipo de campo: emails, teléfonos, NIF/CIF, fechas, números en formato europeo.</li>
+<li>Tres estrategias de deduplicación: omitir, actualizar o importar igualmente.</li>
+<li>Procesado por lotes con barra de progreso en tiempo real y descarga de errores en CSV.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>9. Configuración y administración</h3>
+<ul>
+<li>Datos de la empresa y personalización de marca (logotipo, color de fondo, subtítulo de la aplicación).</li>
+<li>Gestión del equipo: invitación de usuarios con roles diferenciados (propietario, administrador, miembro).</li>
+<li>Suscripción y facturación con conexión directa al portal de cliente de Stripe.</li>
+<li><strong>Gestión de claves de API</strong> SHA-256 para integraciones externas.</li>
+<li><strong>Webhooks salientes</strong> configurables por evento (alta/modificación/baja de contactos, empresas, oportunidades, tareas; ganancia/pérdida/cambio de etapa).</li>
+</ul>
+</div>
+
+<h2>Capacidades transversales</h2>
+
+<div class="module">
+<h3>Seguridad y cumplimiento</h3>
+<ul>
+<li>Datos alojados íntegramente en infraestructura europea (Supabase, eu-west).</li>
+<li><strong>Aislamiento de datos por empresa garantizado a nivel de motor de base de datos</strong> mediante Row-Level Security.</li>
+<li>Cifrado en tránsito (HTTPS) y en reposo.</li>
+<li>Trazabilidad de cambios y registro de auditoría.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>Movilidad</h3>
+<ul>
+<li><strong>Aplicación Android nativa</strong> firmada con keystore propio, disponible para distribución directa.</li>
+<li>Sistema unificado de notificaciones: navegador en escritorio, notificaciones locales nativas en Android, con memoria anti-duplicados.</li>
+<li>Interfaz totalmente <em>responsive</em>: kanban, tablas y modales adaptados a viewport móvil sin pérdida de funcionalidad.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>Integraciones</h3>
+<ul>
+<li><strong>API REST pública v1</strong> con endpoints para contactos, empresas y oportunidades, autenticada con claves SHA-256.</li>
+<li><strong>Webhooks salientes</strong> desencadenados desde la propia base de datos (independientes de la disponibilidad de la web), con logs de respuesta y duración por evento.</li>
+<li>Compatible con plataformas de automatización tipo n8n, Zapier o similares.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>Asistente conversacional integrado</h3>
+<ul>
+<li>Chat de IA embebido (atajo de teclado <strong>Ctrl + K</strong>) impulsado por Claude de Anthropic.</li>
+<li>Respuestas en <em>streaming</em> en tiempo real, ancladas al contexto del workspace del usuario.</li>
+</ul>
+</div>
+
+<div class="module">
+<h3>Experiencia de usuario</h3>
+<ul>
+<li>Diseño visual moderno con efecto <em>glassmorphism</em>, modo claro y oscuro.</li>
+<li>Navegación con prefetching de rutas: cambios de página por debajo de 100 ms tras la primera carga.</li>
+<li>Caché cliente con invalidación selectiva en todas las páginas.</li>
+<li>Mensajes de error y validación 100 % en español, redactados para usuarios no técnicos.</li>
+<li>Manual de usuario en español incluido como parte del producto.</li>
+</ul>
+</div>
+
+<div class="footer">
+Documento descriptivo basado en inspección directa de la versión en producción a fecha 18 de mayo de 2026 · Ofimatic Baix S.L.
+</div>
+
+</body>
+</html>

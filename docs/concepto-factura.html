@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Concepto para factura — CRM Ofimatic Baix</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 18mm 16mm 18mm;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 10pt;
+    line-height: 1.5;
+    color: #1f2937;
+    background: #fff;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 6mm;
+    border-bottom: 2px solid #d97706;
+    margin-bottom: 7mm;
+  }
+  .header .mark {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 16pt;
+  }
+  .header .title-block { flex: 1; }
+  .header .name {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.2;
+  }
+  .header .doc {
+    font-size: 9pt;
+    color: #6b7280;
+    margin-top: 1px;
+  }
+  .header .meta {
+    text-align: right;
+    font-size: 8.5pt;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+  .header .meta strong { color: #1f2937; }
+
+  /* Document title */
+  h1 {
+    font-size: 16pt;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #111827;
+    margin: 0 0 5mm 0;
+  }
+  h1 .small {
+    display: block;
+    font-size: 10pt;
+    font-weight: 500;
+    color: #6b7280;
+    margin-top: 1mm;
+  }
+
+  /* Options */
+  .option {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-left: 3px solid #d97706;
+    border-radius: 4px;
+    padding: 5mm 6mm;
+    margin-bottom: 6mm;
+  }
+  .option .label {
+    display: inline-block;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: #b45309;
+    text-transform: uppercase;
+    margin-bottom: 2mm;
+  }
+  .option h2 {
+    font-size: 11.5pt;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 3mm 0;
+  }
+  .option p {
+    margin: 0 0 2mm 0;
+    text-align: justify;
+    hyphens: auto;
+  }
+  .option ul {
+    margin: 2mm 0 0 0;
+    padding-left: 5mm;
+  }
+  .option li {
+    margin-bottom: 1.2mm;
+  }
+  .option .concept-line {
+    font-weight: 600;
+    margin-bottom: 2mm;
+  }
+  .option .concept-line span {
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 5mm;
+    padding-top: 3mm;
+    border-top: 1px solid #e5e7eb;
+    font-size: 8pt;
+    color: #9ca3af;
+    text-align: center;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="mark">O</div>
+  <div class="title-block">
+    <div class="name">Ofimatic Baix S.L.</div>
+    <div class="doc">Concepto para factura</div>
+  </div>
+  <div class="meta">
+    <strong>CRM Ofimatic Baix v1.0</strong><br>
+    Periodo: 9 marzo – 15 abril 2026
+  </div>
+</div>
+
+<h1>Concepto para facturación
+  <span class="small">Dos redacciones del mismo servicio. Utiliza la que mejor encaje en tu plantilla.</span>
+</h1>
+
+<!-- Opción A -->
+<div class="option">
+  <span class="label">Opción A · línea única</span>
+  <h2>Versión compacta (1 párrafo)</h2>
+  <p>Diseño, desarrollo y despliegue en producción del <strong>CRM Ofimatic Baix v1.0</strong> — plataforma SaaS de gestión comercial multi-empresa: arquitectura multi-tenant sobre Next.js 16 y Supabase con aislamiento por RLS; autenticación, planes de suscripción y panel de administración; módulos de contactos, empresas, oportunidades con pipeline kanban, tareas y calendario; sistema de importación inteligente desde CSV/Excel/Access con auto-mapeo, deduplicación y limpieza; geolocalización de empresas con mapa y registro de visitas comerciales; webhooks salientes y API REST pública v1 con claves de API; integraciones con Stripe, Anthropic Claude, Sentry y PostHog; aplicación Android nativa firmada vía Capacitor con notificaciones; despliegue en Vercel y manual de usuario en español.</p>
+</div>
+
+<!-- Opción B -->
+<div class="option">
+  <span class="label">Opción B · concepto + desglose</span>
+  <h2>Versión desglosada (con bullets)</h2>
+  <p class="concept-line">Concepto: <span>Desarrollo e implantación del CRM Ofimatic Baix v1.0</span></p>
+  <p style="margin-bottom: 2mm;"><strong>Incluye:</strong></p>
+  <ul>
+    <li>Arquitectura multi-empresa Next.js 16 + Supabase PostgreSQL con seguridad a nivel de fila (RLS).</li>
+    <li>Autenticación, onboarding automático y panel de administración global.</li>
+    <li>Módulos: contactos, empresas, oportunidades (pipeline kanban con drag-and-drop), tareas y calendario interactivo.</li>
+    <li>Importación inteligente desde CSV, Excel y Access con auto-mapeo, deduplicación y perfiles reutilizables.</li>
+    <li>Geolocalización de empresas, mapa interactivo y registro de visitas comerciales con check-in.</li>
+    <li>Webhooks salientes vía triggers de base de datos y API REST pública v1 con claves de API.</li>
+    <li>Integración de pagos (Stripe), asistente IA (Anthropic Claude) y observabilidad (Sentry, PostHog).</li>
+    <li>Aplicación Android nativa firmada (Capacitor) con sistema de notificaciones unificado.</li>
+    <li>Diseño responsive con modo claro/oscuro, manual de usuario en español y despliegue en Vercel.</li>
+  </ul>
+</div>
+
+<div class="footer">
+  Documento generado a partir del estado del proyecto <code>crm-ai-native</code> a 15 de abril de 2026.<br>
+  Ofimatic Baix S.L. · Dirección técnica: Alex Saumell · a.saumellortuno98@gmail.com
+</div>
+
+</body>
+</html>
