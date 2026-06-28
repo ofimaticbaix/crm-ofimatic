@@ -12,7 +12,7 @@
 **✅ Project Initialization**
 - [x] Next.js 16 project with App Router
 - [x] TypeScript strict mode configured
-- [x] Tailwind CSS 4.2 configured
+- [x] Tailwind CSS 3.4 configured
 - [x] ESLint setup
 - [x] Project folder structure created
 
@@ -142,7 +142,7 @@ crm-ai-native/
 | **Frontend** | Next.js 16 | ✅ Installed |
 | | React 19 | ✅ Installed |
 | | TypeScript 5.9 | ✅ Configured |
-| | Tailwind CSS 4.2 | ✅ Configured |
+| | Tailwind CSS 3.4 | ✅ Configured |
 | | shadcn/ui | ⏳ To install |
 | **Backend** | Next.js Server Actions | ✅ Ready |
 | | Supabase PostgreSQL | ⏳ To configure |

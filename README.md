@@ -11,7 +11,7 @@ Un CRM moderno diseñado para SMEs, agencias y equipos de ventas que necesitan:
 
 ## 🚀 Stack Tecnológico
 
-- **Frontend:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui
 - **Backend:** Next.js Server Actions, TypeScript
 - **Database:** Supabase PostgreSQL + Row-Level Security
 - **Auth:** Supabase Auth
@@ -105,7 +105,7 @@ crm-ai-native/
 ### V1 (MVP - 12 semanas)
 - [x] Project setup
 - [x] Auth flow
-- [ ] Core entities (Contacts, Companies, Deals)
+- [x] Core entities (Contacts, Companies, Deals)
 - [ ] Tasks & Activities
 - [ ] Dashboard
 - [ ] Import/Export
