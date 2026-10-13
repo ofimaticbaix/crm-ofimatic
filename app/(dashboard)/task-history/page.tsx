@@ -5,7 +5,7 @@ import { createPortal, flushSync } from 'react-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { History, Search, Download, PhoneCall, Users as UsersIcon, Mail, StickyNote, CheckCircle2, Loader2, Printer, Building2, Trash2, MapPin, Pencil, Check, X } from 'lucide-react'
+import { History, Search, Download, PhoneCall, Users as UsersIcon, Mail, StickyNote, CheckCircle2, Loader2, Printer, Building2, Trash2, MapPin, Pencil, Check, X, ChevronDown } from 'lucide-react'
 import { useWorkspace } from '@/lib/context/workspace-context'
 import { getActivities, updateActivity } from '@/lib/actions/activities'
 import { deleteTask } from '@/lib/actions/tasks'
@@ -23,7 +23,19 @@ const TYPE_META: Record<string, { icon: any; label: string; color: string; bg: s
   task:    { icon: CheckCircle2,label: 'Tarea',    color: 'text-gray-500',   bg: 'bg-gray-100 dark:bg-gray-800' },
 }
 
-type PrintScope = 'month' | 'semester' | 'year'
+type Half = 1 | 2
+
+type PrintScope =
+  | { kind: 'month' }
+  | { kind: 'semester'; year: number; half: Half }
+  | { kind: 'year' }
+
+const SEMESTERS: Record<Half, { from: number; to: number; range: string }> = {
+  1: { from: 0, to: 5, range: 'Enero – Junio' },
+  2: { from: 6, to: 11, range: 'Julio – Diciembre' },
+}
+
+const semesterName = (half: Half, year: number) => `${half === 1 ? '1er' : '2º'} semestre ${year}`
 
 const matchesSearch = (a: any, search: string) => {
   if (!search) return true
@@ -40,7 +52,7 @@ export default function TaskHistoryPage() {
   const [year, setYear] = useState<number>(now.getFullYear())
   const [month, setMonth] = useState<number | 'all'>(now.getMonth())
   const [search, setSearch] = useState('')
-  const [printScope, setPrintScope] = useState<PrintScope>('month')
+  const [printScope, setPrintScope] = useState<PrintScope>({ kind: 'month' })
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -116,13 +128,13 @@ export default function TaskHistoryPage() {
     refetch()
   }
 
-  // Completadas del año seleccionado entre dos meses (incluidos) + texto
-  const completedBetween = (fromMonth: number, toMonth: number) =>
+  // Completadas de un año entre dos meses (incluidos) + texto
+  const completedBetween = (fromMonth: number, toMonth: number, inYear: number = year) =>
     (activities || [])
       .filter((a: any) => {
         if (!a.is_completed || !a.completed_at) return false
         const d = new Date(a.completed_at)
-        return d.getFullYear() === year && d.getMonth() >= fromMonth && d.getMonth() <= toMonth && matchesSearch(a, search)
+        return d.getFullYear() === inYear && d.getMonth() >= fromMonth && d.getMonth() <= toMonth && matchesSearch(a, search)
       })
       .sort(byCompletedDesc)
 
@@ -132,20 +144,33 @@ export default function TaskHistoryPage() {
     [activities, year, month, search]
   )
 
-  // Semestre: el del mes seleccionado (o el actual si se ven todos los meses)
-  const firstHalf = (month === 'all' ? now.getMonth() : month) < 6
-  const semesterLabel = `${firstHalf ? '1er' : '2º'} semestre ${year}`
+  const years = useMemo(() => {
+    const set = new Set<number>()
+    set.add(now.getFullYear())
+    ;(activities || []).forEach((a: any) => {
+      if (a.completed_at) set.add(new Date(a.completed_at).getFullYear())
+    })
+    return Array.from(set).sort((a, b) => b - a)
+  }, [activities])
+
+  // Semestres ya empezados (del más reciente al más antiguo) para el
+  // desplegable del PDF semestral, con su nº de tareas.
+  const semesters = useMemo(
+    () => years.flatMap(y => ([2, 1] as const)
+      .filter(half => y < now.getFullYear() || half === 1 || now.getMonth() >= 6)
+      .map(half => ({ year: y, half, count: completedBetween(SEMESTERS[half].from, SEMESTERS[half].to, y).length }))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [years, activities, search]
+  )
 
   // Contenido del informe impreso según el botón pulsado
   const report = useMemo(() => {
-    if (printScope === 'semester') {
-      return {
-        label: `${semesterLabel} (${firstHalf ? 'Enero – Junio' : 'Julio – Diciembre'})`,
-        items: firstHalf ? completedBetween(0, 5) : completedBetween(6, 11),
-        multiMonth: true,
-      }
+    if (printScope.kind === 'semester') {
+      const { year: y, half } = printScope
+      const s = SEMESTERS[half]
+      return { label: `${semesterName(half, y)} (${s.range})`, items: completedBetween(s.from, s.to, y), multiMonth: true }
     }
-    if (printScope === 'year') {
+    if (printScope.kind === 'year') {
       return { label: `Año ${year}`, items: completedBetween(0, 11), multiMonth: true }
     }
     return {
@@ -155,15 +180,6 @@ export default function TaskHistoryPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printScope, activities, year, month, search, filtered])
-
-  const years = useMemo(() => {
-    const set = new Set<number>()
-    set.add(now.getFullYear())
-    ;(activities || []).forEach((a: any) => {
-      if (a.completed_at) set.add(new Date(a.completed_at).getFullYear())
-    })
-    return Array.from(set).sort((a, b) => b - a)
-  }, [activities])
 
   // Stats
   const stats = useMemo(() => {
@@ -256,15 +272,33 @@ export default function TaskHistoryPage() {
 
       {/* Botones de descarga */}
       <div className="flex flex-wrap gap-2 no-print">
-        <Button onClick={() => printReport('month')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
+        <Button onClick={() => printReport({ kind: 'month' })} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
           <Download className="h-4 w-4 mr-2" />
           PDF Mensual ({month === 'all' ? 'todos' : MONTHS[month as number]} {year})
         </Button>
-        <Button onClick={() => printReport('semester')} variant="outline" className="rounded-xl">
-          <Download className="h-4 w-4 mr-2" />
-          PDF Semestral ({semesterLabel})
-        </Button>
-        <Button onClick={() => printReport('year')} variant="outline" className="rounded-xl">
+        {/* Desplegable: al elegir un semestre se imprime solo ese semestre.
+            value fijo a "" para que vuelva a "PDF Semestral…" tras cada uso. */}
+        <div className="relative">
+          <Download className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-900 dark:text-white" />
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <select
+            value=""
+            onChange={(e) => {
+              const [y, half] = e.target.value.split('-').map(Number)
+              if (y && (half === 1 || half === 2)) printReport({ kind: 'semester', year: y, half })
+            }}
+            aria-label="PDF Semestral: elige el semestre a descargar"
+            className="h-10 w-[12.5rem] appearance-none cursor-pointer rounded-xl border border-input bg-background pl-10 pr-9 text-sm font-medium text-gray-900 dark:text-white hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <option value="" disabled>PDF Semestral…</option>
+            {semesters.map(s => (
+              <option key={`${s.year}-${s.half}`} value={`${s.year}-${s.half}`}>
+                {semesterName(s.half, s.year)} ({SEMESTERS[s.half].range}) · {s.count} {s.count === 1 ? 'tarea' : 'tareas'}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button onClick={() => printReport({ kind: 'year' })} variant="outline" className="rounded-xl">
           <Download className="h-4 w-4 mr-2" />
           PDF Anual ({year})
         </Button>
