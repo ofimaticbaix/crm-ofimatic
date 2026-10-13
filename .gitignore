@@ -45,3 +45,6 @@ android/keystore.properties
 # Build artifacts pesados (no commitear)
 *.apk
 *.aab
+
+# Playwright MCP snapshots/screenshots (may contain client data)
+.playwright-mcp/
