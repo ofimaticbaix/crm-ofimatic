@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { createPortal, flushSync } from 'react-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,13 +23,26 @@ const TYPE_META: Record<string, { icon: any; label: string; color: string; bg: s
   task:    { icon: CheckCircle2,label: 'Tarea',    color: 'text-gray-500',   bg: 'bg-gray-100 dark:bg-gray-800' },
 }
 
+type PrintScope = 'month' | 'semester' | 'year'
+
+const matchesSearch = (a: any, search: string) => {
+  if (!search) return true
+  const q = search.toLowerCase()
+  return [a.subject, a.description, a.companies?.name, a.contacts?.first_name, a.contacts?.last_name]
+    .some((v: any) => v?.toLowerCase().includes(q))
+}
+
+const byCompletedDesc = (a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime()
+
 export default function TaskHistoryPage() {
   const { workspaceId, workspaceName, loading: wsLoading } = useWorkspace()
   const now = new Date()
   const [year, setYear] = useState<number>(now.getFullYear())
   const [month, setMonth] = useState<number | 'all'>(now.getMonth())
   const [search, setSearch] = useState('')
-  const printRef = useRef<HTMLDivElement>(null)
+  const [printScope, setPrintScope] = useState<PrintScope>('month')
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const { data: activities, loading, refetch } = useCachedData<any[]>(
     `activities-completed-${workspaceId}`,
@@ -102,22 +116,45 @@ export default function TaskHistoryPage() {
     refetch()
   }
 
-  // Filtrar: completadas + por año/mes/texto
-  const filtered = useMemo(() => {
-    const list = (activities || []).filter(a => a.is_completed && a.completed_at)
-    return list.filter((a: any) => {
-      const d = new Date(a.completed_at)
-      if (d.getFullYear() !== year) return false
-      if (month !== 'all' && d.getMonth() !== month) return false
-      if (search) {
-        const q = search.toLowerCase()
-        const hay = [a.subject, a.description, a.companies?.name, a.contacts?.first_name, a.contacts?.last_name]
-          .some((v: any) => v?.toLowerCase().includes(q))
-        if (!hay) return false
+  // Completadas del año seleccionado entre dos meses (incluidos) + texto
+  const completedBetween = (fromMonth: number, toMonth: number) =>
+    (activities || [])
+      .filter((a: any) => {
+        if (!a.is_completed || !a.completed_at) return false
+        const d = new Date(a.completed_at)
+        return d.getFullYear() === year && d.getMonth() >= fromMonth && d.getMonth() <= toMonth && matchesSearch(a, search)
+      })
+      .sort(byCompletedDesc)
+
+  const filtered = useMemo(
+    () => (month === 'all' ? completedBetween(0, 11) : completedBetween(month, month)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activities, year, month, search]
+  )
+
+  // Semestre: el del mes seleccionado (o el actual si se ven todos los meses)
+  const firstHalf = (month === 'all' ? now.getMonth() : month) < 6
+  const semesterLabel = `${firstHalf ? '1er' : '2º'} semestre ${year}`
+
+  // Contenido del informe impreso según el botón pulsado
+  const report = useMemo(() => {
+    if (printScope === 'semester') {
+      return {
+        label: `${semesterLabel} (${firstHalf ? 'Enero – Junio' : 'Julio – Diciembre'})`,
+        items: firstHalf ? completedBetween(0, 5) : completedBetween(6, 11),
+        multiMonth: true,
       }
-      return true
-    }).sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
-  }, [activities, year, month, search])
+    }
+    if (printScope === 'year') {
+      return { label: `Año ${year}`, items: completedBetween(0, 11), multiMonth: true }
+    }
+    return {
+      label: month === 'all' ? `Año ${year}` : `${MONTHS[month]} ${year}`,
+      items: filtered,
+      multiMonth: month === 'all',
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [printScope, activities, year, month, search, filtered])
 
   const years = useMemo(() => {
     const set = new Set<number>()
@@ -142,51 +179,41 @@ export default function TaskHistoryPage() {
     return { byType, topCompanies, total: filtered.length }
   }, [filtered])
 
-  const printReport = (scope: 'month' | 'semester' | 'year') => {
-    // Ajusta filtros según alcance y usa window.print()
-    if (scope === 'month') {
-      // mantiene filtro actual
-    } else if (scope === 'semester') {
-      // H1 (ene-jun) o H2 (jul-dic) según mes actual seleccionado
-      const h1 = month === 'all' ? (now.getMonth() < 6 ? 'h1' : 'h2') : ((month as number) < 6 ? 'h1' : 'h2')
-      // No cambiamos el state, usamos rango al imprimir
-      const rangeMonth = h1 === 'h1' ? [0,5] : [6,11]
-      document.body.dataset.printScope = `semester:${rangeMonth.join('-')}`
-    } else if (scope === 'year') {
-      document.body.dataset.printScope = 'year'
-    }
-    setTimeout(() => {
-      window.print()
-      delete document.body.dataset.printScope
-    }, 100)
+  // El informe vive en un portal directo en <body>: así no lo recortan los
+  // contenedores con scroll del layout (h-screen + overflow) y el navegador
+  // puede paginarlo entero. flushSync garantiza que el DOM ya refleja el
+  // periodo elegido antes de abrir el diálogo de impresión.
+  const printReport = (scope: PrintScope) => {
+    flushSync(() => setPrintScope(scope))
+    window.print()
   }
-
-  // Cálculo especial para lista en impresión (semester/year)
-  const printFiltered = useMemo(() => {
-    const list = (activities || []).filter(a => a.is_completed && a.completed_at)
-    return list.filter((a: any) => {
-      const d = new Date(a.completed_at)
-      return d.getFullYear() === year
-    }).sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
-  }, [activities, year])
 
   if (wsLoading || loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
   }
 
   return (
-    <div className="space-y-5 bg-[#0a1628]/80 backdrop-blur-sm rounded-2xl p-5 print:bg-white print:p-0">
+    <div className="space-y-5 bg-[#0a1628]/80 backdrop-blur-sm rounded-2xl p-5">
       <style jsx global>{`
         @media print {
-          body { background: white !important; }
-          body * { visibility: hidden; }
-          #printable, #printable * { visibility: visible; }
-          #printable { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
+          @page { margin: 12mm; }
+          html, body { background: white !important; height: auto !important; overflow: visible !important; }
+          body > *:not(#task-history-report) { display: none !important; }
+          #task-history-report { display: block !important; }
         }
-        .print-only { display: none; }
+        #task-history-report { display: none; }
       `}</style>
+
+      {mounted && createPortal(
+        <TaskHistoryReport
+          workspaceName={workspaceName || 'CRM'}
+          periodLabel={report.label}
+          items={report.items}
+          groupByMonth={report.multiMonth}
+          search={search}
+        />,
+        document.body
+      )}
 
       {/* Header no-print */}
       <div className="no-print">
@@ -235,7 +262,7 @@ export default function TaskHistoryPage() {
         </Button>
         <Button onClick={() => printReport('semester')} variant="outline" className="rounded-xl">
           <Download className="h-4 w-4 mr-2" />
-          PDF Semestral
+          PDF Semestral ({semesterLabel})
         </Button>
         <Button onClick={() => printReport('year')} variant="outline" className="rounded-xl">
           <Download className="h-4 w-4 mr-2" />
@@ -283,21 +310,8 @@ export default function TaskHistoryPage() {
         </Card>
       )}
 
-      {/* Lista de tareas (vista normal y print) */}
-      <div id="printable">
-        {/* Cabecera solo print */}
-        <div className="print-only mb-4">
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#ea580c', borderBottom: '3px solid #fb923c', paddingBottom: '8px' }}>
-            Historial de Tareas · {workspaceName || 'CRM'}
-          </h1>
-          <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-            Periodo: {month === 'all' ? `Año ${year}` : `${MONTHS[month as number]} ${year}`} · Generado el {new Date().toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}
-          </p>
-          <p style={{ fontSize: '14px', fontWeight: 600, marginTop: '8px' }}>
-            Total: {filtered.length} {filtered.length === 1 ? 'tarea' : 'tareas'}
-          </p>
-        </div>
-
+      {/* Lista de tareas (vista en pantalla; el PDF usa TaskHistoryReport) */}
+      <div>
         <Card>
           <CardContent className="p-0">
             {filtered.length === 0 ? (
@@ -317,8 +331,8 @@ export default function TaskHistoryPage() {
                   const isEditingDate = editingDateId === a.id
                   const isSavingDate = savingDateId === a.id
                   return (
-                    <div key={a.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/30 print:py-2 print:break-inside-avoid">
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.bg} print:!bg-transparent print:border print:border-gray-300`}>
+                    <div key={a.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.bg}`}>
                         <Icon className={`h-4 w-4 ${meta.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -341,7 +355,7 @@ export default function TaskHistoryPage() {
                           <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">{a.subject}</p>
                         )}
                         {a.description && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 print:line-clamp-none">{a.description}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{a.description}</p>
                         )}
                       </div>
 
@@ -386,11 +400,6 @@ export default function TaskHistoryPage() {
                           <p className="text-[10px] text-gray-500">{d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
                         </button>
                       )}
-                      {/* Fecha (versión print, no editable) */}
-                      <div className="text-right flex-shrink-0 hidden print:block">
-                        <p className="text-xs font-medium">{d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
-                        <p className="text-[10px] text-gray-500">{d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
-                      </div>
 
                       <button
                         onClick={() => handleDeleteTask(a.id)}
@@ -408,6 +417,94 @@ export default function TaskHistoryPage() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  )
+}
+
+// Informe imprimible (PDF). Solo visible al imprimir; fondo blanco y sin
+// variantes dark para que salga igual con cualquier tema.
+function TaskHistoryReport({ workspaceName, periodLabel, items, groupByMonth, search }: {
+  workspaceName: string
+  periodLabel: string
+  items: any[]
+  groupByMonth: boolean
+  search: string
+}) {
+  const byType: Record<string, number> = {}
+  items.forEach((a: any) => { byType[a.type] = (byType[a.type] || 0) + 1 })
+
+  // Grupos por mes (items ya vienen ordenados de más reciente a más antiguo)
+  const groups: { key: string; label: string; items: any[] }[] = []
+  for (const a of items) {
+    const d = new Date(a.completed_at)
+    const key = groupByMonth ? `${d.getFullYear()}-${d.getMonth()}` : 'all'
+    let group = groups[groups.length - 1]
+    if (!group || group.key !== key) {
+      group = { key, label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`, items: [] }
+      groups.push(group)
+    }
+    group.items.push(a)
+  }
+
+  return (
+    <div id="task-history-report" className="bg-white text-gray-900 text-xs">
+      <h1 className="text-2xl font-extrabold text-orange-600 border-b-[3px] border-orange-400 pb-2">
+        Historial de Tareas · {workspaceName}
+      </h1>
+      <p className="text-gray-500 mt-1">
+        Periodo: {periodLabel} · Generado el {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+        {search && <> · Filtro: «{search}»</>}
+      </p>
+      <p className="text-sm font-semibold mt-2">
+        Total: {items.length} {items.length === 1 ? 'tarea' : 'tareas'}
+        {items.length > 0 && (
+          <span className="font-normal text-gray-600">
+            {' · '}
+            {(['call', 'meeting', 'email', 'note', 'task'] as const)
+              .filter(t => byType[t])
+              .map(t => `${TYPE_META[t].label}: ${byType[t]}`)
+              .join(' · ')}
+          </span>
+        )}
+      </p>
+
+      {items.length === 0 ? (
+        <p className="mt-6 text-gray-500">No hay tareas completadas en este periodo.</p>
+      ) : (
+        groups.map(group => (
+          <section key={group.key} className="mt-4">
+            {groupByMonth && (
+              <h2 className="text-sm font-bold text-gray-800 border-b border-gray-300 pb-1 mb-1 break-after-avoid">
+                {group.label} <span className="font-normal text-gray-500">· {group.items.length} {group.items.length === 1 ? 'tarea' : 'tareas'}</span>
+              </h2>
+            )}
+            {group.items.map((a: any) => {
+              const meta = TYPE_META[a.type] || TYPE_META.task
+              const d = new Date(a.completed_at)
+              const ba = a.companies?.billing_address || {}
+              const location = [ba.city, ba.state].filter(Boolean).join(', ')
+              return (
+                <div key={a.id} className="flex items-start gap-3 py-1.5 border-b border-gray-200 break-inside-avoid">
+                  <div className="w-14 flex-shrink-0">
+                    <p className="font-medium">{d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                    <p className="text-[10px] text-gray-500">{d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p>
+                      <span className="font-semibold">{meta.label}</span>
+                      {a.companies?.name && <span className="text-gray-700"> · {a.companies.name}</span>}
+                      {location && <span className="text-gray-500 italic"> · {location}</span>}
+                      {a.contacts && <span className="text-gray-500"> · {a.contacts.first_name} {a.contacts.last_name}</span>}
+                    </p>
+                    {a.subject && a.subject !== meta.label && <p className="text-gray-700 mt-0.5">{a.subject}</p>}
+                    {a.description && <p className="text-gray-600 mt-0.5 whitespace-pre-line">{a.description}</p>}
+                  </div>
+                </div>
+              )
+            })}
+          </section>
+        ))
+      )}
     </div>
   )
 }
