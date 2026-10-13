@@ -8,23 +8,17 @@ import { Button } from '@/components/ui/button'
 import { TrendingUp, Users, Building2, Target, CheckCircle2, Clock, Calendar, ChevronLeft, ChevronRight, X, Plus, Loader2 } from 'lucide-react'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { useWorkspace } from '@/lib/context/workspace-context'
-import { getTasks, getDashboardMetrics, createTask } from '@/lib/actions/tasks'
+import { getTasks, createTask } from '@/lib/actions/tasks'
 import { getDeals } from '@/lib/actions/deals'
 import { getActivities } from '@/lib/actions/activities'
 import { getCompanies } from '@/lib/actions/companies'
 import { useCachedData } from '@/lib/hooks/use-cached-data'
+import { countDeals } from '@/lib/counts'
 
 export default function DashboardPage() {
   const { workspaceId, userName, loading: wsLoading } = useWorkspace()
 
   // Cached data - loads instantly if cached
-  const { data: metrics } = useCachedData(
-    `dashboard-metrics-${workspaceId}`,
-    () => getDashboardMetrics(workspaceId),
-    [workspaceId],
-    { enabled: !!workspaceId, staleTime: 30000 }
-  )
-
   const { data: tasks, loading: tasksLoading, refetch: refetchTasks } = useCachedData<any[]>(
     `dashboard-tasks-${workspaceId}`,
     () => getTasks(workspaceId, { onlyPending: true }),
@@ -56,16 +50,10 @@ export default function DashboardPage() {
   // Overall loading - only block if no cached data
   const loading = wsLoading || (tasksLoading && !tasks)
 
-  const rawMetrics: any = metrics || {}
-  const safeMetrics = {
-    totalValue: Number(rawMetrics.totalValue) || 0,
-    weightedValue: Number(rawMetrics.weightedValue) || 0,
-    conversionRate: Number(rawMetrics.conversionRate) || 0,
-    totalDeals: Number(rawMetrics.totalDeals) || 0,
-    wonDeals: Number(rawMetrics.wonDeals) || 0,
-    contactCount: Number(rawMetrics.contactCount) || 0,
-    companyCount: Number(rawMetrics.companyCount) || 0,
-  }
+  // Same shared helper as /metrics so both pages always agree. Pipeline and
+  // forecast only count open deals; won/lost ones are already closed.
+  const dealCounts = countDeals(deals || [])
+  const conversionRate = dealCounts.total > 0 ? Math.round((dealCounts.closedWon / dealCounts.total) * 100) : 0
   const upcomingTasks = (tasks || []).filter(t => !t.is_completed).slice(0, 5)
   const recentActivity = (activities || []).slice(0, 5)
   const closingThisWeek = (deals || []).filter(d => {
@@ -112,7 +100,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Valor del pipeline</p>
-            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(safeMetrics.totalValue)}</div>
+            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(dealCounts.openValue)}</div>
             <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500 mt-1">Total de oportunidades abiertas</p>
           </CardContent>
         </Card>
@@ -124,11 +112,11 @@ export default function DashboardPage() {
                 <Target className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
               <span className="text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                {safeMetrics.totalDeals}
+                {dealCounts.open}
               </span>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Previsto cerrar</p>
-            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(safeMetrics.weightedValue)}</div>
+            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatCurrency(dealCounts.weightedValue)}</div>
             <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500 mt-1">Estimación por probabilidad</p>
           </CardContent>
         </Card>
@@ -141,8 +129,8 @@ export default function DashboardPage() {
               </div>
             </div>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 mb-1">Tasa de cierre</p>
-            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white">{safeMetrics.conversionRate}%</div>
-            <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500 mt-1">{safeMetrics.wonDeals} ganadas de {safeMetrics.totalDeals}</p>
+            <div className="text-base md:text-3xl font-bold text-gray-900 dark:text-white">{conversionRate}%</div>
+            <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500 mt-1">{dealCounts.closedWon} ganadas de {dealCounts.total}</p>
           </CardContent>
         </Card>
 
