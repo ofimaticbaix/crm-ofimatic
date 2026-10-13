@@ -277,10 +277,13 @@ export default function TaskHistoryPage() {
           PDF Mensual ({month === 'all' ? 'todos' : MONTHS[month as number]} {year})
         </Button>
         {/* Desplegable: al elegir un semestre se imprime solo ese semestre.
-            value fijo a "" para que vuelva a "PDF Semestral…" tras cada uso. */}
-        <div className="relative">
-          <Download className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-900 dark:text-white" />
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            El texto visible es un label normal (ancho según su contenido, nunca
+            se corta) y el <select> nativo va encima, transparente. value fijo a
+            "" para que se pueda volver a elegir tras cada uso. */}
+        <div className="relative inline-flex h-10 items-center gap-2 rounded-xl border border-input bg-background px-4 text-sm font-medium text-gray-900 dark:text-white hover:bg-accent transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+          <Download className="h-4 w-4" />
+          <span className="whitespace-nowrap">PDF Semestral (elegir semestre)</span>
+          <ChevronDown className="h-4 w-4 text-gray-500" />
           <select
             value=""
             onChange={(e) => {
@@ -288,9 +291,9 @@ export default function TaskHistoryPage() {
               if (y && (half === 1 || half === 2)) printReport({ kind: 'semester', year: y, half })
             }}
             aria-label="PDF Semestral: elige el semestre a descargar"
-            className="h-10 w-[12.5rem] appearance-none cursor-pointer rounded-xl border border-input bg-background pl-10 pr-9 text-sm font-medium text-gray-900 dark:text-white hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none"
           >
-            <option value="" disabled>PDF Semestral…</option>
+            <option value="" disabled>Elige el semestre…</option>
             {semesters.map(s => (
               <option key={`${s.year}-${s.half}`} value={`${s.year}-${s.half}`}>
                 {semesterName(s.half, s.year)} ({SEMESTERS[s.half].range}) · {s.count} {s.count === 1 ? 'tarea' : 'tareas'}
